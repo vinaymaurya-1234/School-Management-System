@@ -4,9 +4,12 @@ import {
   CalendarDays,
   ClipboardCheck,
   CreditCard,
+  FileText,
   GraduationCap,
   LayoutDashboard,
   LogOut,
+  Megaphone,
+  ReceiptIndianRupee,
   Settings,
   Users,
   X,
@@ -18,46 +21,64 @@ import { hasPermission } from '../../config/accessControl'
 const menuByRole = {
   principal: [
     ['Dashboard', '/dashboard/principal', LayoutDashboard, 'dashboard.view'],
-    ['Students', '#', Users, 'students.manage'],
-    ['Teachers', '#', GraduationCap, 'teachers.manage'],
-    ['Classes', '#', BookOpen, 'classes.manage'],
-    ['Timetable', '#', CalendarDays, 'timetable.manage'],
-    ['Attendance', '#', ClipboardCheck, 'attendance.manage'],
-    ['Fees', '#', CreditCard, 'fees.manage'],
-    ['Reports', '#', BarChart3, 'reports.view'],
+    ['Students', '/module/students', Users, 'students.manage'],
+    ['Teachers', '/module/teachers', GraduationCap, 'teachers.manage'],
+    ['Classes & Sections', '/module/classes', BookOpen, 'classes.manage'],
+    ['Subjects', '/module/subjects', BookOpen, 'subjects.manage'],
+    ['Timetable', '/module/timetable', CalendarDays, 'timetable.manage'],
+    ['Attendance', '/module/attendance', ClipboardCheck, 'attendance.manage'],
+    ['Fees & Payments', '/module/fees', CreditCard, 'fees.manage'],
+    ['Exams & Results', '/module/exams', FileText, 'exams.manage'],
+    ['Reports', '/module/reports', BarChart3, 'reports.view'],
+    ['Notices', '/module/notices', Megaphone, 'notices.manage'],
+    ['Events', '/module/events', CalendarDays, 'events.manage'],
+    ['Payroll', '/module/payroll', ReceiptIndianRupee, 'payroll.manage'],
   ],
   teacher: [
     ['Dashboard', '/dashboard/teacher', LayoutDashboard, 'dashboard.view'],
-    ['My Classes', '#', BookOpen, 'classes.view.assigned'],
-    ['My Students', '#', Users, 'students.view.assigned'],
-    ['Timetable', '#', CalendarDays, 'timetable.view.assigned'],
-    ['Attendance', '#', ClipboardCheck, 'attendance.manage.assigned'],
-    ['Assignments', '#', BookOpen, 'assignments.manage.assigned'],
-    ['Exams & Marks', '#', BarChart3, 'exams.manage.assigned'],
+    ['My Classes', '/module/my-classes', BookOpen, 'classes.view.assigned'],
+    ['My Students', '/module/my-students', Users, 'students.view.assigned'],
+    ['Timetable', '/module/timetable', CalendarDays, 'timetable.view.assigned'],
+    ['Attendance', '/module/attendance', ClipboardCheck, 'attendance.manage.assigned'],
+    ['Assignments', '/module/assignments', FileText, 'assignments.manage.assigned'],
+    ['Exams & Marks', '/module/exams', BarChart3, 'exams.manage.assigned'],
+    ['Notices', '/module/notices', Megaphone, 'notices.view'],
+    ['Events', '/module/events', CalendarDays, 'events.view'],
+    ['My Profile', '/module/profile', Settings, 'profile.manage.own'],
   ],
   student: [
     ['Dashboard', '/dashboard/student', LayoutDashboard, 'dashboard.view'],
-    ['Timetable', '#', CalendarDays, 'timetable.view.own'],
-    ['Attendance', '#', ClipboardCheck, 'attendance.view.own'],
-    ['Assignments', '#', BookOpen, 'assignments.view.own'],
-    ['Exams', '#', BarChart3, 'exams.view.own'],
-    ['Results', '#', GraduationCap, 'results.view.own'],
+    ['Timetable', '/module/timetable', CalendarDays, 'timetable.view.own'],
+    ['Attendance', '/module/attendance', ClipboardCheck, 'attendance.view.own'],
+    ['Assignments', '/module/assignments', FileText, 'assignments.view.own'],
+    ['Exams', '/module/exams', BarChart3, 'exams.view.own'],
+    ['Results', '/module/results', GraduationCap, 'results.view.own'],
+    ['Fees', '/module/fees', CreditCard, 'fees.view.own'],
+    ['Notices', '/module/notices', Megaphone, 'notices.view'],
+    ['Events', '/module/events', CalendarDays, 'events.view'],
+    ['My Profile', '/module/profile', Settings, 'profile.manage.own'],
   ],
   parent: [
     ['Dashboard', '/dashboard/parent', LayoutDashboard, 'dashboard.view'],
-    ['My Children', '#', Users, 'children.view.own'],
-    ['Attendance', '#', ClipboardCheck, 'attendance.view.children'],
-    ['Assignments', '#', BookOpen, 'assignments.view.children'],
-    ['Exams & Results', '#', BarChart3, 'results.view.children'],
-    ['Fees', '#', CreditCard, 'fees.view.children'],
+    ['My Children', '/module/children', Users, 'children.view.own'],
+    ['Timetable', '/module/timetable', CalendarDays, 'timetable.view.children'],
+    ['Attendance', '/module/attendance', ClipboardCheck, 'attendance.view.children'],
+    ['Assignments', '/module/assignments', FileText, 'assignments.view.children'],
+    ['Exams & Results', '/module/results', BarChart3, 'results.view.children'],
+    ['Fees', '/module/fees', CreditCard, 'fees.view.children'],
+    ['Notices', '/module/notices', Megaphone, 'notices.view'],
+    ['Events', '/module/events', CalendarDays, 'events.view'],
+    ['My Profile', '/module/profile', Settings, 'profile.manage.own'],
   ],
   accountant: [
     ['Dashboard', '/dashboard/accountant', LayoutDashboard, 'dashboard.view'],
-    ['Students', '#', Users, 'students.view.basic'],
-    ['Fee Collection', '#', CreditCard, 'fees.manage'],
-    ['Payments', '#', ClipboardCheck, 'payments.manage'],
-    ['Receipts', '#', BookOpen, 'receipts.manage'],
-    ['Reports', '#', BarChart3, 'financialReports.view'],
+    ['Students', '/module/students', Users, 'students.view.basic'],
+    ['Fee Collection', '/module/fees', CreditCard, 'fees.manage'],
+    ['Payments', '/module/fees', ClipboardCheck, 'payments.manage'],
+    ['Receipts', '/module/fees', ReceiptIndianRupee, 'receipts.manage'],
+    ['Payroll', '/module/payroll', ReceiptIndianRupee, 'payroll.manage'],
+    ['Reports', '/module/reports', BarChart3, 'financialReports.view'],
+    ['My Profile', '/module/profile', Settings, 'profile.manage.own'],
   ],
 }
 
@@ -76,57 +97,33 @@ function Sidebar({ onClose }) {
     <aside className="sidebar">
       <div className="sidebar-top">
         <div className="sidebar-brand">
-          <div className="brand-mark">
-            <GraduationCap size={23} />
-          </div>
-          <div>
-            <strong>SchoolOS</strong>
-            <span>Management Portal</span>
-          </div>
+          <div className="brand-mark"><GraduationCap size={23} /></div>
+          <div><strong>SchoolOS</strong><span>Management Portal</span></div>
         </div>
-        <button className="mobile-close" type="button" onClick={onClose} aria-label="Close menu">
-          <X size={20} />
-        </button>
+        <button className="mobile-close" type="button" onClick={onClose} aria-label="Close menu"><X size={20} /></button>
       </div>
 
       <div className="school-switcher">
         <div className="school-avatar">AS</div>
-        <div>
-          <strong>Academy School</strong>
-          <span>2026–27 Session</span>
-        </div>
+        <div><strong>Academy School</strong><span>2026–27 Session</span></div>
       </div>
 
       <div className="sidebar-section-label">MAIN MENU</div>
       <nav className="sidebar-nav">
         {visibleMenu.map(([label, href, Icon]) => (
-          href === '#' ? (
-            <button key={label} className="nav-item disabled-nav" type="button" title="Coming soon">
-              <Icon size={18} />
-              <span>{label}</span>
-            </button>
-          ) : (
-            <NavLink
-              key={label}
-              to={href}
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-              onClick={onClose}
-            >
-              <Icon size={18} />
-              <span>{label}</span>
-            </NavLink>
-          )
+          <NavLink key={`${label}-${href}`} to={href} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={onClose}>
+            <Icon size={18} />
+            <span>{label}</span>
+          </NavLink>
         ))}
       </nav>
 
       <div className="sidebar-bottom">
-        <button className="nav-item" type="button">
-          <Settings size={18} />
-          <span>Settings</span>
-        </button>
+        <NavLink to="/module/profile" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} onClick={onClose}>
+          <Settings size={18} /><span>Settings / Profile</span>
+        </NavLink>
         <button className="nav-item logout-item" type="button" onClick={handleLogout}>
-          <LogOut size={18} />
-          <span>Sign out</span>
+          <LogOut size={18} /><span>Sign out</span>
         </button>
       </div>
     </aside>
