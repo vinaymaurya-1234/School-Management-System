@@ -1,5 +1,4 @@
 import {
-  ArrowDownRight,
   ArrowUpRight,
   Bell,
   CalendarDays,
@@ -13,6 +12,9 @@ import {
   Plus,
   UserPlus,
   Users,
+  AlertTriangle,
+  BookOpen,
+  ClipboardCheck,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import './PrincipalDashboard.css'
@@ -41,6 +43,12 @@ const schedule = [
   ['15:30', 'Academic review', 'Principal office'],
 ]
 
+const events = [
+  ['30', 'SEP', 'Parent-Teacher Meeting', 'Monday · 9:00 AM'],
+  ['03', 'OCT', 'Mid-term examinations', 'Thursday · All day'],
+  ['06', 'OCT', 'Annual sports day', 'Sunday · Main ground'],
+]
+
 const quickActions = [
   { label: 'Add student', icon: UserPlus },
   { label: 'Add teacher', icon: GraduationCap },
@@ -55,13 +63,19 @@ function PrincipalDashboard() {
   return (
     <div className="principal-dashboard">
       <section className="principal-hero">
-        <div>
-          <span className="principal-kicker">SCHOOL OVERVIEW</span>
+        <div className="hero-copy">
+          <div className="principal-kicker-row">
+            <span className="principal-kicker">SCHOOL OVERVIEW</span>
+            <span className="live-dot"><i /> Live</span>
+          </div>
           <h1>Good morning, {firstName}.</h1>
           <p>Here’s a quick view of what is happening across your school today.</p>
         </div>
         <div className="hero-actions">
-          <button className="dashboard-icon-button" type="button" aria-label="Notifications"><Bell size={18} /></button>
+          <button className="dashboard-icon-button" type="button" aria-label="Notifications">
+            <Bell size={18} />
+            <span className="notification-dot" />
+          </button>
           <button className="dashboard-primary-button" type="button"><Plus size={17} /> Add new</button>
         </div>
       </section>
@@ -86,14 +100,26 @@ function PrincipalDashboard() {
       <section className="principal-content-grid">
         <article className="principal-panel attendance-panel">
           <div className="principal-panel-header">
-            <div><span>ATTENDANCE</span><h2>Weekly attendance</h2><p>Average student attendance across all classes</p></div>
+            <div>
+              <span>ATTENDANCE</span>
+              <h2>Weekly attendance</h2>
+              <p>Average student attendance across all classes</p>
+            </div>
             <button className="panel-link" type="button">View report <ChevronRight size={14} /></button>
           </div>
-          <div className="attendance-summary"><strong>89.8%</strong><span><ArrowUpRight size={14} /> 2.4% from last week</span></div>
+          <div className="attendance-summary">
+            <div>
+              <strong>89.8%</strong>
+              <span><ArrowUpRight size={14} /> 2.4% from last week</span>
+            </div>
+            <div className="attendance-legend"><span /><small>Present</small></div>
+          </div>
           <div className="attendance-chart" aria-label="Weekly attendance chart">
             {attendance.map((value, index) => (
               <div className="attendance-column" key={days[index]}>
-                <div className="attendance-track"><div className="attendance-bar" style={{ height: `${value}%` }}><span>{value}%</span></div></div>
+                <div className="attendance-track">
+                  <div className="attendance-bar" style={{ height: `${value}%` }}><span>{value}%</span></div>
+                </div>
                 <small>{days[index]}</small>
               </div>
             ))}
@@ -113,6 +139,7 @@ function PrincipalDashboard() {
               </div>
             ))}
           </div>
+          <button className="full-width-link" type="button">View full timetable <ChevronRight size={14} /></button>
         </article>
       </section>
 
@@ -134,23 +161,51 @@ function PrincipalDashboard() {
         </article>
 
         <article className="principal-panel events-panel">
-          <div className="principal-panel-header"><div><span>UPCOMING</span><h2>Next events</h2><p>Important dates this week</p></div></div>
+          <div className="principal-panel-header">
+            <div><span>UPCOMING</span><h2>Next events</h2><p>Important dates this week</p></div>
+          </div>
           <div className="principal-event-list">
-            <div><div className="event-date"><strong>30</strong><span>SEP</span></div><span><strong>Parent-Teacher Meeting</strong><small>Monday · 9:00 AM</small></span></div>
-            <div><div className="event-date"><strong>03</strong><span>OCT</span></div><span><strong>Mid-term examinations</strong><small>Thursday · All day</small></span></div>
-            <div><div className="event-date"><strong>06</strong><span>OCT</span></div><span><strong>Annual sports day</strong><small>Sunday · Main ground</small></span></div>
+            {events.map(([date, month, title, meta]) => (
+              <div key={title}>
+                <div className="event-date"><strong>{date}</strong><span>{month}</span></div>
+                <span><strong>{title}</strong><small>{meta}</small></span>
+              </div>
+            ))}
           </div>
         </article>
       </section>
 
       <section className="principal-panel quick-panel">
-        <div className="principal-panel-header"><div><span>SHORTCUTS</span><h2>Quick actions</h2><p>Frequently used administrative actions</p></div></div>
+        <div className="principal-panel-header">
+          <div><span>SHORTCUTS</span><h2>Quick actions</h2><p>Frequently used administrative actions</p></div>
+        </div>
         <div className="quick-action-grid">
-          {quickActions.map(({ label, icon: Icon }) => <button type="button" key={label}><span><Icon size={18} /></span>{label}<ChevronRight size={15} /></button>)}
+          {quickActions.map(({ label, icon: Icon }) => (
+            <button type="button" key={label}>
+              <span><Icon size={18} /></span>
+              <b>{label}</b>
+              <ChevronRight size={15} />
+            </button>
+          ))}
         </div>
       </section>
 
-      <div className="principal-insight"><div><span className="insight-label">SCHOOL INSIGHT</span><strong>Attendance is trending upward this week.</strong><p>92.4% of students are present today, with Classes 8–10 showing the strongest improvement.</p></div><button type="button">Open attendance report <ChevronRight size={15} /></button></div>
+      <section className="principal-bottom-grid">
+        <div className="principal-insight">
+          <div className="insight-icon"><ClipboardCheck size={18} /></div>
+          <div>
+            <span className="insight-label">SCHOOL INSIGHT</span>
+            <strong>Attendance is trending upward this week.</strong>
+            <p>92.4% of students are present today, with Classes 8–10 showing the strongest improvement.</p>
+          </div>
+          <button type="button">Open report <ChevronRight size={15} /></button>
+        </div>
+        <div className="principal-alert">
+          <div className="alert-icon"><AlertTriangle size={18} /></div>
+          <div><span>ATTENTION</span><strong>12 students have low attendance</strong><p>Below 75% this month</p></div>
+          <button type="button">Review <ChevronRight size={15} /></button>
+        </div>
+      </section>
     </div>
   )
 }
