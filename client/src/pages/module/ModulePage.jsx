@@ -1,7 +1,6 @@
 import {
   ArrowDownRight,
   ArrowUpRight,
-  CalendarDays,
   ChevronRight,
   Clock3,
   FileText,
@@ -15,6 +14,7 @@ import { useAuth } from '../../context/AuthContext'
 import { MODULES } from '../../config/moduleConfig'
 import './ModulePage.css'
 import '../../styles/SchoolUX.css'
+import '../../styles/SchoolUXFix.css'
 
 const statusClass = (value) => {
   const text = String(value).toLowerCase()

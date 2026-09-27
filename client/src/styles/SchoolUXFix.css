@@ -1,0 +1,10 @@
+/* Small structural fixes for the redesigned module layouts */
+.schedule-row { display: contents; }
+.schedule-toolbar > div:first-child { display: flex; align-items: center; gap: 4px; }
+.schedule-toolbar > span { display: inline-flex; align-items: center; gap: 5px; }
+@media (max-width: 700px) {
+  .variant-header { padding: 15px; }
+  .variant-header { flex-direction: column; }
+  .directory-grid, .finance-ledger, .attendance-overview, .profile-layout { gap: 9px; }
+  .schedule-board { min-width: 590px; }
+}
