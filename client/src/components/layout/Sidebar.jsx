@@ -13,50 +13,51 @@ import {
 } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { hasPermission } from '../../config/accessControl'
 
 const menuByRole = {
   principal: [
-    ['Dashboard', '/dashboard/principal', LayoutDashboard],
-    ['Students', '#', Users],
-    ['Teachers', '#', GraduationCap],
-    ['Classes', '#', BookOpen],
-    ['Timetable', '#', CalendarDays],
-    ['Attendance', '#', ClipboardCheck],
-    ['Fees', '#', CreditCard],
-    ['Reports', '#', BarChart3],
+    ['Dashboard', '/dashboard/principal', LayoutDashboard, 'dashboard.view'],
+    ['Students', '#', Users, 'students.manage'],
+    ['Teachers', '#', GraduationCap, 'teachers.manage'],
+    ['Classes', '#', BookOpen, 'classes.manage'],
+    ['Timetable', '#', CalendarDays, 'timetable.manage'],
+    ['Attendance', '#', ClipboardCheck, 'attendance.manage'],
+    ['Fees', '#', CreditCard, 'fees.manage'],
+    ['Reports', '#', BarChart3, 'reports.view'],
   ],
   teacher: [
-    ['Dashboard', '/dashboard/teacher', LayoutDashboard],
-    ['My Classes', '#', BookOpen],
-    ['My Students', '#', Users],
-    ['Timetable', '#', CalendarDays],
-    ['Attendance', '#', ClipboardCheck],
-    ['Assignments', '#', BookOpen],
-    ['Exams & Marks', '#', BarChart3],
+    ['Dashboard', '/dashboard/teacher', LayoutDashboard, 'dashboard.view'],
+    ['My Classes', '#', BookOpen, 'classes.view.assigned'],
+    ['My Students', '#', Users, 'students.view.assigned'],
+    ['Timetable', '#', CalendarDays, 'timetable.view.assigned'],
+    ['Attendance', '#', ClipboardCheck, 'attendance.manage.assigned'],
+    ['Assignments', '#', BookOpen, 'assignments.manage.assigned'],
+    ['Exams & Marks', '#', BarChart3, 'exams.manage.assigned'],
   ],
   student: [
-    ['Dashboard', '/dashboard/student', LayoutDashboard],
-    ['Timetable', '#', CalendarDays],
-    ['Attendance', '#', ClipboardCheck],
-    ['Assignments', '#', BookOpen],
-    ['Exams', '#', BarChart3],
-    ['Results', '#', GraduationCap],
+    ['Dashboard', '/dashboard/student', LayoutDashboard, 'dashboard.view'],
+    ['Timetable', '#', CalendarDays, 'timetable.view.own'],
+    ['Attendance', '#', ClipboardCheck, 'attendance.view.own'],
+    ['Assignments', '#', BookOpen, 'assignments.view.own'],
+    ['Exams', '#', BarChart3, 'exams.view.own'],
+    ['Results', '#', GraduationCap, 'results.view.own'],
   ],
   parent: [
-    ['Dashboard', '/dashboard/parent', LayoutDashboard],
-    ['My Children', '#', Users],
-    ['Attendance', '#', ClipboardCheck],
-    ['Assignments', '#', BookOpen],
-    ['Exams & Results', '#', BarChart3],
-    ['Fees', '#', CreditCard],
+    ['Dashboard', '/dashboard/parent', LayoutDashboard, 'dashboard.view'],
+    ['My Children', '#', Users, 'children.view.own'],
+    ['Attendance', '#', ClipboardCheck, 'attendance.view.children'],
+    ['Assignments', '#', BookOpen, 'assignments.view.children'],
+    ['Exams & Results', '#', BarChart3, 'results.view.children'],
+    ['Fees', '#', CreditCard, 'fees.view.children'],
   ],
   accountant: [
-    ['Dashboard', '/dashboard/accountant', LayoutDashboard],
-    ['Students', '#', Users],
-    ['Fee Collection', '#', CreditCard],
-    ['Payments', '#', ClipboardCheck],
-    ['Receipts', '#', BookOpen],
-    ['Reports', '#', BarChart3],
+    ['Dashboard', '/dashboard/accountant', LayoutDashboard, 'dashboard.view'],
+    ['Students', '#', Users, 'students.view.basic'],
+    ['Fee Collection', '#', CreditCard, 'fees.manage'],
+    ['Payments', '#', ClipboardCheck, 'payments.manage'],
+    ['Receipts', '#', BookOpen, 'receipts.manage'],
+    ['Reports', '#', BarChart3, 'financialReports.view'],
   ],
 }
 
@@ -64,6 +65,7 @@ function Sidebar({ onClose }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const menu = menuByRole[user?.role] || []
+  const visibleMenu = menu.filter(([, , , permission]) => hasPermission(user?.role, permission))
 
   const handleLogout = () => {
     logout()
@@ -97,7 +99,7 @@ function Sidebar({ onClose }) {
 
       <div className="sidebar-section-label">MAIN MENU</div>
       <nav className="sidebar-nav">
-        {menu.map(([label, href, Icon]) => (
+        {visibleMenu.map(([label, href, Icon]) => (
           href === '#' ? (
             <button key={label} className="nav-item disabled-nav" type="button" title="Coming soon">
               <Icon size={18} />
