@@ -33,6 +33,8 @@ export const ROLE_PERMISSIONS = {
     'attendance.manage.assigned',
     'assignments.manage.assigned',
     'exams.manage.assigned',
+    'notices.view',
+    'events.view',
     'profile.manage.own',
   ],
   [ROLES.STUDENT]: [
@@ -43,16 +45,21 @@ export const ROLE_PERMISSIONS = {
     'exams.view.own',
     'results.view.own',
     'fees.view.own',
+    'notices.view',
+    'events.view',
     'profile.manage.own',
   ],
   [ROLES.PARENT]: [
     'dashboard.view',
     'children.view.own',
+    'timetable.view.children',
     'attendance.view.children',
     'assignments.view.children',
     'exams.view.children',
     'results.view.children',
     'fees.view.children',
+    'notices.view',
+    'events.view',
     'profile.manage.own',
   ],
   [ROLES.ACCOUNTANT]: [
@@ -62,6 +69,7 @@ export const ROLE_PERMISSIONS = {
     'payments.manage',
     'receipts.manage',
     'financialReports.view',
+    'payroll.manage',
     'profile.manage.own',
   ],
 }
