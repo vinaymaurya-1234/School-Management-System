@@ -1,82 +1,156 @@
-import { CalendarDays, CheckCircle2, GraduationCap, IndianRupee, Users } from 'lucide-react'
-import StatCard from '../../components/dashboard/StatCard'
-import SectionCard from '../../components/dashboard/SectionCard'
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Bell,
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  Clock3,
+  FileText,
+  GraduationCap,
+  IndianRupee,
+  MoreHorizontal,
+  Plus,
+  UserPlus,
+  Users,
+} from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import './PrincipalDashboard.css'
+
+const stats = [
+  { label: 'Total students', value: '1,245', change: '+4.8%', note: 'vs last month', icon: Users, tone: 'indigo' },
+  { label: 'Teaching staff', value: '68', change: '+2.1%', note: '3 new this month', icon: GraduationCap, tone: 'violet' },
+  { label: "Today's attendance", value: '92.4%', change: '+1.7%', note: 'vs yesterday', icon: CheckCircle2, tone: 'green' },
+  { label: 'Fees collected', value: '₹18.4L', change: '+8.2%', note: 'this academic year', icon: IndianRupee, tone: 'amber' },
+]
+
+const attendance = [78, 86, 82, 91, 88, 94, 92]
+const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Today']
 
 const activities = [
-  ['New teacher added', 'Priya Nair joined the faculty', '10 min ago'],
-  ['Attendance updated', 'Class 10-A attendance completed', '32 min ago'],
-  ['Fee payment received', '₹24,500 collected today', '1 hr ago'],
-  ['Exam schedule published', 'Mid-term timetable is ready', '2 hrs ago'],
+  { title: 'New teacher added', text: 'Priya Nair joined the faculty', time: '10 min ago', tone: 'violet' },
+  { title: 'Attendance completed', text: 'Class 10-A attendance was marked', time: '32 min ago', tone: 'green' },
+  { title: 'Fee payment received', text: '₹24,500 payment received from 10-B', time: '1 hr ago', tone: 'amber' },
+  { title: 'Exam schedule published', text: 'Mid-term timetable is ready', time: '2 hrs ago', tone: 'indigo' },
+]
+
+const schedule = [
+  ['08:00', 'Morning assembly', 'Main ground'],
+  ['10:30', 'Staff meeting', 'Conference room'],
+  ['12:00', 'Parent meeting', 'Room 204'],
+  ['15:30', 'Academic review', 'Principal office'],
+]
+
+const quickActions = [
+  { label: 'Add student', icon: UserPlus },
+  { label: 'Add teacher', icon: GraduationCap },
+  { label: 'Create notice', icon: FileText },
+  { label: 'View timetable', icon: CalendarDays },
 ]
 
 function PrincipalDashboard() {
   const { user } = useAuth()
+  const firstName = user?.name?.split(' ')[0] || 'Principal'
 
   return (
-    <div className="dashboard-page">
-      <div className="page-heading-row">
+    <div className="principal-dashboard">
+      <section className="principal-hero">
         <div>
-          <span className="eyebrow">OVERVIEW</span>
-          <h1>Good morning, {user?.name?.split(' ')[1] || 'Principal'}.</h1>
-          <p>Here is what is happening across Academy School today.</p>
+          <span className="principal-kicker">SCHOOL OVERVIEW</span>
+          <h1>Good morning, {firstName}.</h1>
+          <p>Here’s a quick view of what is happening across your school today.</p>
         </div>
-        <button className="primary-button" type="button">+ Add new</button>
-      </div>
+        <div className="hero-actions">
+          <button className="dashboard-icon-button" type="button" aria-label="Notifications"><Bell size={18} /></button>
+          <button className="dashboard-primary-button" type="button"><Plus size={17} /> Add new</button>
+        </div>
+      </section>
 
-      <div className="stats-grid">
-        <StatCard label="Total Students" value="1,245" change="4.8%" icon={Users} />
-        <StatCard label="Teachers" value="68" change="2.1%" icon={GraduationCap} />
-        <StatCard label="Today's Attendance" value="92.4%" change="1.7%" icon={CheckCircle2} />
-        <StatCard label="Fees Collected" value="₹18.4L" change="8.2%" icon={IndianRupee} />
-      </div>
+      <section className="principal-stat-grid">
+        {stats.map(({ label, value, change, note, icon: Icon, tone }) => (
+          <article className="principal-stat-card" key={label}>
+            <div className="principal-stat-top">
+              <div className={`principal-stat-icon ${tone}`}><Icon size={19} /></div>
+              <span className="stat-period">This month</span>
+            </div>
+            <p>{label}</p>
+            <div className="principal-stat-value-row">
+              <strong>{value}</strong>
+              <span className="stat-change"><ArrowUpRight size={13} /> {change}</span>
+            </div>
+            <small>{note}</small>
+          </article>
+        ))}
+      </section>
 
-      <div className="dashboard-grid two-one">
-        <SectionCard title="Attendance overview" subtitle="Student attendance over the current week" action="View report">
-          <div className="chart-placeholder">
-            {[58, 72, 66, 82, 76, 92, 86].map((height, index) => (
-              <div className="chart-column" key={index}>
-                <div className="chart-bar" style={{ height: `${height}%` }} />
-                <span>{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Today'][index]}</span>
+      <section className="principal-content-grid">
+        <article className="principal-panel attendance-panel">
+          <div className="principal-panel-header">
+            <div><span>ATTENDANCE</span><h2>Weekly attendance</h2><p>Average student attendance across all classes</p></div>
+            <button className="panel-link" type="button">View report <ChevronRight size={14} /></button>
+          </div>
+          <div className="attendance-summary"><strong>89.8%</strong><span><ArrowUpRight size={14} /> 2.4% from last week</span></div>
+          <div className="attendance-chart" aria-label="Weekly attendance chart">
+            {attendance.map((value, index) => (
+              <div className="attendance-column" key={days[index]}>
+                <div className="attendance-track"><div className="attendance-bar" style={{ height: `${value}%` }}><span>{value}%</span></div></div>
+                <small>{days[index]}</small>
               </div>
             ))}
           </div>
-        </SectionCard>
+        </article>
 
-        <SectionCard title="Today's schedule" subtitle="Friday, 27 September" action="View timetable">
-          <div className="schedule-list">
-            <div><strong>08:00</strong><span>Assembly · Main Ground</span></div>
-            <div><strong>10:30</strong><span>Staff meeting · Conference Room</span></div>
-            <div><strong>12:00</strong><span>Parent meeting · Room 204</span></div>
-            <div><strong>15:30</strong><span>Academic review · Principal Office</span></div>
+        <article className="principal-panel schedule-panel">
+          <div className="principal-panel-header">
+            <div><span>TODAY</span><h2>Principal schedule</h2><p>Friday, 27 September</p></div>
+            <button className="more-button" type="button" aria-label="More options"><MoreHorizontal size={18} /></button>
           </div>
-        </SectionCard>
-      </div>
-
-      <div className="dashboard-grid two-one">
-        <SectionCard title="Recent activity" subtitle="Latest changes across the school" action="View all">
-          <div className="activity-list">
-            {activities.map(([title, description, time]) => (
-              <div className="activity-row" key={title}>
-                <div className="activity-dot" />
-                <div>
-                  <strong>{title}</strong>
-                  <span>{description}</span>
-                </div>
-                <small>{time}</small>
+          <div className="principal-schedule-list">
+            {schedule.map(([time, title, place]) => (
+              <div className="principal-schedule-row" key={time}>
+                <div className="schedule-time"><Clock3 size={13} /> {time}</div>
+                <div><strong>{title}</strong><span>{place}</span></div>
               </div>
             ))}
           </div>
-        </SectionCard>
+        </article>
+      </section>
 
-        <SectionCard title="Upcoming events" subtitle="Next 7 days">
-          <div className="event-list">
-            <div><div className="event-icon"><CalendarDays size={17} /></div><span>Parent-Teacher Meeting</span><strong>30 Sep</strong></div>
-            <div><div className="event-icon"><CalendarDays size={17} /></div><span>Mid-term Examinations</span><strong>03 Oct</strong></div>
-            <div><div className="event-icon"><CalendarDays size={17} /></div><span>Sports Day</span><strong>06 Oct</strong></div>
+      <section className="principal-content-grid lower-grid">
+        <article className="principal-panel activity-panel">
+          <div className="principal-panel-header">
+            <div><span>ACTIVITY</span><h2>Recent activity</h2><p>Latest updates from across the school</p></div>
+            <button className="panel-link" type="button">View all <ChevronRight size={14} /></button>
           </div>
-        </SectionCard>
-      </div>
+          <div className="principal-activity-list">
+            {activities.map((activity) => (
+              <div className="principal-activity-row" key={activity.title}>
+                <div className={`activity-marker ${activity.tone}`} />
+                <div className="activity-copy"><strong>{activity.title}</strong><span>{activity.text}</span></div>
+                <time>{activity.time}</time>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="principal-panel events-panel">
+          <div className="principal-panel-header"><div><span>UPCOMING</span><h2>Next events</h2><p>Important dates this week</p></div></div>
+          <div className="principal-event-list">
+            <div><div className="event-date"><strong>30</strong><span>SEP</span></div><span><strong>Parent-Teacher Meeting</strong><small>Monday · 9:00 AM</small></span></div>
+            <div><div className="event-date"><strong>03</strong><span>OCT</span></div><span><strong>Mid-term examinations</strong><small>Thursday · All day</small></span></div>
+            <div><div className="event-date"><strong>06</strong><span>OCT</span></div><span><strong>Annual sports day</strong><small>Sunday · Main ground</small></span></div>
+          </div>
+        </article>
+      </section>
+
+      <section className="principal-panel quick-panel">
+        <div className="principal-panel-header"><div><span>SHORTCUTS</span><h2>Quick actions</h2><p>Frequently used administrative actions</p></div></div>
+        <div className="quick-action-grid">
+          {quickActions.map(({ label, icon: Icon }) => <button type="button" key={label}><span><Icon size={18} /></span>{label}<ChevronRight size={15} /></button>)}
+        </div>
+      </section>
+
+      <div className="principal-insight"><div><span className="insight-label">SCHOOL INSIGHT</span><strong>Attendance is trending upward this week.</strong><p>92.4% of students are present today, with Classes 8–10 showing the strongest improvement.</p></div><button type="button">Open attendance report <ChevronRight size={15} /></button></div>
     </div>
   )
 }
