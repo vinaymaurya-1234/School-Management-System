@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { hasPermission, ROLE_HOME_ROUTES, ROLES } from '../config/accessControl'
 import DashboardLayout from '../layouts/DashboardLayout'
 import Login from '../pages/auth/Login'
 import PrincipalDashboard from '../pages/principal/PrincipalDashboard'
@@ -15,9 +16,21 @@ function ProtectedRoute() {
 
 function RoleRoute({ role, children }) {
   const { user } = useAuth()
+  const homeRoute = ROLE_HOME_ROUTES[user?.role] || ROLE_HOME_ROUTES[ROLES.PRINCIPAL]
 
-  if (user?.role !== role) {
-    return <Navigate to={`/dashboard/${user?.role || 'principal'}`} replace />
+  if (!user || user.role !== role) {
+    return <Navigate to={homeRoute} replace />
+  }
+
+  return children
+}
+
+function PermissionRoute({ permission, children }) {
+  const { user } = useAuth()
+
+  if (!hasPermission(user?.role, permission)) {
+    const homeRoute = ROLE_HOME_ROUTES[user?.role] || '/login'
+    return <Navigate to={homeRoute} replace />
   }
 
   return children
@@ -25,7 +38,9 @@ function RoleRoute({ role, children }) {
 
 function PublicRoute() {
   const { isAuthenticated, user } = useAuth()
-  return isAuthenticated ? <Navigate to={`/dashboard/${user.role}`} replace /> : <Outlet />
+  const homeRoute = ROLE_HOME_ROUTES[user?.role] || ROLE_HOME_ROUTES[ROLES.PRINCIPAL]
+
+  return isAuthenticated ? <Navigate to={homeRoute} replace /> : <Outlet />
 }
 
 function AppRoutes() {
@@ -40,40 +55,50 @@ function AppRoutes() {
           <Route
             path="/dashboard/principal"
             element={
-              <RoleRoute role="principal">
-                <PrincipalDashboard />
+              <RoleRoute role={ROLES.PRINCIPAL}>
+                <PermissionRoute permission="dashboard.view">
+                  <PrincipalDashboard />
+                </PermissionRoute>
               </RoleRoute>
             }
           />
           <Route
             path="/dashboard/teacher"
             element={
-              <RoleRoute role="teacher">
-                <TeacherDashboard />
+              <RoleRoute role={ROLES.TEACHER}>
+                <PermissionRoute permission="dashboard.view">
+                  <TeacherDashboard />
+                </PermissionRoute>
               </RoleRoute>
             }
           />
           <Route
             path="/dashboard/student"
             element={
-              <RoleRoute role="student">
-                <StudentDashboard />
+              <RoleRoute role={ROLES.STUDENT}>
+                <PermissionRoute permission="dashboard.view">
+                  <StudentDashboard />
+                </PermissionRoute>
               </RoleRoute>
             }
           />
           <Route
             path="/dashboard/parent"
             element={
-              <RoleRoute role="parent">
-                <ParentDashboard />
+              <RoleRoute role={ROLES.PARENT}>
+                <PermissionRoute permission="dashboard.view">
+                  <ParentDashboard />
+                </PermissionRoute>
               </RoleRoute>
             }
           />
           <Route
             path="/dashboard/accountant"
             element={
-              <RoleRoute role="accountant">
-                <AccountantDashboard />
+              <RoleRoute role={ROLES.ACCOUNTANT}>
+                <PermissionRoute permission="dashboard.view">
+                  <AccountantDashboard />
+                </PermissionRoute>
               </RoleRoute>
             }
           />
