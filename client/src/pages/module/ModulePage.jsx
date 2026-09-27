@@ -23,9 +23,9 @@ function ModulePage({ moduleKey }) {
   const Icon = module.icon
 
   return (
-    <div className="module-page">
+    <div className={`module-page module-${moduleKey.replace(/[^a-z0-9]+/gi, '-')}`}>
       <div className="module-heading">
-        <div>
+        <div className="module-heading-copy">
           <div className="eyebrow">{module.eyebrow}</div>
           <div className="module-title-line">
             <div className="module-title-icon"><Icon size={22} /></div>
@@ -51,15 +51,15 @@ function ModulePage({ moduleKey }) {
         ))}
       </div>
 
-      <div className="module-toolbar section-card">
+      <div className="module-toolbar">
         <div className="module-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${module.title.toLowerCase()}...`} /></div>
         <div className="toolbar-actions"><button type="button" className="secondary-button"><SlidersHorizontal size={15} /> Filters</button><button type="button" className="secondary-button">This month</button></div>
       </div>
 
       <div className="module-content-grid">
-        <section className="section-card module-table-card">
+        <section className="module-table-card">
           <div className="section-card-header">
-            <div><h3>{module.title} overview</h3><p>{filteredRows.length} records shown</p></div>
+            <div><span className="table-kicker">LIVE REGISTER</span><h3>{module.title} overview</h3><p>{filteredRows.length} records shown</p></div>
             <button type="button" className="text-button">View all</button>
           </div>
           <div className="module-table-wrap">
@@ -70,7 +70,7 @@ function ModulePage({ moduleKey }) {
                   <tr key={`${row[0]}-${rowIndex}`}>
                     {row.map((cell, cellIndex) => (
                       <td key={`${cell}-${cellIndex}`}>
-                        {cellIndex === 0 ? <strong>{cell}</strong> : cellIndex === row.length - 1 ? <span className={`status-pill ${String(cell).toLowerCase().includes('due') || String(cell).toLowerCase().includes('attention') || String(cell).toLowerCase().includes('pending') || String(cell).toLowerCase() === 'review' ? 'warning' : String(cell).toLowerCase() === 'active' || String(cell).toLowerCase() === 'paid' || String(cell).toLowerCase() === 'good' || String(cell).toLowerCase() === 'processed' || String(cell).toLowerCase() === 'published' ? 'success' : ''}`}>{cell}</span> : <span>{cell}</span>}
+                        {cellIndex === 0 ? <strong>{cell}</strong> : cellIndex === row.length - 1 ? <span className={`status-pill ${String(cell).toLowerCase().includes('due') || String(cell).toLowerCase().includes('attention') || String(cell).toLowerCase().includes('pending') || String(cell).toLowerCase() === 'review' || String(cell).toLowerCase() === 'leave' ? 'warning' : String(cell).toLowerCase() === 'active' || String(cell).toLowerCase() === 'paid' || String(cell).toLowerCase() === 'good' || String(cell).toLowerCase() === 'processed' || String(cell).toLowerCase() === 'published' ? 'success' : ''}`}>{cell}</span> : <span>{cell}</span>}
                       </td>
                     ))}
                   </tr>
@@ -82,16 +82,16 @@ function ModulePage({ moduleKey }) {
         </section>
 
         <aside className="module-side-stack">
-          <section className="section-card">
-            <div className="section-card-header"><div><h3>Quick actions</h3><p>Frequently used actions</p></div></div>
+          <section className="module-actions-card">
+            <div className="section-card-header"><div><span className="table-kicker">SHORTCUTS</span><h3>Quick actions</h3><p>Frequently used actions</p></div></div>
             <div className="module-actions-list">
               {module.actions?.map((action) => <button type="button" key={action}>{action}<span>›</span></button>)}
             </div>
           </section>
-          <section className="section-card module-insight">
+          <section className="module-insight">
             <div className="eyebrow">SCHOOL INSIGHT</div>
-            <h3>{user?.role === 'principal' ? 'Today at a glance' : 'Your workspace'}</h3>
-            <p>{user?.role === 'principal' ? `The ${module.title.toLowerCase()} section is ready for daily operations. Use the quick actions above to continue managing your school.` : `This view is filtered to the information available to your ${user?.role || 'account'} role.`}</p>
+            <h3>{user?.role === 'principal' ? 'A clearer way to run this area' : 'Your workspace'}</h3>
+            <p>{user?.role === 'principal' ? `The ${module.title.toLowerCase()} section is ready for daily operations. Use the actions above to continue managing your school.` : `This view is filtered to the information available to your ${user?.role || 'account'} role.`}</p>
           </section>
         </aside>
       </div>
