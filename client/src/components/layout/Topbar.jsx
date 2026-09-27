@@ -1,12 +1,12 @@
 import { Bell, Menu, Search } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
-function Topbar() {
+function Topbar({ onMenuClick }) {
   const { user } = useAuth()
 
   return (
     <header className="topbar">
-      <button className="mobile-menu-button" type="button" aria-label="Open menu">
+      <button className="mobile-menu-button" type="button" aria-label="Open menu" onClick={onMenuClick}>
         <Menu size={21} />
       </button>
 
