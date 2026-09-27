@@ -1,13 +1,16 @@
-import { Outlet } from 'react-router-dom'
+import { useState } from 'react'
 import Sidebar from '../components/layout/Sidebar'
 import Topbar from '../components/layout/Topbar'
+import '../styles/SchoolTheme.css'
 
 function DashboardLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
   return (
     <div className="app-shell">
-      <Sidebar />
+      <Sidebar onClose={() => setSidebarOpen(false)} isOpen={sidebarOpen} />
       <div className="app-main">
-        <Topbar />
+        <Topbar onMenuClick={() => setSidebarOpen(true)} />
         <main className="page-content">
           <Outlet />
         </main>
