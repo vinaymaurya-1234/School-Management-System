@@ -21,105 +21,78 @@ import { hasPermission } from '../../config/accessControl'
 const menuByRole = {
   principal: [
     { section: 'Overview', items: [['Dashboard', '/dashboard/principal', LayoutDashboard, 'dashboard.view']] },
-    {
-      section: 'Academics',
-      items: [
-        ['Students', '/module/students', Users, 'students.manage'],
-        ['Teachers', '/module/teachers', GraduationCap, 'teachers.manage'],
-        ['Classes & Sections', '/module/classes', BookOpen, 'classes.manage'],
-        ['Subjects', '/module/subjects', BookOpen, 'subjects.manage'],
-        ['Timetable', '/module/timetable', CalendarDays, 'timetable.manage'],
-      ],
-    },
-    {
-      section: 'Operations',
-      items: [
-        ['Attendance', '/module/attendance', ClipboardCheck, 'attendance.manage'],
-        ['Fees & Payments', '/module/fees', CreditCard, 'fees.manage'],
-        ['Exams & Results', '/module/exams', FileText, 'exams.manage'],
-        ['Reports', '/module/reports', BarChart3, 'reports.view'],
-        ['Notices', '/module/notices', Megaphone, 'notices.manage'],
-        ['Events', '/module/events', CalendarDays, 'events.manage'],
-        ['Payroll', '/module/payroll', ReceiptIndianRupee, 'payroll.manage'],
-      ],
-    },
+    { section: 'Academics', items: [
+      ['Students', '/module/students', Users, 'students.manage'],
+      ['Teachers', '/module/teachers', GraduationCap, 'teachers.manage'],
+      ['Classes & Sections', '/module/classes', BookOpen, 'classes.manage'],
+      ['Subjects', '/module/subjects', BookOpen, 'subjects.manage'],
+      ['Timetable', '/module/timetable', CalendarDays, 'timetable.manage'],
+    ] },
+    { section: 'Operations', items: [
+      ['Attendance', '/module/attendance', ClipboardCheck, 'attendance.manage'],
+      ['Fees & Payments', '/module/fees', CreditCard, 'fees.manage'],
+      ['Exams & Results', '/module/exams', FileText, 'exams.manage'],
+      ['Reports', '/module/reports', BarChart3, 'reports.view'],
+      ['Notices', '/module/notices', Megaphone, 'notices.manage'],
+      ['Events', '/module/events', CalendarDays, 'events.manage'],
+      ['Payroll', '/module/payroll', ReceiptIndianRupee, 'payroll.manage'],
+    ] },
   ],
   teacher: [
     { section: 'Overview', items: [['Dashboard', '/dashboard/teacher', LayoutDashboard, 'dashboard.view']] },
-    {
-      section: 'Teaching',
-      items: [
-        ['My Classes', '/module/my-classes', BookOpen, 'classes.view.assigned'],
-        ['My Students', '/module/my-students', Users, 'students.view.assigned'],
-        ['Timetable', '/module/timetable', CalendarDays, 'timetable.view.assigned'],
-        ['Attendance', '/module/attendance', ClipboardCheck, 'attendance.manage.assigned'],
-        ['Assignments', '/module/assignments', FileText, 'assignments.manage.assigned'],
-        ['Exams & Marks', '/module/exams', BarChart3, 'exams.manage.assigned'],
-      ],
-    },
-    {
-      section: 'School',
-      items: [
-        ['Notices', '/module/notices', Megaphone, 'notices.view'],
-        ['Events', '/module/events', CalendarDays, 'events.view'],
-      ],
-    },
+    { section: 'Teaching', items: [
+      ['My Classes', '/module/my-classes', BookOpen, 'classes.view.assigned'],
+      ['My Students', '/module/my-students', Users, 'students.view.assigned'],
+      ['Timetable', '/module/timetable', CalendarDays, 'timetable.view.assigned'],
+      ['Attendance', '/module/attendance', ClipboardCheck, 'attendance.manage.assigned'],
+      ['Assignments', '/module/assignments', FileText, 'assignments.manage.assigned'],
+      ['Exams & Marks', '/module/exams', BarChart3, 'exams.manage.assigned'],
+    ] },
+    { section: 'School', items: [
+      ['Notices', '/module/notices', Megaphone, 'notices.view'],
+      ['Events', '/module/events', CalendarDays, 'events.view'],
+    ] },
   ],
   student: [
     { section: 'Overview', items: [['Dashboard', '/dashboard/student', LayoutDashboard, 'dashboard.view']] },
-    {
-      section: 'My Learning',
-      items: [
-        ['Timetable', '/module/timetable', CalendarDays, 'timetable.view.own'],
-        ['Attendance', '/module/attendance', ClipboardCheck, 'attendance.view.own'],
-        ['Assignments', '/module/assignments', FileText, 'assignments.view.own'],
-        ['Exams', '/module/exams', BarChart3, 'exams.view.own'],
-        ['Results', '/module/results', GraduationCap, 'results.view.own'],
-      ],
-    },
-    {
-      section: 'School',
-      items: [
-        ['Fees', '/module/fees', CreditCard, 'fees.view.own'],
-        ['Notices', '/module/notices', Megaphone, 'notices.view'],
-        ['Events', '/module/events', CalendarDays, 'events.view'],
-      ],
-    },
+    { section: 'My Learning', items: [
+      ['Timetable', '/module/timetable', CalendarDays, 'timetable.view.own'],
+      ['Attendance', '/module/attendance', ClipboardCheck, 'attendance.view.own'],
+      ['Assignments', '/module/assignments', FileText, 'assignments.view.own'],
+      ['Exams', '/module/exams', BarChart3, 'exams.view.own'],
+      ['Results', '/module/results', GraduationCap, 'results.view.own'],
+    ] },
+    { section: 'School', items: [
+      ['Fees', '/module/fees', CreditCard, 'fees.view.own'],
+      ['Notices', '/module/notices', Megaphone, 'notices.view'],
+      ['Events', '/module/events', CalendarDays, 'events.view'],
+    ] },
   ],
   parent: [
     { section: 'Overview', items: [['Dashboard', '/dashboard/parent', LayoutDashboard, 'dashboard.view']] },
-    {
-      section: 'Children',
-      items: [
-        ['My Children', '/module/children', Users, 'children.view.own'],
-        ['Timetable', '/module/timetable', CalendarDays, 'timetable.view.children'],
-        ['Attendance', '/module/attendance', ClipboardCheck, 'attendance.view.children'],
-        ['Assignments', '/module/assignments', FileText, 'assignments.view.children'],
-        ['Exams & Results', '/module/results', BarChart3, 'results.view.children'],
-      ],
-    },
-    {
-      section: 'School',
-      items: [
-        ['Fees', '/module/fees', CreditCard, 'fees.view.children'],
-        ['Notices', '/module/notices', Megaphone, 'notices.view'],
-        ['Events', '/module/events', CalendarDays, 'events.view'],
-      ],
-    },
+    { section: 'Children', items: [
+      ['My Children', '/module/children', Users, 'children.view.own'],
+      ['Timetable', '/module/timetable', CalendarDays, 'timetable.view.children'],
+      ['Attendance', '/module/attendance', ClipboardCheck, 'attendance.view.children'],
+      ['Assignments', '/module/assignments', FileText, 'assignments.view.children'],
+      ['Exams & Results', '/module/results', BarChart3, 'results.view.children'],
+    ] },
+    { section: 'School', items: [
+      ['Fees', '/module/fees', CreditCard, 'fees.view.children'],
+      ['Notices', '/module/notices', Megaphone, 'notices.view'],
+      ['Events', '/module/events', CalendarDays, 'events.view'],
+    ] },
   ],
   accountant: [
     { section: 'Overview', items: [['Dashboard', '/dashboard/accountant', LayoutDashboard, 'dashboard.view']] },
-    {
-      section: 'Finance',
-      items: [
-        ['Students', '/module/students', Users, 'students.view.basic'],
-        ['Fee Collection', '/module/fees', CreditCard, 'fees.manage'],
-        ['Payments', '/module/fees', ClipboardCheck, 'payments.manage'],
-        ['Receipts', '/module/fees', ReceiptIndianRupee, 'receipts.manage'],
-        ['Payroll', '/module/payroll', ReceiptIndianRupee, 'payroll.manage'],
-        ['Reports', '/module/reports', BarChart3, 'financialReports.view'],
-      ],
-    },
+    { section: 'Finance', items: [
+      ['Students', '/module/students', Users, 'students.view.basic'],
+      ['Fee Collection', '/module/fees', CreditCard, 'fees.manage'],
+      ['Payments', '/module/fees', ClipboardCheck, 'payments.manage'],
+      ['Receipts', '/module/fees', ReceiptIndianRupee, 'receipts.manage'],
+      ['Payroll', '/module/payroll', ReceiptIndianRupee, 'payroll.manage'],
+      ['Reports', '/module/reports', BarChart3, 'financialReports.view'],
+    ] },
   ],
 }
 
@@ -131,7 +104,7 @@ const roleMeta = {
   accountant: { label: 'Accountant', short: 'AC', tone: 'amber' },
 }
 
-function Sidebar({ onClose }) {
+function Sidebar({ onClose, isOpen = false }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const role = user?.role || 'principal'
@@ -144,7 +117,7 @@ function Sidebar({ onClose }) {
   }
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar sidebar-${role} ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-top">
         <div className="sidebar-brand">
           <div className="brand-mark"><GraduationCap size={21} /></div>
