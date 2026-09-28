@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import mongoose from "mongoose";
 
 const app = express();
 
@@ -12,7 +13,14 @@ app.use(
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "school-management-system-server" });
+  const dbState = mongoose.connection.readyState;
+  const databaseStatus = dbState === 1 ? "connected" : "disconnected";
+
+  res.json({
+    ok: true,
+    service: "school-management-system-server",
+    database: databaseStatus,
+  });
 });
 
 app.use((err, _req, res, _next) => {
