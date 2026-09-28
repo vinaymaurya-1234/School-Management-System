@@ -15,6 +15,7 @@ import { useMemo, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { MODULES } from '../../config/moduleConfig'
 import './ModulePage.css'
+import './ModuleRedesign.css'
 import '../../styles/SchoolUX.css'
 import '../../styles/SchoolUXFix.css'
 
