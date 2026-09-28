@@ -10,6 +10,8 @@ import StudentDashboard from '../pages/student/StudentDashboard'
 import ParentDashboard from '../pages/parent/ParentDashboard'
 import AccountantDashboard from '../pages/accountant/AccountantDashboard'
 import ModulePage from '../pages/module/ModulePage'
+import TimetablePage from '../pages/module/TimetablePage'
+import AttendancePage from '../pages/module/AttendancePage'
 
 function ProtectedRoute() {
   const { isAuthenticated } = useAuth()
@@ -43,6 +45,9 @@ function ModuleRoute() {
   if (!module || !permission || !hasPermission(user?.role, permission)) {
     return <Navigate to={homeRoute} replace />
   }
+
+  if (user?.role === ROLES.PRINCIPAL && moduleKey === 'timetable') return <TimetablePage />
+  if (user?.role === ROLES.PRINCIPAL && moduleKey === 'attendance') return <AttendancePage />
 
   return <ModulePage moduleKey={moduleKey} />
 }
