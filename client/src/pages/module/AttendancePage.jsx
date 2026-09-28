@@ -100,7 +100,7 @@ function AttendancePage() {
         </div>
         <div className="feature-select-grid">
           {viewMode === 'students' ? <>
-            <label><span>Class</span><select value={selectedClass} onChange={(event) => setSelectedClass(event.target.value)}>{classes.map((item) => <option key={item}>Class {item}</option>)}</select></label>
+            <label><span>Class</span><select value={selectedClass} onChange={(event) => setSelectedClass(event.target.value)}>{classes.map((item) => <option key={item} value={item}>Class {item}</option>)}</select></label>
             <label><span>Section / Division</span><select value={selectedSection} onChange={(event) => setSelectedSection(event.target.value)}>{sections.map((item) => <option key={item} value={item}>Section {item}</option>)}</select></label>
           </> : <div className="attendance-scope"><Users size={17} /><div><strong>All teaching staff</strong><span>School-wide teacher attendance for the selected date</span></div></div>}
           <label className="date-control"><span>Date</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
