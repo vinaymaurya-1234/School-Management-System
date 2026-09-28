@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { hasPermission } from "../config/permissions.js";
 
 export async function requireAuth(req, res, next) {
   try {
@@ -25,7 +26,6 @@ export async function requireAuth(req, res, next) {
 
 export function requirePermission(permission) {
   return (req, res, next) => {
-    const { hasPermission } = require("../config/permissions.js");
     if (!hasPermission(req.user, permission)) {
       return res.status(403).json({ message: "Insufficient permission" });
     }
