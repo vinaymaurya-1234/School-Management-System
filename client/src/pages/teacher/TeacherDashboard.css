@@ -1,0 +1,20 @@
+/* Teacher dashboard */
+.teacher-dashboard-page .teacher-class-list { display:grid; gap:8px; }
+.teacher-class-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid #eee8e3; }
+.teacher-class-row:last-child { border-bottom:0; }
+.teacher-class-main { display:flex; align-items:center; gap:10px; min-width:0; }
+.teacher-class-badge { width:44px; height:38px; display:grid; place-items:center; border-radius:10px; background:#f8e8ec; color:#a52235; font-size:10px; font-weight:900; }
+.teacher-class-main div:last-child { display:grid; gap:3px; }
+.teacher-class-main strong { font-size:10px; color:#2d3135; }
+.teacher-class-main span { color:#817a75; font-size:8px; }
+.teacher-class-owner { display:grid; grid-template-columns:auto auto; gap:2px 5px; align-items:center; min-width:125px; padding:7px 9px; border:1px solid #e8e1dc; border-radius:9px; background:#faf8f6; }
+.teacher-class-owner svg { grid-row:span 2; color:#9a918b; }
+.teacher-class-owner span { color:#938a84; font-size:7px; text-transform:uppercase; letter-spacing:.5px; font-weight:800; }
+.teacher-class-owner strong { color:#4a4541; font-size:8px; }
+.teacher-class-owner.owner { background:#eaf6ef; border-color:#cde7d8; }
+.teacher-class-owner.owner svg { color:#16845c; }
+.teacher-rule-card { display:flex; gap:11px; padding:12px; border:1px solid #e4ddd8; border-radius:12px; background:#faf8f6; }
+.teacher-rule-icon { width:34px; height:34px; display:grid; place-items:center; flex:0 0 34px; border-radius:10px; background:#e8f5ee; color:#16845c; }
+.teacher-rule-card strong { font-size:10px; color:#2e3236; }
+.teacher-rule-card p { margin-top:5px; color:#7d7671; font-size:9px; line-height:1.55; }
+@media (max-width:700px) { .teacher-class-row { align-items:flex-start; flex-direction:column; } .teacher-class-owner { width:100%; } }

@@ -1,142 +1,65 @@
-import { CalendarDays, Check, Clock3, UserCheck, UserRound, Users, X } from 'lucide-react'
+import { CalendarDays, Check, Clock3, FileText, Save, UserCheck, Users, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useAuth } from '../../context/AuthContext'
 import './ModuleFeature.css'
+import './AttendanceTimetable.css'
 
-const classes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
+const classes = Array.from({ length: 12 }, (_, index) => String(index + 1))
 const sections = Array.from({ length: 26 }, (_, index) => String.fromCharCode(65 + index))
-
-const classStudents = {
-  '10-A': [
-    ['Aarav Sharma', '01', 'present', '08:03'],
-    ['Anaya Patel', '02', 'present', '08:05'],
-    ['Vivaan Mehta', '03', 'late', '08:22'],
-    ['Diya Shah', '04', 'absent', '—'],
-    ['Arjun Rao', '05', 'present', '08:01'],
-    ['Ishita Singh', '06', 'present', '08:07'],
-    ['Kabir Khan', '07', 'present', '08:04'],
-    ['Myra Joshi', '08', 'present', '08:06'],
-  ],
-  '10-B': [
-    ['Riya Gupta', '01', 'present', '08:02'],
-    ['Aditya Shah', '02', 'late', '08:19'],
-    ['Sara Khan', '03', 'present', '08:04'],
-    ['Neil Mehta', '04', 'absent', '—'],
-    ['Avni Patel', '05', 'present', '08:05'],
-    ['Reyansh Rao', '06', 'present', '08:03'],
-    ['Aisha Verma', '07', 'present', '08:06'],
-    ['Yash Jain', '08', 'present', '08:08'],
-  ],
-  '9-A': [
-    ['Aarav Kapoor', '01', 'present', '08:04'],
-    ['Meera Shah', '02', 'present', '08:02'],
-    ['Vihaan Patel', '03', 'present', '08:06'],
-    ['Anaya Rao', '04', 'late', '08:21'],
-    ['Ira Mehta', '05', 'present', '08:03'],
-    ['Dhruv Singh', '06', 'absent', '—'],
-    ['Kiara Joshi', '07', 'present', '08:05'],
-    ['Rudra Khan', '08', 'present', '08:01'],
-  ],
-  '8-A': [
-    ['Ayaan Sharma', '01', 'present', '08:02'],
-    ['Siya Patel', '02', 'present', '08:04'],
-    ['Advait Shah', '03', 'present', '08:03'],
-    ['Myra Mehta', '04', 'absent', '—'],
-    ['Reyansh Gupta', '05', 'late', '08:17'],
-    ['Anika Rao', '06', 'present', '08:05'],
-    ['Arnav Singh', '07', 'present', '08:07'],
-    ['Tara Joshi', '08', 'present', '08:04'],
-  ],
+const classTeachers = { '10-A': 'Priya Nair', '10-B': 'Rahul Mehta', '9-A': 'Sneha Kapoor', '8-A': 'Amit Joshi', '7-C': 'Meera Iyer' }
+const seedStudents = {
+  '10-A': [['Aarav Sharma', '01', 'present', '08:03', ''], ['Anaya Patel', '02', 'present', '08:05', ''], ['Vivaan Mehta', '03', 'late', '08:22', ''], ['Diya Shah', '04', 'absent', '—', ''], ['Arjun Rao', '05', 'present', '08:01', ''], ['Ishita Singh', '06', 'present', '08:07', ''], ['Kabir Khan', '07', 'present', '08:04', ''], ['Myra Joshi', '08', 'present', '08:06', '']],
+  '10-B': [['Riya Gupta', '01', 'present', '08:02', ''], ['Aditya Shah', '02', 'late', '08:19', ''], ['Sara Khan', '03', 'present', '08:04', ''], ['Neil Mehta', '04', 'absent', '—', ''], ['Avni Patel', '05', 'present', '08:05', ''], ['Reyansh Rao', '06', 'present', '08:03', ''], ['Aisha Verma', '07', 'present', '08:06', ''], ['Yash Jain', '08', 'present', '08:08', '']],
+  '9-A': [['Aarav Kapoor', '01', 'present', '08:04', ''], ['Meera Shah', '02', 'present', '08:02', ''], ['Vihaan Patel', '03', 'present', '08:06', ''], ['Anaya Rao', '04', 'late', '08:21', ''], ['Ira Mehta', '05', 'present', '08:03', ''], ['Dhruv Singh', '06', 'absent', '—', ''], ['Kiara Joshi', '07', 'present', '08:05', ''], ['Rudra Khan', '08', 'present', '08:01', '']],
+  '8-A': [['Ayaan Sharma', '01', 'present', '08:02', ''], ['Siya Patel', '02', 'present', '08:04', ''], ['Advait Shah', '03', 'present', '08:03', ''], ['Myra Mehta', '04', 'absent', '—', ''], ['Reyansh Gupta', '05', 'late', '08:17', ''], ['Anika Rao', '06', 'present', '08:05', ''], ['Arnav Singh', '07', 'present', '08:07', ''], ['Tara Joshi', '08', 'present', '08:04', '']],
 }
-
-const teacherAttendance = [
-  ['Priya Nair', 'Mathematics', 'present', '07:48', '8'],
-  ['Rahul Verma', 'Science', 'present', '07:54', '7'],
-  ['Sneha Kapoor', 'English', 'late', '08:17', '6'],
-  ['Amit Joshi', 'Computer', 'absent', '—', '5'],
-  ['Meera Iyer', 'Social Science', 'present', '07:59', '7'],
-  ['Karan Shah', 'Hindi', 'late', '08:12', '6'],
-  ['Neha Patel', 'Biology', 'present', '07:52', '5'],
-  ['Rohit Desai', 'Physical Education', 'absent', '—', '4'],
-]
-
-const statusMeta = {
-  present: { label: 'Present', className: 'present' },
-  absent: { label: 'Absent', className: 'absent' },
-  late: { label: 'Late', className: 'late' },
-}
-
-function getDateLabel(value) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-}
+const teacherAttendance = [['Priya Nair', 'Class Teacher · 10-A', 'present', '07:48'], ['Rahul Mehta', 'Class Teacher · 10-B', 'present', '07:54'], ['Sneha Kapoor', 'Class Teacher · 9-A', 'late', '08:17'], ['Amit Joshi', 'Class Teacher · 8-A', 'absent', '—'], ['Meera Iyer', 'Class Teacher · 7-C', 'present', '07:59'], ['Karan Shah', 'Subject Teacher', 'late', '08:12'], ['Neha Patel', 'Subject Teacher', 'present', '07:52'], ['Rohit Desai', 'Subject Teacher', 'absent', '—']]
+const statusMeta = { present: { label: 'Present', className: 'present' }, absent: { label: 'Absent', className: 'absent' }, late: { label: 'Late', className: 'late' }, halfday: { label: 'Half day', className: 'halfday' } }
+function getDateLabel(value) { return new Date(`${value}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }
 
 function AttendancePage() {
+  const { user } = useAuth()
+  const isPrincipal = user?.role === 'principal'
+  const teacherName = user?.name || 'Teacher'
   const [viewMode, setViewMode] = useState('students')
   const [selectedClass, setSelectedClass] = useState('10')
-  const [selectedSection, setSelectedSection] = useState('A')
+  const [selectedSection, setSelectedSection] = useState(isPrincipal ? 'A' : 'B')
   const [date, setDate] = useState('2026-09-28')
-
-  const students = useMemo(() => classStudents[`${selectedClass}-${selectedSection}`] || classStudents['10-A'], [selectedClass, selectedSection])
-  const studentCounts = useMemo(() => students.reduce((acc, [, , status]) => ({ ...acc, [status]: acc[status] + 1 }), { present: 0, absent: 0, late: 0 }), [students])
+  const [studentsByClass, setStudentsByClass] = useState(seedStudents)
+  const [saved, setSaved] = useState(false)
+  const [noteDraft, setNoteDraft] = useState('')
+  const classKey = `${selectedClass}-${selectedSection}`
+  const students = studentsByClass[classKey] || seedStudents['10-A']
+  const classTeacher = classTeachers[classKey]
+  const canEdit = isPrincipal || classTeacher === teacherName
+  const classIsOwnedByTeacher = !isPrincipal && classTeacher === teacherName
+  const studentCounts = useMemo(() => students.reduce((acc, [, , status]) => ({ ...acc, [status]: (acc[status] || 0) + 1 }), { present: 0, absent: 0, late: 0, halfday: 0 }), [students])
   const teacherCounts = useMemo(() => teacherAttendance.reduce((acc, [, , status]) => ({ ...acc, [status]: acc[status] + 1 }), { present: 0, absent: 0, late: 0 }), [])
-  const studentPercentage = Math.round(((studentCounts.present + studentCounts.late) / students.length) * 1000) / 10
+  const studentPercentage = students.length ? Math.round(((studentCounts.present + studentCounts.late + studentCounts.halfday * 0.5) / students.length) * 1000) / 10 : 0
+  const updateStatus = (roll, status) => {
+    if (!canEdit) return
+    setSaved(false)
+    setStudentsByClass((current) => ({ ...current, [classKey]: current[classKey].map((student) => student[1] === roll ? [student[0], student[1], status, status === 'absent' ? '—' : student[3] === '—' ? '08:10' : student[3], student[4]] : student) }))
+  }
+  const updateNote = (roll, note) => {
+    if (!canEdit) return
+    setStudentsByClass((current) => ({ ...current, [classKey]: current[classKey].map((student) => student[1] === roll ? [student[0], student[1], student[2], student[3], note] : student) }))
+  }
+  const saveAttendance = () => { setSaved(true); setNoteDraft('') }
 
-  return (
-    <div className="feature-page attendance-feature-page">
-      <header className="feature-page-heading">
-        <div className="feature-heading-copy">
-          <span className="feature-eyebrow">DAILY OPERATIONS</span>
-          <div className="feature-title-line">
-            <div className="feature-title-icon"><UserCheck size={23} /></div>
-            <div><h1>Attendance</h1><p>Check today's student and teacher attendance with class-wise and staff-wise records.</p></div>
-          </div>
-        </div>
-        <div className="feature-date-badge"><CalendarDays size={15} /> {getDateLabel(date)}</div>
-      </header>
-
-      <section className="feature-controls-card attendance-controls">
-        <div className="feature-control-tabs">
-          <button className={viewMode === 'students' ? 'active' : ''} onClick={() => setViewMode('students')} type="button">Student attendance</button>
-          <button className={viewMode === 'teachers' ? 'active' : ''} onClick={() => setViewMode('teachers')} type="button">Teacher attendance</button>
-        </div>
-        <div className="feature-select-grid">
-          {viewMode === 'students' ? <>
-            <label><span>Class</span><select value={selectedClass} onChange={(event) => setSelectedClass(event.target.value)}>{classes.map((item) => <option key={item} value={item}>Class {item}</option>)}</select></label>
-            <label><span>Section / Division</span><select value={selectedSection} onChange={(event) => setSelectedSection(event.target.value)}>{sections.map((item) => <option key={item} value={item}>Section {item}</option>)}</select></label>
-          </> : <div className="attendance-scope"><Users size={17} /><div><strong>All teaching staff</strong><span>School-wide teacher attendance for the selected date</span></div></div>}
-          <label className="date-control"><span>Date</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
-        </div>
-      </section>
-
-      <section className="feature-stat-grid">
-        {viewMode === 'students' ? <>
-          <article><span>Attendance</span><strong>{studentPercentage}%</strong><small><UserCheck size={13} /> Class {selectedClass}-{selectedSection}</small></article>
-          <article><span>Present</span><strong className="feature-good">{studentCounts.present}</strong><small><Check size={13} /> Students present</small></article>
-          <article><span>Absent</span><strong className="feature-bad">{studentCounts.absent}</strong><small><X size={13} /> Students absent</small></article>
-          <article><span>Late</span><strong className="feature-warn">{studentCounts.late}</strong><small><Clock3 size={13} /> Students late</small></article>
-        </> : <>
-          <article><span>Staff attendance</span><strong>{Math.round(((teacherCounts.present + teacherCounts.late) / teacherAttendance.length) * 1000) / 10}%</strong><small><UserCheck size={13} /> School-wide</small></article>
-          <article><span>Present</span><strong className="feature-good">{teacherCounts.present}</strong><small><Check size={13} /> Teachers present</small></article>
-          <article><span>Absent</span><strong className="feature-bad">{teacherCounts.absent}</strong><small><X size={13} /> Teachers absent</small></article>
-          <article><span>Late</span><strong className="feature-warn">{teacherCounts.late}</strong><small><Clock3 size={13} /> Teachers late</small></article>
-        </>}
-      </section>
-
-      <section className="feature-panel attendance-panel">
-        <div className="feature-panel-header">
-          <div><span className="feature-eyebrow">TODAY'S REGISTER</span><h2>{viewMode === 'students' ? `Class ${selectedClass}-${selectedSection} attendance` : 'Teacher attendance'}</h2><p>{viewMode === 'students' ? `${students.length} visible students · ${getDateLabel(date)}` : `${teacherAttendance.length} teaching staff records · ${getDateLabel(date)}`}</p></div>
-          <span className="feature-live-badge">Attendance record</span>
-        </div>
-
-        {viewMode === 'students' ? <div className="attendance-table-wrap"><table className="feature-table"><thead><tr><th>Student</th><th>Roll no.</th><th>Status</th><th>Check-in</th><th>Action state</th></tr></thead><tbody>{students.map(([name, roll, status, checkIn]) => { const meta = statusMeta[status]; return <tr key={roll}><td><div className="person-cell"><div className="person-avatar">{name.split(' ').map((part) => part[0]).join('').slice(0, 2)}</div><strong>{name}</strong></div></td><td>{roll}</td><td><span className={`attendance-status ${meta.className}`}>{meta.label}</span></td><td>{checkIn}</td><td><span className="record-note">Today's record</span></td></tr> })}</tbody></table></div> : <div className="attendance-table-wrap"><table className="feature-table"><thead><tr><th>Teacher</th><th>Department</th><th>Status</th><th>Check-in</th><th>Assigned classes</th></tr></thead><tbody>{teacherAttendance.map(([name, department, status, checkIn, assigned]) => { const meta = statusMeta[status]; return <tr key={name}><td><div className="person-cell"><div className="person-avatar teacher-avatar">{name.split(' ').map((part) => part[0]).join('').slice(0, 2)}</div><strong>{name}</strong></div></td><td>{department}</td><td><span className={`attendance-status ${meta.className}`}>{meta.label}</span></td><td>{checkIn}</td><td>{assigned} classes</td></tr> })}</tbody></table></div>}
-      </section>
-
-      <section className="attendance-status-strip">
-        <div><span className="attendance-dot present-dot" /><strong>{viewMode === 'students' ? studentCounts.present : teacherCounts.present}</strong><span>Present</span></div>
-        <div><span className="attendance-dot absent-dot" /><strong>{viewMode === 'students' ? studentCounts.absent : teacherCounts.absent}</strong><span>Absent</span></div>
-        <div><span className="attendance-dot late-dot" /><strong>{viewMode === 'students' ? studentCounts.late : teacherCounts.late}</strong><span>Late</span></div>
-      </section>
-    </div>
-  )
+  return <div className="feature-page attendance-feature-page">
+    <header className="feature-page-heading"><div className="feature-heading-copy"><span className="feature-eyebrow">DAILY OPERATIONS</span><div className="feature-title-line"><div className="feature-title-icon"><UserCheck size={23} /></div><div><h1>Attendance</h1><p>{isPrincipal ? 'View class-wise student attendance and school-wide teacher attendance for the selected date.' : 'Class teachers own the daily class register. Subject teachers can view assigned classes but cannot take ownership of the register.'}</p></div></div></div><div className="feature-date-badge"><CalendarDays size={15} /> {getDateLabel(date)}</div></header>
+    <section className="feature-controls-card attendance-controls"><div className="feature-control-tabs"><button className={viewMode === 'students' ? 'active' : ''} onClick={() => setViewMode('students')} type="button">Student attendance</button>{isPrincipal && <button className={viewMode === 'teachers' ? 'active' : ''} onClick={() => setViewMode('teachers')} type="button">Teacher attendance</button>}</div><div className="feature-select-grid">
+      {viewMode === 'students' ? <><label><span>Class</span><select value={selectedClass} onChange={(event) => { setSelectedClass(event.target.value); setSaved(false) }}>{classes.map((item) => <option key={item} value={item}>Class {item}</option>)}</select></label><label><span>Section / Division</span><select value={selectedSection} onChange={(event) => { setSelectedSection(event.target.value); setSaved(false) }}>{sections.map((item) => <option key={item} value={item}>Section {item}</option>)}</select></label><div className="attendance-scope"><Users size={17} /><div><strong>{classKey} · {classTeacher || 'Class teacher not assigned'}</strong><span>{canEdit ? 'Attendance register can be updated' : 'Subject teacher view · class teacher owns attendance'}</span></div></div></> : <div className="attendance-scope"><Users size={17} /><div><strong>All teaching staff</strong><span>Present, absent and late status for the selected date</span></div></div>}
+      <label className="date-control"><span>Date</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
+    </div></section>
+    {viewMode === 'students' && !isPrincipal && <section className={`attendance-owner-banner ${classIsOwnedByTeacher ? 'owner' : 'viewer'}`}><div>{classIsOwnedByTeacher ? <><span className="variant-kicker">CLASS TEACHER</span><h2>You own the daily register for {classKey}.</h2><p>Take attendance when you enter your class. If a student leaves for half day, gets permission, or has another note, record it here before saving.</p></> : <><span className="variant-kicker">SUBJECT TEACHER</span><h2>{classKey} is owned by {classTeacher || 'the class teacher'}.</h2><p>You can see the class because you teach it, but daily attendance stays with the class teacher. Share half-day or other student updates with the class teacher so they can update the register.</p></>}</div><span className="attendance-owner-pill">{canEdit ? 'Can update' : 'View only'}</span></section>}
+    <section className="feature-stat-grid">{viewMode === 'students' ? <><article><span>Attendance</span><strong>{studentPercentage}%</strong><small><UserCheck size={13} /> {classKey}</small></article><article><span>Present</span><strong className="feature-good">{studentCounts.present}</strong><small><Check size={13} /> Students present</small></article><article><span>Absent</span><strong className="feature-bad">{studentCounts.absent}</strong><small><X size={13} /> Students absent</small></article><article><span>Late / half day</span><strong className="feature-warn">{studentCounts.late + studentCounts.halfday}</strong><small><Clock3 size={13} /> Exceptions today</small></article></> : <><article><span>Staff attendance</span><strong>{Math.round(((teacherCounts.present + teacherCounts.late) / teacherAttendance.length) * 1000) / 10}%</strong><small><UserCheck size={13} /> School-wide</small></article><article><span>Present</span><strong className="feature-good">{teacherCounts.present}</strong><small><Check size={13} /> Teachers present</small></article><article><span>Absent</span><strong className="feature-bad">{teacherCounts.absent}</strong><small><X size={13} /> Teachers absent</small></article><article><span>Late</span><strong className="feature-warn">{teacherCounts.late}</strong><small><Clock3 size={13} /> Teachers late</small></article></>}</section>
+    <section className="feature-panel attendance-panel"><div className="feature-panel-header"><div><span className="feature-eyebrow">TODAY'S REGISTER</span><h2>{viewMode === 'students' ? `${classKey} · Student attendance` : 'Teacher attendance'}</h2><p>{viewMode === 'students' ? `${students.length} visible students · ${getDateLabel(date)}` : `${teacherAttendance.length} teaching staff · ${getDateLabel(date)}`}</p></div><div className="attendance-panel-actions">{saved && <span className="attendance-saved">Saved</span>}{viewMode === 'students' && canEdit && <button type="button" className="primary-button" onClick={saveAttendance}><Save size={15} /> Save attendance</button>}</div></div>
+      {viewMode === 'students' ? <div className="attendance-table-wrap"><table className="feature-table attendance-edit-table"><thead><tr><th>Student</th><th>Roll no.</th><th>Status</th><th>Check-in</th><th>Note</th></tr></thead><tbody>{students.map(([name, roll, status, checkIn, note]) => { const meta = statusMeta[status] || statusMeta.present; return <tr key={roll}><td><div className="person-cell"><div className="person-avatar">{name.split(' ').map((part) => part[0]).join('').slice(0, 2)}</div><strong>{name}</strong></div></td><td>{roll}</td><td><div className="attendance-status-actions">{['present', 'absent', 'late', 'halfday'].map((item) => <button key={item} type="button" disabled={!canEdit} className={`attendance-choice ${status === item ? `selected ${item}` : ''}`} onClick={() => updateStatus(roll, item)}>{statusMeta[item].label}</button>)}</div></td><td>{checkIn}</td><td><input className="attendance-note-input" value={note} disabled={!canEdit} onChange={(event) => updateNote(roll, event.target.value)} placeholder="Half day / permission / note" /></td></tr> })}</tbody></table></div> : <div className="attendance-table-wrap"><table className="feature-table"><thead><tr><th>Teacher</th><th>Role / assignment</th><th>Status</th><th>Check-in</th></tr></thead><tbody>{teacherAttendance.map(([name, role, status, checkIn]) => { const meta = statusMeta[status]; return <tr key={name}><td><div className="person-cell"><div className="person-avatar teacher-avatar">{name.split(' ').map((part) => part[0]).join('').slice(0, 2)}</div><strong>{name}</strong></div></td><td>{role}</td><td><span className={`attendance-status ${meta.className}`}>{meta.label}</span></td><td>{checkIn}</td></tr> })}</tbody></table></div>}
+    </section>
+    {viewMode === 'students' && canEdit && <section className="attendance-note-panel"><div className="attendance-note-icon"><FileText size={18} /></div><div><span className="variant-kicker">CLASS NOTES</span><h2>Record exceptions before you finish the register.</h2><p>Use the student note field for half-day leave, parent permission, medical note, early departure or another class-teacher observation.</p></div><input value={noteDraft} onChange={(event) => setNoteDraft(event.target.value)} placeholder="Optional general class note" /></section>}
+    <section className="attendance-status-strip"><div><span className="attendance-dot present-dot" /><strong>{viewMode === 'students' ? studentCounts.present : teacherCounts.present}</strong><span>Present</span></div><div><span className="attendance-dot absent-dot" /><strong>{viewMode === 'students' ? studentCounts.absent : teacherCounts.absent}</strong><span>Absent</span></div><div><span className="attendance-dot late-dot" /><strong>{viewMode === 'students' ? studentCounts.late : teacherCounts.late}</strong><span>Late</span></div>{viewMode === 'students' && <div><span className="attendance-dot halfday-dot" /><strong>{studentCounts.halfday}</strong><span>Half day</span></div>}</section>
+  </div>
 }
-
 export default AttendancePage
