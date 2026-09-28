@@ -12,6 +12,7 @@ import AccountantDashboard from '../pages/accountant/AccountantDashboard'
 import ModulePage from '../pages/module/ModulePage'
 import TimetablePage from '../pages/module/TimetablePage'
 import AttendancePage from '../pages/module/AttendancePage'
+import '../pages/module/ModuleFeature.css'
 
 function ProtectedRoute() {
   const { isAuthenticated } = useAuth()
