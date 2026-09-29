@@ -171,6 +171,8 @@ function PrincipalModulePage({ moduleKey }) {
       let teacherUserId = form.userId
       if (editingId) {
         await apiClient.put(`/teachers/${editingId}`, {
+          name: form.name,
+          email: form.email,
           employeeId: form.employeeId,
           phone: form.phone,
           department: form.department,
