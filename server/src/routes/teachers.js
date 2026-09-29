@@ -193,7 +193,7 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-// Update teacher profile details. Login credentials remain managed by User Management.
+// Update teacher profile details and the linked teacher login account.
 router.put("/:id", async (req, res, next) => {
   try {
     const teacher = await Teacher.findOne({
@@ -204,6 +204,8 @@ router.put("/:id", async (req, res, next) => {
     if (!teacher) return res.status(404).json({ message: "Teacher profile not found" });
 
     const {
+      name,
+      email,
       employeeId,
       phone,
       gender,
@@ -216,6 +218,44 @@ router.put("/:id", async (req, res, next) => {
       address,
       emergencyContact,
     } = req.body || {};
+
+    const teacherUser = await User.findOne({
+      _id: teacher.user,
+      school: req.user.school,
+      role: ROLES.TEACHER,
+    });
+
+    if (!teacherUser) {
+      return res.status(404).json({ message: "Teacher login account not found" });
+    }
+
+    if (name !== undefined) {
+      const normalizedName = String(name).trim();
+      if (!normalizedName) {
+        return res.status(400).json({ message: "Name cannot be empty" });
+      }
+      teacherUser.name = normalizedName;
+    }
+
+    if (email !== undefined) {
+      const normalizedEmail = String(email).trim().toLowerCase();
+      if (!normalizedEmail) {
+        return res.status(400).json({ message: "Email cannot be empty" });
+      }
+
+      if (normalizedEmail !== teacherUser.email) {
+        const existingUser = await User.findOne({
+          email: normalizedEmail,
+          _id: { $ne: teacherUser._id },
+        });
+
+        if (existingUser) {
+          return res.status(409).json({ message: "A user with this email already exists" });
+        }
+      }
+
+      teacherUser.email = normalizedEmail;
+    }
 
     if (employeeId !== undefined) {
       const normalizedEmployeeId = String(employeeId).trim();
@@ -255,16 +295,17 @@ router.put("/:id", async (req, res, next) => {
     }
 
     await teacher.save();
+    await teacherUser.save();
 
     const populatedTeacher = await findTeacher(teacher._id, req.user.school);
 
     res.json({
-      message: "Teacher profile updated successfully",
+      message: "Teacher profile and login account updated successfully",
       teacher: serializeTeacher(populatedTeacher),
     });
   } catch (error) {
     if (error?.code === 11000) {
-      return res.status(409).json({ message: "Employee ID already exists in this school" });
+      return res.status(409).json({ message: "Employee ID or email already exists" });
     }
     next(error);
   }
