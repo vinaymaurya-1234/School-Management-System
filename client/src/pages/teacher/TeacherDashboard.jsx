@@ -1,50 +1,15 @@
-import { CalendarDays, CheckCircle2, ClipboardList, LockKeyhole, BookOpen, Users } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { CalendarDays, CheckCircle2, GraduationCap, Users, BookOpen } from 'lucide-react'
 import StatCard from '../../components/dashboard/StatCard'
 import SectionCard from '../../components/dashboard/SectionCard'
 import { useAuth } from '../../context/AuthContext'
+import apiClient from '../../api/client'
 import './TeacherDashboard.css'
 
-const myClasses = [
-  { className: '10-A', subject: 'Mathematics', students: 36, role: 'Subject teacher', attendanceOwner: 'Priya Nair' },
-  { className: '10-B', subject: 'Mathematics', students: 34, role: 'Class teacher + Mathematics', attendanceOwner: 'Rahul Mehta' },
-  { className: '9-A', subject: 'Mathematics', students: 35, role: 'Subject teacher', attendanceOwner: 'Sneha Kapoor' },
-  { className: '8-A', subject: 'Mathematics', students: 32, role: 'Subject teacher', attendanceOwner: 'Amit Joshi' },
-]
-
-function TeacherDashboard() {
-  const { user } = useAuth()
-  const classTeacherClass = myClasses.find((item) => item.attendanceOwner === user?.name)
-
-  return (
-    <div className="dashboard-page teacher-dashboard-page">
-      <div className="page-heading-row"><div><span className="eyebrow">TEACHER PORTAL</span><h1>Good morning, {user?.name?.split(' ')[0]}.</h1><p>Here is your teaching overview for today.</p></div></div>
-
-      <div className="stats-grid">
-        <StatCard label="My Classes" value={myClasses.length} change="2 active today" icon={BookOpen} />
-        <StatCard label="Class Teacher" value={classTeacherClass?.className || '—'} change="Daily attendance owner" icon={Users} />
-        <StatCard label="Attendance" value="94.1%" change="Today across your class" icon={CheckCircle2} />
-        <StatCard label="Assignments" value="12" change="4 pending" trend="down" icon={ClipboardList} />
-      </div>
-
-      <div className="dashboard-grid two-one">
-        <SectionCard title="My Classes" subtitle="Your teaching assignments remain visible even when another teacher owns the daily attendance register.">
-          <div className="teacher-class-list">{myClasses.map((item) => <div className="teacher-class-row" key={item.className}>
-            <div className="teacher-class-main"><div className="teacher-class-badge">{item.className}</div><div><strong>{item.subject}</strong><span>{item.students} students · {item.role}</span></div></div>
-            <div className={`teacher-class-owner ${item.attendanceOwner === user?.name ? 'owner' : ''}`}><LockKeyhole size={13} /><span>Attendance</span><strong>{item.attendanceOwner}</strong></div>
-          </div>)}</div>
-        </SectionCard>
-
-        <SectionCard title="Today's classes" subtitle="Your teaching schedule">
-          <div className="schedule-list"><div><strong>08:00</strong><span>Mathematics · Class 10-A · Room 204</span></div><div><strong>09:00</strong><span>Mathematics · Class 10-B · Room 106</span></div><div><strong>11:30</strong><span>Mathematics · Class 9-A · Room 301</span></div><div><strong>13:30</strong><span>Remedial session · Library</span></div></div>
-        </SectionCard>
-      </div>
-
-      <div className="dashboard-grid two-one teacher-dashboard-actions">
-        <SectionCard title="Attendance rule" subtitle="Keep the register ownership clear"><div className="teacher-rule-card"><div className="teacher-rule-icon"><CheckCircle2 size={19} /></div><div><strong>{classTeacherClass ? `${classTeacherClass.className} is your class-teacher class.` : 'You are a subject teacher.'}</strong><p>Take daily attendance only for the class where you are the class teacher. In other classes, teach your subject and share student exceptions with the class teacher.</p></div></div></SectionCard>
-        <SectionCard title="Quick actions"><div className="quick-grid"><button type="button"><CheckCircle2 size={19} /><span>Mark class attendance</span></button><button type="button"><CalendarDays size={19} /><span>View timetable</span></button><button type="button"><ClipboardList size={19} /><span>Add assignment</span></button><button type="button"><BookOpen size={19} /><span>Enter marks</span></button></div></SectionCard>
-      </div>
-    </div>
-  )
+function TeacherDashboard(){
+  const {user}=useAuth(); const [assignments,setAssignments]=useState([]); const [enrollments,setEnrollments]=useState([]); const [timetable,setTimetable]=useState([]); const [loading,setLoading]=useState(true); const [error,setError]=useState('')
+  useEffect(()=>{(async()=>{try{const yearRes=await apiClient.get('/academic/years');const year=(yearRes.data.years||[]).find((item)=>item.isActive)||yearRes.data.years?.[0];if(!year){setLoading(false);return}const [assignmentRes,enrollmentRes,timetableRes]=await Promise.all([apiClient.get('/academic/teacher-assignments',{params:{academicYear:year._id,teacherId:user.id}}),apiClient.get('/academic/enrollments',{params:{academicYear:year._id}}),apiClient.get('/timetable',{params:{academicYear:year._id}})]);setAssignments(assignmentRes.data.assignments||[]);setEnrollments(enrollmentRes.data.enrollments||[]);setTimetable(timetableRes.data.entries||[])}catch(err){setError(err.response?.data?.message||'Unable to load your teaching dashboard.')}finally{setLoading(false)}})()},[user?.id])
+  const assignedSections=useMemo(()=>{const seen=new Set();return assignments.filter((item)=>{const key=`${item.class?._id||item.class}:${item.section?._id||item.section}`;if(seen.has(key))return false;seen.add(key);return true})},[assignments]); const studentCount=useMemo(()=>{const ids=new Set(assignedSections.map((item)=>item.section?._id||item.section));return enrollments.filter((item)=>ids.has(item.section?._id||item.section)).length},[assignedSections,enrollments]); const todayKey=new Date().toLocaleDateString('en-US',{weekday:'long'}).toLowerCase(); const todaySchedule=timetable.filter((entry)=>entry.day===todayKey).sort((a,b)=>a.periodNumber-b.periodNumber)
+  return <div className="dashboard-page teacher-dashboard-page"><div className="page-heading-row"><div><span className="eyebrow">TEACHER PORTAL</span><h1>Good morning, {user?.name?.split(' ')[0]}.</h1><p>{loading?'Loading your real teaching data...':'Your teaching assignments, classes and timetable from the school database.'}</p></div></div>{error&&<div className="module-alert error">{error}</div>}<div className="stats-grid"><StatCard label="Assigned classes" value={assignedSections.length} change="Real academic assignments" icon={BookOpen}/><StatCard label="Students" value={studentCount} change="Across assigned sections" icon={Users}/><StatCard label="Subjects" value={new Set(assignments.map((item)=>item.subject?._id||item.subject).filter(Boolean)).size} change="Assigned subjects" icon={GraduationCap}/><StatCard label="Today" value={todaySchedule.length} change="Timetable periods" icon={CheckCircle2}/></div><div className="dashboard-grid two-one"><SectionCard title="My classes" subtitle="Class, section and subject assignments created by the principal"><div className="teacher-class-list">{assignedSections.map((item)=><div className="teacher-class-row" key={`${item.class?._id||item.class}-${item.section?._id||item.section}`}><div className="teacher-class-main"><div className="teacher-class-badge">{item.class?.name||'Class'}-{item.section?.name||'—'}</div><div><strong>{assignments.filter((assignment)=>(assignment.class?._id||assignment.class)===(item.class?._id||item.class)&&(assignment.section?._id||assignment.section)===(item.section?._id||item.section)).map((assignment)=>assignment.subject?.name).filter(Boolean).join(', ')||'Class assignment'}</strong><span>{enrollments.filter((enrollment)=>(enrollment.section?._id||enrollment.section)===(item.section?._id||item.section)).length} students</span></div></div><div className="teacher-class-owner"><CheckCircle2 size={13}/><span>{item.isClassTeacher?'Class teacher':'Subject teacher'}</span></div></div>)}{!assignedSections.length&&!loading&&<div className="empty-state"><strong>No teaching assignments yet.</strong><span>The principal needs to assign a class / section / subject.</span></div>}</div></SectionCard><SectionCard title="Today's timetable" subtitle="Published periods assigned to you"><div className="schedule-list">{todaySchedule.map((entry)=><div key={entry._id}><strong>{entry.startTime}</strong><span>{entry.subject?.name||'Subject'} · Class {entry.section?.name||'—'} · {entry.room||'Room not set'}</span></div>)}{!todaySchedule.length&&!loading&&<div className="empty-state"><strong>No periods published for today.</strong><span>Your timetable will appear here after the principal publishes it.</span></div>}</div></SectionCard></div><SectionCard title="Attendance ownership" subtitle="Daily attendance follows the real class-teacher assignment"><div className="teacher-rule-card"><div className="teacher-rule-icon"><CheckCircle2 size={19}/></div><div><strong>{assignments.some((item)=>item.isClassTeacher)?'You own attendance for your class-teacher sections.':'You are currently a subject teacher.'}</strong><p>Class teachers can update the daily register for their assigned sections. Subject-teacher assignments remain visible without taking ownership of the register.</p></div></div></SectionCard></div>
 }
-
 export default TeacherDashboard
