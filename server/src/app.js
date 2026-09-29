@@ -3,6 +3,7 @@ import cors from "cors";
 import mongoose from "mongoose";
 import authRoutes from "./routes/auth.js";
 import academicRoutes from "./routes/academic.js";
+import userRoutes from "./routes/users.js";
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/academic", academicRoutes);
+app.use("/api/users", userRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
