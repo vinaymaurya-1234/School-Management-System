@@ -8,7 +8,6 @@ import PrincipalDashboard from '../pages/principal/PrincipalDashboard'
 import PrincipalModulePage from '../pages/module/PrincipalModulePage'
 import PrincipalClassesPage from '../pages/module/PrincipalClassesPage'
 import PrincipalSubjectsPage from '../pages/module/PrincipalSubjectsPage'
-import PrincipalOperationPage from '../pages/module/PrincipalOperationPage'
 import TeacherDashboard from '../pages/teacher/TeacherDashboard'
 import StudentDashboard from '../pages/student/StudentDashboard'
 import ParentDashboard from '../pages/parent/ParentDashboard'
@@ -30,10 +29,10 @@ function ModuleRoute() {
   if (moduleKey === 'attendance') return <AttendancePage />
   if (user?.role === 'principal' && moduleKey === 'classes') return <PrincipalClassesPage />
   if (user?.role === 'principal' && moduleKey === 'subjects') return <PrincipalSubjectsPage />
-  if (user?.role === 'principal' && PRINCIPAL_OPERATIONS.has(moduleKey)) return <PrincipalOperationPage moduleKey={moduleKey} />
+  if (user?.role === 'principal' && PRINCIPAL_OPERATIONS.has(moduleKey)) return <ModulePage moduleKey={moduleKey} />
   if (user?.role === 'principal') return <PrincipalModulePage moduleKey={moduleKey} />
   return <ModulePage moduleKey={moduleKey} />
 }
 function PublicRoute() { const { isAuthenticated, user } = useAuth(); const homeRoute = ROLE_HOME_ROUTES[user?.role] || ROLE_HOME_ROUTES[ROLES.PRINCIPAL]; return isAuthenticated ? <Navigate to={homeRoute} replace /> : <Outlet /> }
-function AppRoutes() { return <Routes><Route element={<PublicRoute />}><Route path="/login" element={<Login />} /></Route><Route element={<ProtectedRoute />}><Route element={<DashboardLayout />}><Route path="/dashboard/principal" element={<RoleRoute role={ROLES.PRINCIPAL}><PermissionRoute permission="dashboard.view"><PrincipalDashboard /></PermissionRoute></RoleRoute>} /><Route path="/dashboard/teacher" element={<RoleRoute role={ROLES.TEACHER}><PermissionRoute permission="dashboard.view"><TeacherDashboard /></PermissionRoute></RoleRoute>} /><Route path="/dashboard/student" element={<RoleRoute role={ROLES.STUDENT}><PermissionRoute permission="dashboard.view"><StudentDashboard /></PermissionRoute></RoleRoute>} /><Route path="/dashboard/parent" element={<RoleRoute role={ROLES.PARENT}><PermissionRoute permission="dashboard.view"><ParentDashboard /></PermissionRoute></RoleRoute>} /><Route path="/dashboard/accountant" element={<RoleRoute role={ROLES.ACCOUNTANT}><PermissionRoute permission="dashboard.view"><AccountantDashboard /></PermissionRoute></RoleRoute>} /><Route path="/module/:moduleKey" element={<ModuleRoute />} /></Route></Route><Route path="/" element={<Navigate to="/login" replace />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes> }
+function AppRoutes() { return <Routes><Route element={<PublicRoute />}><Route path="/login" element={<Login />} /></Route><Route element={<ProtectedRoute />}><Route element={<DashboardLayout />}><Route path="/dashboard/principal" element={<RoleRoute role={ROLES.PRINCIPAL}><PermissionRoute permission="dashboard.view"><PrincipalDashboard /></PermissionRoute></RoleRoute>} /><Route path="/dashboard/teacher" element={<RoleRoute role={ROLES.TEACHER}><PermissionRoute permission="dashboard.view"><TeacherDashboard /></PermissionRoute></RoleRoute>} /><Route path="/dashboard/student" element={<RoleRoute role={ROLES.STUDENT}><PermissionRoute permission="dashboard.view"><StudentDashboard /></PermissionRoute></RoleRoute>} /><Route path="/dashboard/parent" element={<RoleRoute role={ROLES.PARENT}><PermissionRoute permission="dashboard.view"><ParentDashboard /></PermissionRoute></RoleRoute>} /><Route path="/dashboard/accountant" element={<RoleRoute role={ROLES.ACCOUNTANT}><PermissionRoute permission="dashboard.view"><AccountantDashboard /></PermissionRoute></RoleRoute>} /><Route path="/module/:moduleKey" element={<ModuleRoute />} /></Route></Route><Route path="/" element={<Navigate to="/login" replace />} /><Route path="*" element={<Navigate to="/" replace" />} /></Routes> }
 export default AppRoutes
