@@ -159,26 +159,49 @@ router.put("/:id", async (req, res, next) => {
   }
 });
 
-router.patch("/:id/deactivate", async (req, res, next) => {
+async function setStudentStatus(req, res, next, active) {
   try {
     if (!canManageStudents(req.user.role)) {
-      return res.status(403).json({ message: "You do not have permission to deactivate students" });
+      return res.status(403).json({ message: "You do not have permission to change student status" });
     }
 
     const student = await Student.findOneAndUpdate(
       { _id: req.params.id, school: req.user.school },
-      { active: false },
+      { active },
       { new: true }
     ).populate("user", "name email role active");
 
     if (!student) return res.status(404).json({ message: "Student not found" });
 
-    await User.updateOne({ _id: student.user }, { active: false });
+    await User.updateOne({ _id: student.user }, { active });
 
-    res.json({ message: "Student and login deactivated successfully", student: serializeStudent(student) });
+    return res.json({
+      message: active
+        ? "Student and login activated successfully"
+        : "Student and login deactivated successfully",
+      student: serializeStudent(student),
+    });
   } catch (error) {
     next(error);
   }
+}
+
+router.patch("/:id/status", async (req, res, next) => {
+  const active = req.body?.active;
+
+  if (typeof active !== "boolean") {
+    return res.status(400).json({ message: "active must be a boolean" });
+  }
+
+  return setStudentStatus(req, res, next, active);
+});
+
+router.patch("/:id/deactivate", async (req, res, next) => {
+  return setStudentStatus(req, res, next, false);
+});
+
+router.patch("/:id/activate", async (req, res, next) => {
+  return setStudentStatus(req, res, next, true);
 });
 
 export default router;
