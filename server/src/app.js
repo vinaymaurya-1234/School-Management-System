@@ -5,6 +5,7 @@ import authRoutes from "./routes/auth.js";
 import academicRoutes from "./routes/academic.js";
 import userRoutes from "./routes/users.js";
 import teacherRoutes from "./routes/teachers.js";
+import studentRoutes from "./routes/students.js";
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/academic", academicRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/teachers", teacherRoutes);
+app.use("/api/students", studentRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
