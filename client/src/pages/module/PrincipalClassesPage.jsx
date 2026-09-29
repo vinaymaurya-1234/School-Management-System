@@ -1,0 +1,76 @@
+import { useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, Loader2, Plus, RefreshCw, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import apiClient from '../../api/client'
+import './PrincipalModulePage.css'
+
+function PrincipalClassesPage() {
+  const navigate = useNavigate()
+  const [years, setYears] = useState([])
+  const [classes, setClasses] = useState([])
+  const [sections, setSections] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [showCreate, setShowCreate] = useState(false)
+  const [form, setForm] = useState({ name: '', order: '' })
+
+  const activeYear = useMemo(() => years.find((year) => year.isActive) || years[0] || null, [years])
+
+  const load = async () => {
+    setLoading(true); setError('')
+    try {
+      const yearResponse = await apiClient.get('/academic/years')
+      const nextYears = yearResponse.data.years || []
+      setYears(nextYears)
+      const year = nextYears.find((item) => item.isActive) || nextYears[0]
+      if (!year) { setClasses([]); setSections([]); return }
+      const [classResponse, sectionResponse] = await Promise.all([
+        apiClient.get('/academic/classes', { params: { academicYear: year._id } }),
+        apiClient.get('/academic/sections', { params: { academicYear: year._id } }),
+      ])
+      setClasses(classResponse.data.classes || [])
+      setSections(sectionResponse.data.sections || [])
+    } catch (err) { setError(err.response?.data?.message || 'Unable to load classes.') }
+    finally { setLoading(false) }
+  }
+
+  useEffect(() => { load() }, [])
+
+  const createClass = async () => {
+    if (!activeYear) return setError('Create an academic year first.')
+    if (!form.name.trim()) return setError('Class name is required.')
+    const order = Number(form.order)
+    if (!Number.isInteger(order) || order < 1) return setError('Class order must be a positive number.')
+    setSaving(true); setError('')
+    try {
+      const response = await apiClient.post('/academic/classes', { academicYear: activeYear._id, name: form.name.trim(), order })
+      setNotice(response.data.message || `Class ${form.name} created with Section A`)
+      setForm({ name: '', order: '' }); setShowCreate(false); await load()
+    } catch (err) { setError(err.response?.data?.message || 'Unable to create class.') }
+    finally { setSaving(false) }
+  }
+
+  const addSection = async (classId) => {
+    try {
+      const response = await apiClient.post(`/academic/classes/${classId}/sections`, {})
+      setNotice(response.data.message || 'Next section created successfully.')
+      await load()
+    } catch (err) { setError(err.response?.data?.message || 'Unable to create section.') }
+  }
+
+  return <div className="principal-module-page">
+    <header className="module-page-header"><button className="back-btn" onClick={() => navigate('/dashboard/principal')}><ArrowLeft size={16}/> Dashboard</button><div className="module-title-row"><div className="module-title-icon"><Plus size={20}/></div><div><span>ACADEMICS</span><h1>Classes & Sections</h1><p>One class automatically starts with Section A. Additional sections are generated A → B → C.</p></div></div>{loading && <span className="loading-label"><Loader2 size={14} className="spin"/> Loading</span>}</header>
+    {error && <div className="module-alert error"><span>{error}</span><button onClick={() => setError('')}><X size={15}/></button></div>}
+    {notice && <div className="module-alert success"><span>{notice}</span><button onClick={() => setNotice('')}><X size={15}/></button></div>}
+    <section className="module-surface">
+      <div className="structure-toolbar"><div><span>ACTIVE ACADEMIC YEAR</span><strong>{activeYear?.name || 'Not configured'}</strong></div><div style={{ display:'flex', gap:8 }}><button className="secondary-btn" onClick={load}><RefreshCw size={15}/> Refresh</button><button className="primary-btn" onClick={() => { setShowCreate(true); setError('') }}><Plus size={15}/> Create class</button></div></div>
+      <div className="class-grid">{classes.map((schoolClass) => { const classId = schoolClass._id; const classSections = sections.filter((section) => (section.class?._id || section.class) === classId); return <article className="class-card" key={classId}><div className="class-card-top"><span>CLASS {schoolClass.order}</span><strong>{schoolClass.name}</strong></div><div className="section-list">{classSections.map((section) => <span key={section._id}>{section.name}</span>)}</div><button className="text-btn" onClick={() => addSection(classId)}><Plus size={14}/> Add next section</button></article> })}</div>
+      {!classes.length && !loading && <div className="empty-state"><strong>No classes in {activeYear?.name || 'the current year'}.</strong><span>Create the first class and Section A will be created automatically.</span></div>}
+    </section>
+    {showCreate && <div className="modal-backdrop"><div className="modal-card" style={{ maxWidth: 500 }}><div className="modal-head"><div><span>ACADEMIC SETUP</span><h2>Create class</h2></div><button className="icon-btn" onClick={() => setShowCreate(false)}><X size={17}/></button></div><div className="modal-body"><div className="form-grid"><label className="form-field"><span>Class name</span><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="8" autoFocus/></label><label className="form-field"><span>Order</span><input value={form.order} onChange={(e) => setForm({ ...form, order: e.target.value })} type="number" min="1" placeholder="8"/></label><div className="form-help full">Creating a class automatically creates Section A. Use “Add next section” later for B, then C, and so on.</div></div></div><div className="modal-foot"><button className="secondary-btn" onClick={() => setShowCreate(false)} disabled={saving}>Cancel</button><button className="primary-btn" onClick={createClass} disabled={saving}>{saving ? <Loader2 size={15} className="spin"/> : <Plus size={15}/>} {saving ? 'Creating...' : 'Create class'}</button></div></div></div>}
+  </div>
+}
+
+export default PrincipalClassesPage
