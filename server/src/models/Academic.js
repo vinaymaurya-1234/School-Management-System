@@ -51,8 +51,7 @@ const teacherAssignmentSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // A teacher can work with multiple subjects/sections, but only inside one class
-// for a given academic year. Also make repeated saves idempotent so editing a
-// teacher does not create the same assignment again and again.
+// for a given academic year. Repeated saves of the same assignment are idempotent.
 teacherAssignmentSchema.pre("save", async function (next) {
   if (!this.isNew || this.status !== "active") return next();
 
@@ -73,7 +72,6 @@ teacherAssignmentSchema.pre("save", async function (next) {
   }).select("_id");
 
   if (existingSameAssignment) {
-    // Re-use the existing document instead of inserting a duplicate.
     this._id = existingSameAssignment._id;
     this.isNew = false;
     return next();
@@ -95,18 +93,23 @@ teacherAssignmentSchema.pre("save", async function (next) {
   return next();
 });
 
-// Old duplicate rows may already exist in the database. Keep API reads clean
-// while the underlying data is repaired; new saves will no longer add them.
+// Hide already-existing duplicate rows from the UI while the database is repaired.
+function refKey(value) {
+  if (!value) return "";
+  if (value._id) return value._id.toString();
+  return value.toString();
+}
+
 teacherAssignmentSchema.post("find", function (docs) {
   const seen = new Set();
   for (let index = docs.length - 1; index >= 0; index -= 1) {
     const item = docs[index];
     const key = [
-      item.teacher?.toString(),
-      item.academicYear?.toString(),
-      item.class?.toString() || "",
-      item.section?.toString() || "",
-      item.subject?.toString() || "",
+      refKey(item.teacher),
+      refKey(item.academicYear),
+      refKey(item.class),
+      refKey(item.section),
+      refKey(item.subject),
       Boolean(item.isClassTeacher),
       item.status,
     ].join("|");
