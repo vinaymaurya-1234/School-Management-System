@@ -1,45 +1,14 @@
-import { BookOpen, CheckCircle2, CreditCard, GraduationCap, Users } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { BookOpen, CalendarDays, CheckCircle2, GraduationCap, Users } from 'lucide-react'
 import StatCard from '../../components/dashboard/StatCard'
 import SectionCard from '../../components/dashboard/SectionCard'
 import { useAuth } from '../../context/AuthContext'
+import apiClient from '../../api/client'
 
-function ParentDashboard() {
-  const { user } = useAuth()
-
-  return (
-    <div className="dashboard-page">
-      <div className="page-heading-row">
-        <div>
-          <span className="eyebrow">PARENT PORTAL</span>
-          <h1>Welcome back, {user?.name?.split(' ')[0]}.</h1>
-          <p>Keep track of your children's school activity from one place.</p>
-        </div>
-      </div>
-
-      <div className="stats-grid">
-        <StatCard label="Children" value="2" change="Both active" icon={Users} />
-        <StatCard label="Attendance" value="95.5%" change="1.2%" icon={CheckCircle2} />
-        <StatCard label="Fees Due" value="₹12,500" change="Due 30 Sep" trend="down" icon={CreditCard} />
-        <StatCard label="Assignments" value="5" change="Across children" icon={BookOpen} />
-      </div>
-
-      <div className="dashboard-grid two-one">
-        <SectionCard title="My children" subtitle="Quick academic overview">
-          <div className="children-list">
-            <div className="child-row"><div className="profile-avatar">A</div><div><strong>Aarav Sharma</strong><span>Class 10-A · Attendance 94%</span></div><GraduationCap size={19} /></div>
-            <div className="child-row"><div className="profile-avatar">A</div><div><strong>Ananya Sharma</strong><span>Class 6-B · Attendance 97%</span></div><GraduationCap size={19} /></div>
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Payment summary" subtitle="Current academic year">
-          <div className="payment-summary"><span>Total fees</span><strong>₹84,000</strong></div>
-          <div className="payment-summary"><span>Paid</span><strong>₹71,500</strong></div>
-          <div className="payment-summary pending"><span>Remaining</span><strong>₹12,500</strong></div>
-          <button type="button" className="primary-button full-width">View fee details</button>
-        </SectionCard>
-      </div>
-    </div>
-  )
+function ParentDashboard(){
+  const {user}=useAuth(); const [children,setChildren]=useState([]); const [enrollments,setEnrollments]=useState([]); const [attendance,setAttendance]=useState({}); const [timetables,setTimetables]=useState({}); const [loading,setLoading]=useState(true); const [error,setError]=useState('')
+  useEffect(()=>{(async()=>{try{const yearRes=await apiClient.get('/academic/years');const year=(yearRes.data.years||[]).find((item)=>item.isActive)||yearRes.data.years?.[0];const childRes=await apiClient.get('/parents/me/children');const nextChildren=childRes.data.children||[];setChildren(nextChildren);if(year){const enrollmentRes=await apiClient.get('/academic/enrollments',{params:{academicYear:year._id}});setEnrollments(enrollmentRes.data.enrollments||[])}const summaries={};const schedules={};await Promise.all(nextChildren.map(async(child)=>{try{const summaryRes=await apiClient.get('/attendance/summary',{params:{studentId:child.user?._id||child.user}});summaries[child._id]=summaryRes.data}catch{}try{const timetableRes=await apiClient.get(`/parents/me/children/${child._id}/timetable`);schedules[child._id]=timetableRes.data.entries||[]}catch{}}));setAttendance(summaries);setTimetables(schedules)}catch(err){setError(err.response?.data?.message||'Unable to load parent data.')}finally{setLoading(false)}})()},[user?.id])
+  const childCards=useMemo(()=>children.map((child)=>{const enrollment=enrollments.find((item)=>(item.student?._id||item.student)===(child.user?._id||child.user));return {...child,enrollment,attendance:attendance[child._id]||{percentage:0},timetable:timetables[child._id]||[]}}),[children,enrollments,attendance,timetables]);const totalLessons=childCards.reduce((sum,child)=>sum+child.timetable.length,0);const avgAttendance=childCards.length?Math.round(childCards.reduce((sum,child)=>sum+(child.attendance.percentage||0),0)/childCards.length*10)/10:0
+  return <div className="dashboard-page"><div className="page-heading-row"><div><span className="eyebrow">PARENT PORTAL</span><h1>Welcome back, {user?.name?.split(' ')[0]}.</h1><p>View your linked children's real enrollment, attendance and timetable.</p></div></div>{error&&<div className="module-alert error">{error}</div>}<div className="stats-grid"><StatCard label="Children" value={children.length} change="Linked parent records" icon={Users}/><StatCard label="Attendance" value={`${avgAttendance}%`} change="Average across children" icon={CheckCircle2}/><StatCard label="Weekly lessons" value={totalLessons} change="Published timetable" icon={BookOpen}/><StatCard label="Active classes" value={new Set(childCards.map((child)=>child.enrollment?.class?._id||child.enrollment?.class).filter(Boolean)).size} change="Current academic year" icon={GraduationCap}/></div><div className="dashboard-grid two-one"><SectionCard title="My children" subtitle="Live school records"><div className="children-list">{childCards.map((child)=><div className="child-row" key={child._id}><div className="profile-avatar">{child.name?.slice(0,1)}</div><div><strong>{child.name}</strong><span>{child.enrollment?`Class ${child.enrollment.class?.name} · Section ${child.enrollment.section?.name} · Attendance ${child.attendance.percentage}%`:'Not enrolled for the current year'}</span></div><GraduationCap size={19}/></div>)}{!childCards.length&&!loading&&<div className="empty-state"><strong>No child is linked to this parent account.</strong><span>The principal must link a student to your parent login.</span></div>}</div></SectionCard><SectionCard title="Today's timetable" subtitle="Across your children"><div className="schedule-list">{childCards.flatMap((child)=>{const todayKey=new Date().toLocaleDateString('en-US',{weekday:'long'}).toLowerCase();return child.timetable.filter((entry)=>entry.day===todayKey).map((entry)=><div key={entry._id}><strong>{entry.startTime}</strong><span>{child.name} · {entry.subject?.name||'Subject'} · {entry.teacher?.name||'Teacher'}</span></div>)})}{!totalLessons&&<div className="empty-state"><strong>No published timetable yet.</strong><span>Your child's weekly schedule will appear after the principal publishes it.</span></div>}</div></SectionCard></div><SectionCard title="Attendance summary" subtitle="Real saved registers"><div className="event-list">{childCards.map((child)=><div key={child._id}><div className="event-icon"><CalendarDays size={17}/></div><span>{child.name}</span><strong>{child.attendance.percentage}%</strong></div>)}</div></SectionCard></div>
 }
-
 export default ParentDashboard
