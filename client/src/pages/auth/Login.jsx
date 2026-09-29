@@ -3,14 +3,6 @@ import { Eye, EyeOff, GraduationCap, LockKeyhole, Mail, ShieldCheck } from 'luci
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
-const demoAccounts = [
-  { label: 'Principal', email: 'principal@school.com' },
-  { label: 'Teacher', email: 'teacher@school.com' },
-  { label: 'Student', email: 'student@school.com' },
-  { label: 'Parent', email: 'parent@school.com' },
-  { label: 'Accountant', email: 'accountant@school.com' },
-]
-
 function Login() {
   const navigate = useNavigate()
   const { login } = useAuth()
@@ -25,27 +17,21 @@ function Login() {
     if (error) setError('')
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
+    setError('')
     setLoading(true)
 
-    window.setTimeout(() => {
-      const result = login(form.email, form.password)
+    const result = await login(form.email, form.password)
 
-      if (!result.success) {
-        setError(result.message)
-        setLoading(false)
-        return
-      }
-
-      navigate(`/dashboard/${result.user.role}`, { replace: true })
+    if (!result.success) {
+      setError(result.message)
       setLoading(false)
-    }, 350)
-  }
+      return
+    }
 
-  const fillDemo = (email) => {
-    setForm({ email, password: '123456' })
-    setError('')
+    navigate(`/dashboard/${result.user.role}`, { replace: true })
+    setLoading(false)
   }
 
   return (
@@ -139,20 +125,6 @@ function Login() {
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
-
-          <div className="demo-section">
-            <div className="demo-heading">
-              <span>Development demo accounts</span>
-              <small>Password: 123456</small>
-            </div>
-            <div className="demo-grid">
-              {demoAccounts.map((account) => (
-                <button key={account.email} type="button" onClick={() => fillDemo(account.email)}>
-                  {account.label}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
     </main>
