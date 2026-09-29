@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowUpRight, Bell, ChevronRight, GraduationCap, Plus, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { api } from '../../api/client'
+import apiClient from '../../api/client'
 import './PrincipalDashboard.css'
 
 function PrincipalDashboard() {
@@ -23,23 +23,23 @@ function PrincipalDashboard() {
       setLoading(true)
       setError('')
       const requests = await Promise.allSettled([
-        api.get('/students'),
-        api.get('/teachers'),
-        api.get('/academic/years'),
-        api.get('/academic/classes'),
-        api.get('/academic/sections'),
+        apiClient.get('/students'),
+        apiClient.get('/teachers'),
+        apiClient.get('/academic/years'),
+        apiClient.get('/academic/classes'),
+        apiClient.get('/academic/sections'),
       ])
 
       if (!mounted) return
       const [studentResult, teacherResult, yearResult, classResult, sectionResult] = requests
-      if (studentResult.status === 'fulfilled') setStudents(Array.isArray(studentResult.value?.students) ? studentResult.value.students : [])
-      if (teacherResult.status === 'fulfilled') setTeachers(Array.isArray(teacherResult.value?.teachers) ? teacherResult.value.teachers : [])
+      if (studentResult.status === 'fulfilled') setStudents(Array.isArray(studentResult.value?.data?.students) ? studentResult.value.data.students : [])
+      if (teacherResult.status === 'fulfilled') setTeachers(Array.isArray(teacherResult.value?.data?.teachers) ? teacherResult.value.data.teachers : [])
       if (yearResult.status === 'fulfilled') {
-        const years = Array.isArray(yearResult.value?.years) ? yearResult.value.years : []
+        const years = Array.isArray(yearResult.value?.data?.years) ? yearResult.value.data.years : []
         setAcademicYear(years.find((year) => year.isActive) || years[0] || null)
       }
-      if (classResult.status === 'fulfilled') setClasses(Array.isArray(classResult.value?.classes) ? classResult.value.classes : [])
-      if (sectionResult.status === 'fulfilled') setSections(Array.isArray(sectionResult.value?.sections) ? sectionResult.value.sections : [])
+      if (classResult.status === 'fulfilled') setClasses(Array.isArray(classResult.value?.data?.classes) ? classResult.value.data.classes : [])
+      if (sectionResult.status === 'fulfilled') setSections(Array.isArray(sectionResult.value?.data?.sections) ? sectionResult.value.data.sections : [])
       if (requests.some((result) => result.status === 'rejected')) setError('Some dashboard data could not be loaded. Refresh and try again.')
       setLoading(false)
     }
