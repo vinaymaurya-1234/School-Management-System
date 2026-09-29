@@ -1,12 +1,8 @@
 import { Router } from "express";
-import {
-  AcademicYear,
-  SchoolClass,
-  Section,
-  StudentEnrollment,
-  TeacherAssignment,
-} from "./models/Academic.js";
+import { AcademicYear, SchoolClass, Section, StudentEnrollment, TeacherAssignment } from "./models/Academic.js";
 import User from "./models/User.js";
+import TimetableEntry from "./models/Timetable.js";
+import AttendanceSession from "./models/Attendance.js";
 import { requireAuth } from "./middleware/auth.js";
 import { ROLES } from "./config/permissions.js";
 
@@ -32,9 +28,7 @@ router.get("/years", async (req, res, next) => {
   try {
     const years = await AcademicYear.find({ school: req.user.school }).sort({ startDate: -1 });
     res.json({ years });
-  } catch (error) {
-    next(error);
-  }
+  } catch (error) { next(error); }
 });
 
 router.post("/years", async (req, res, next) => {
@@ -46,9 +40,7 @@ router.post("/years", async (req, res, next) => {
     if (isActive) await AcademicYear.updateMany({ school: req.user.school }, { $set: { isActive: false } });
     const year = await AcademicYear.create({ school: req.user.school, name: String(name).trim(), startDate, endDate, isActive });
     res.status(201).json({ year });
-  } catch (error) {
-    next(error);
-  }
+  } catch (error) { next(error); }
 });
 
 router.post("/years/rollover", async (req, res, next) => {
@@ -67,9 +59,7 @@ router.post("/years/rollover", async (req, res, next) => {
     for (const oldClass of oldClasses) {
       const newClass = await SchoolClass.create({ school: req.user.school, academicYear: newYear._id, name: oldClass.name, order: oldClass.order });
       const oldSections = await Section.find({ school: req.user.school, academicYear: sourceYear._id, class: oldClass._id });
-      for (const oldSection of oldSections) {
-        await Section.create({ school: req.user.school, academicYear: newYear._id, class: newClass._id, name: oldSection.name });
-      }
+      for (const oldSection of oldSections) await Section.create({ school: req.user.school, academicYear: newYear._id, class: newClass._id, name: oldSection.name });
     }
     res.status(201).json({ message: "New academic year created successfully. Class and section structure copied; students and teachers were not duplicated.", year: newYear, copiedClasses: oldClasses.length });
   } catch (error) {
@@ -94,17 +84,8 @@ router.post("/classes", async (req, res, next) => {
     if (!academicYear || !name || order === undefined) return res.status(400).json({ message: "academicYear, name and order are required" });
     const year = await AcademicYear.findOne({ _id: academicYear, school: req.user.school });
     if (!year) return res.status(404).json({ message: "Academic year not found" });
-
     const schoolClass = await SchoolClass.create({ school: req.user.school, academicYear, name: String(name).trim(), order: Number(order) });
-
-    // Every new class starts with Section A automatically.
-    const sectionA = await Section.create({
-      school: req.user.school,
-      academicYear,
-      class: schoolClass._id,
-      name: "A",
-    });
-
+    const sectionA = await Section.create({ school: req.user.school, academicYear, class: schoolClass._id, name: "A" });
     res.status(201).json({ class: schoolClass, section: sectionA, message: `Class ${schoolClass.name} created with Section A` });
   } catch (error) {
     if (error.code === 11000) return res.status(409).json({ message: "This class already exists for the academic year" });
@@ -122,7 +103,6 @@ router.get("/sections", async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-// Adds the next section automatically: A -> B -> C -> D ...
 router.post("/classes/:classId/sections", async (req, res, next) => {
   try {
     if (!canManageAcademic(req)) return res.status(403).json({ message: "Only the principal can add sections" });
@@ -130,16 +110,9 @@ router.post("/classes/:classId/sections", async (req, res, next) => {
     const { classTeacher } = req.body || {};
     const schoolClass = await SchoolClass.findOne({ _id: classId, school: req.user.school });
     if (!schoolClass) return res.status(404).json({ message: "Class not found" });
-
     const sectionCount = await Section.countDocuments({ school: req.user.school, academicYear: schoolClass.academicYear, class: classId });
     const name = sectionNameFromIndex(sectionCount);
-    const section = await Section.create({
-      school: req.user.school,
-      academicYear: schoolClass.academicYear,
-      class: classId,
-      name,
-      classTeacher: classTeacher || undefined,
-    });
+    const section = await Section.create({ school: req.user.school, academicYear: schoolClass.academicYear, class: classId, name, classTeacher: classTeacher || undefined });
     res.status(201).json({ message: `Section ${name} created successfully`, section });
   } catch (error) {
     if (error.code === 11000) return res.status(409).json({ message: "The next section already exists. Please refresh and try again." });
@@ -147,7 +120,43 @@ router.post("/classes/:classId/sections", async (req, res, next) => {
   }
 });
 
-// Kept for controlled/internal imports; normal UI should use POST /classes/:classId/sections.
+router.delete("/sections/:sectionId", async (req, res, next) => {
+  try {
+    if (!canManageAcademic(req)) return res.status(403).json({ message: "Only the principal can delete sections" });
+    const section = await Section.findOne({ _id: req.params.sectionId, school: req.user.school });
+    if (!section) return res.status(404).json({ message: "Section not found" });
+    const enrolled = await StudentEnrollment.exists({ school: req.user.school, academicYear: section.academicYear, section: section._id, status: "active" });
+    if (enrolled) return res.status(409).json({ message: "This section has active students. Move the students to another section before deleting it." });
+    await Promise.all([
+      TeacherAssignment.deleteMany({ school: req.user.school, academicYear: section.academicYear, section: section._id }),
+      TimetableEntry.deleteMany({ school: req.user.school, academicYear: section.academicYear, section: section._id }),
+      AttendanceSession.deleteMany({ school: req.user.school, academicYear: section.academicYear, section: section._id }),
+      Section.deleteOne({ _id: section._id }),
+    ]);
+    res.json({ message: `Section ${section.name} deleted successfully` });
+  } catch (error) { next(error); }
+});
+
+router.delete("/classes/:classId", async (req, res, next) => {
+  try {
+    if (!canManageAcademic(req)) return res.status(403).json({ message: "Only the principal can delete classes" });
+    const schoolClass = await SchoolClass.findOne({ _id: req.params.classId, school: req.user.school });
+    if (!schoolClass) return res.status(404).json({ message: "Class not found" });
+    const enrolled = await StudentEnrollment.exists({ school: req.user.school, academicYear: schoolClass.academicYear, class: schoolClass._id, status: "active" });
+    if (enrolled) return res.status(409).json({ message: "This class has active students. Move the students before deleting the class." });
+    const sections = await Section.find({ school: req.user.school, academicYear: schoolClass.academicYear, class: schoolClass._id }).select("_id");
+    const sectionIds = sections.map((item) => item._id);
+    await Promise.all([
+      TeacherAssignment.deleteMany({ school: req.user.school, academicYear: schoolClass.academicYear, class: schoolClass._id }),
+      TimetableEntry.deleteMany({ school: req.user.school, academicYear: schoolClass.academicYear, section: { $in: sectionIds } }),
+      AttendanceSession.deleteMany({ school: req.user.school, academicYear: schoolClass.academicYear, section: { $in: sectionIds } }),
+      Section.deleteMany({ _id: { $in: sectionIds } }),
+      SchoolClass.deleteOne({ _id: schoolClass._id }),
+    ]);
+    res.json({ message: `Class ${schoolClass.name} deleted successfully` });
+  } catch (error) { next(error); }
+});
+
 router.post("/sections", async (req, res, next) => {
   try {
     if (!canManageAcademic(req)) return res.status(403).json({ message: "Only the principal can create sections" });
@@ -223,10 +232,12 @@ router.post("/promotions", async (req, res, next) => {
 
 router.get("/teacher-assignments", async (req, res, next) => {
   try {
-    const filter = { school: req.user.school };
+    const filter = { school: req.user.school, status: "active" };
     if (req.query.academicYear) filter.academicYear = req.query.academicYear;
     if (req.query.teacherId) filter.teacher = req.query.teacherId;
-    const assignments = await TeacherAssignment.find(filter).populate("teacher", "name email").populate("class", "name order").populate("section", "name").sort({ createdAt: 1 });
+    if (req.query.classId) filter.class = req.query.classId;
+    if (req.query.sectionId) filter.section = req.query.sectionId;
+    const assignments = await TeacherAssignment.find(filter).populate("teacher", "name email").populate("class", "name order").populate("section", "name").populate("subject", "name code").sort({ createdAt: 1 });
     res.json({ assignments });
   } catch (error) { next(error); }
 });
@@ -238,6 +249,14 @@ router.post("/teacher-assignments", async (req, res, next) => {
     if (!academicYear || !teacher) return res.status(400).json({ message: "academicYear and teacher are required" });
     const teacherUser = await User.findOne({ _id: teacher, school: req.user.school, role: ROLES.TEACHER, active: true });
     if (!teacherUser) return res.status(404).json({ message: "Teacher not found" });
+    if (classId) {
+      const classExists = await SchoolClass.findOne({ _id: classId, school: req.user.school, academicYear });
+      if (!classExists) return res.status(404).json({ message: "Class not found for academic year" });
+    }
+    if (section) {
+      const sectionExists = await Section.findOne({ _id: section, school: req.user.school, academicYear, class: classId });
+      if (!sectionExists) return res.status(404).json({ message: "Section not found for selected class" });
+    }
     const assignment = await TeacherAssignment.create({ school: req.user.school, academicYear, teacher, class: classId || undefined, section: section || undefined, subject: subject || undefined, isClassTeacher });
     res.status(201).json({ assignment });
   } catch (error) {
