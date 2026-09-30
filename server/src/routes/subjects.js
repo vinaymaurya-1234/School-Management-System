@@ -69,15 +69,38 @@ router.post("/", principalOnly, async (req, res, next) => {
     if (!subject) subject = await Subject.create({ school: req.user.school, academicYear, name: String(name).trim(), code: String(code || "").trim().toUpperCase(), isOptional });
 
     const mapping = await ClassSubject.create({ school: req.user.school, academicYear, class: classId, subject: subject._id, weeklyPeriods: Number(weeklyPeriods) || 5 });
+
     if (teacherId) {
       const teacher = await User.findOne({ _id: teacherId, school: req.user.school, role: ROLES.TEACHER, active: true });
       if (!teacher) return res.status(404).json({ message: "Teacher not found" });
-      await TeacherAssignment.findOneAndUpdate(
-        { school: req.user.school, academicYear, teacher: teacherId, class: classId, section: sectionId || null, subject: subject._id },
-        { $setOnInsert: { school: req.user.school, academicYear, teacher: teacherId, class: classId, section: sectionId || undefined, subject: subject._id } },
-        { upsert: true, new: true }
-      );
+
+      // Use the TeacherAssignment document's save lifecycle instead of
+      // findOneAndUpdate(). This keeps the single-class-per-teacher rule
+      // active even when assignments are created from the Subjects module.
+      const existing = await TeacherAssignment.findOne({
+        school: req.user.school,
+        academicYear,
+        teacher: teacherId,
+        class: classId,
+        section: sectionId || null,
+        subject: subject._id,
+        status: "active",
+      });
+
+      if (!existing) {
+        const assignment = new TeacherAssignment({
+          school: req.user.school,
+          academicYear,
+          teacher: teacherId,
+          class: classId,
+          section: sectionId || undefined,
+          subject: subject._id,
+          isClassTeacher: false,
+        });
+        await assignment.save();
+      }
     }
+
     res.status(201).json({ message: "Subject mapped successfully", subject, mapping });
   } catch (error) {
     if (error.code === 11000) return res.status(409).json({ message: "This subject is already mapped to the selected class" });
