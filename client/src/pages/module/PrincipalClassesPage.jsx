@@ -57,20 +57,12 @@ function PrincipalClassesPage() {
     setSaving(true)
     setError('')
     try {
-      const response = await apiClient.post('/academic/classes', {
-        academicYear: activeYear._id,
-        name: std,
-        order,
-      })
-
+      const response = await apiClient.post('/academic/classes', { academicYear: activeYear._id, name: std, order })
       const createdClass = response.data.class
       const targetIndex = SECTION_OPTIONS.indexOf(form.section)
       if (createdClass?._id && targetIndex > 0) {
-        for (let index = 1; index <= targetIndex; index += 1) {
-          await apiClient.post(`/academic/classes/${createdClass._id}/sections`, {})
-        }
+        for (let index = 1; index <= targetIndex; index += 1) await apiClient.post(`/academic/classes/${createdClass._id}/sections`, {})
       }
-
       setNotice(response.data.message || `Standard ${std} created with sections up to ${form.section}.`)
       setForm({ std: '', section: 'A' })
       setShowCreate(false)
@@ -119,7 +111,7 @@ function PrincipalClassesPage() {
       <button className="back-btn" onClick={() => navigate('/dashboard/principal')}><ArrowLeft size={16}/> Dashboard</button>
       <div className="module-title-row">
         <div className="module-title-icon"><Plus size={20}/></div>
-        <div><span>ACADEMICS</span><h1>Classes & Sections</h1><p>Manage the real academic structure for the active school year.</p></div>
+        <div><span>ACADEMICS</span><h1>Classes</h1><p>Manage the real academic structure for the active school year.</p></div>
       </div>
       {loading && <span className="loading-label"><Loader2 size={14} className="spin"/> Loading</span>}
     </header>
