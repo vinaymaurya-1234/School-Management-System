@@ -16,7 +16,7 @@ import { useAuth } from '../../context/AuthContext'
 import apiClient from '../../api/client'
 import './PrincipalDashboard.css'
 
-const OPERATION_MODULES = ['fees', 'notices', 'exams', 'events', 'payroll']
+const OPERATION_MODULES = ['fees', 'notices', 'exams', 'payroll']
 
 function PrincipalDashboard() {
   const { user } = useAuth()
@@ -32,8 +32,8 @@ function PrincipalDashboard() {
 
     const requests = await Promise.allSettled([
       apiClient.get('/teachers'),
-      apiClient.get('/operations/events'),
-      ...OPERATION_MODULES.filter((module) => module !== 'events').map((module) => apiClient.get(`/operations/${module}`)),
+      apiClient.get(`/events?year=${new Date().getFullYear()}`),
+      ...OPERATION_MODULES.map((module) => apiClient.get(`/operations/${module}`)),
     ])
 
     const [teacherResult, eventResult, ...operationResults] = requests
@@ -238,7 +238,7 @@ function CalendarItem({ item }) {
   return (
     <Link to="/module/events" className="calendar-item">
       <div className="calendar-day"><strong>{item.day}</strong><span>{item.month}</span></div>
-      <div className="calendar-copy"><strong>{item.title}</strong><span>{item.type}{item.time ? ` · ${item.time}` : ''}</span></div>
+      <div className="calendar-copy"><strong>{item.title}</strong><span>{item.type}{item.timeRange ? ` · ${item.timeRange}` : ''}</span></div>
       <ArrowUpRight size={15} />
     </Link>
   )
@@ -288,17 +288,19 @@ function getUpcomingEvents(records) {
 
   return records
     .map((record) => {
-      const rawDate = record.data?.date || record.data?.startDate || record.data?.eventDate || record.createdAt
-      const date = new Date(rawDate)
+      const rawDate = record.date || record.data?.date || record.data?.startDate || record.data?.eventDate || record.createdAt
+      const date = new Date(`${rawDate}T00:00:00`)
       if (Number.isNaN(date.getTime()) || date < start || date > end) return null
+      const startTime = record.startTime || record.data?.startTime || record.data?.time || ''
+      const endTime = record.endTime || record.data?.endTime || ''
       return {
         id: record._id || record.id,
         title: record.title,
         date,
         day: new Intl.DateTimeFormat('en-IN', { day: '2-digit' }).format(date),
         month: new Intl.DateTimeFormat('en-IN', { month: 'short' }).format(date),
-        type: record.data?.type || record.data?.category || 'School event',
-        time: record.data?.time || record.data?.startTime || '',
+        type: record.type || record.data?.type || record.data?.category || 'School event',
+        timeRange: startTime ? (endTime ? `${startTime} – ${endTime}` : startTime) : '',
       }
     })
     .filter(Boolean)
