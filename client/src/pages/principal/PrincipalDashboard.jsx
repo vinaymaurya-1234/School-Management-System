@@ -6,7 +6,6 @@ import {
   ChevronRight,
   CircleAlert,
   Clock3,
-  RefreshCw,
   UserCheck,
   UserRoundX,
   Users,
@@ -25,12 +24,10 @@ function PrincipalDashboard() {
   const [events, setEvents] = useState([])
   const [attention, setAttention] = useState([])
   const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
 
-  const loadDashboard = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true)
-    else setLoading(true)
+  const loadDashboard = useCallback(async () => {
+    setLoading(true)
     setError('')
 
     const requests = await Promise.allSettled([
@@ -70,7 +67,6 @@ function PrincipalDashboard() {
     }
 
     setLoading(false)
-    setRefreshing(false)
   }, [])
 
   useEffect(() => {
@@ -104,15 +100,11 @@ function PrincipalDashboard() {
           <h1>Today at a glance</h1>
           <p>{todayLabel} · {user?.school?.name || 'Your school'}</p>
         </div>
-        <button className="refresh-dashboard" onClick={() => loadDashboard(true)} disabled={refreshing} type="button">
-          <RefreshCw size={15} className={refreshing ? 'spin' : ''} />
-          {refreshing ? 'Refreshing' : 'Refresh'}
-        </button>
       </section>
 
       {error && (
         <div className="dashboard-notice" role="status">
-          <CircleAlert size={16} />
+          <CircleAlert size={17} />
           <span>{error}</span>
         </div>
       )}
@@ -122,8 +114,9 @@ function PrincipalDashboard() {
           <div>
             <span>STAFF PRESENCE</span>
             <h2>Teacher status today</h2>
+            <p>A quick view of today's staff attendance. Open the attendance module to review individual records.</p>
           </div>
-          <Link to="/module/attendance" className="quiet-link">Open attendance <ChevronRight size={14} /></Link>
+          <Link to="/module/attendance" className="quiet-link">Open attendance <ChevronRight size={15} /></Link>
         </div>
 
         <div className="teacher-status-strip">
@@ -152,16 +145,16 @@ function PrincipalDashboard() {
             <span>THIS WEEK</span>
             <h2>Calendar</h2>
           </div>
-          <Link to="/module/events" className="quiet-link">View calendar <ChevronRight size={14} /></Link>
+          <Link to="/module/events" className="quiet-link">View calendar <ChevronRight size={15} /></Link>
         </div>
         <div className="calendar-strip">
           {calendarItems.length ? calendarItems.map((item) => (
             <CalendarItem key={item.id} item={item} />
           )) : (
             <div className="calendar-empty">
-              <CalendarDays size={17} />
+              <CalendarDays size={18} />
               <div><strong>No events scheduled this week</strong><span>Add PTMs, holidays and school events from Events.</span></div>
-              <Link to="/module/events">Add event <ArrowUpRight size={13} /></Link>
+              <Link to="/module/events">Add event <ArrowUpRight size={14} /></Link>
             </div>
           )}
         </div>
@@ -175,7 +168,7 @@ function PrincipalDashboard() {
               <h2>Approval queue</h2>
               <p>Resolve the things that need the principal's decision.</p>
             </div>
-            <CircleAlert size={19} className="heading-icon" />
+            <CircleAlert size={20} className="heading-icon" />
           </div>
 
           <div className="attention-list">
@@ -184,7 +177,7 @@ function PrincipalDashboard() {
             ))}
             {!attention.length && (
               <div className="attention-empty">
-                <div className="empty-check"><Check size={18} /></div>
+                <div className="empty-check"><Check size={19} /></div>
                 <div>
                   <strong>Nothing needs your attention</strong>
                   <p>Pending approvals from supported operations will appear here automatically.</p>
@@ -204,19 +197,19 @@ function PrincipalDashboard() {
             </div>
             <div className="signal-list">
               <Link to="/module/teachers" className="signal-row">
-                <span className="signal-icon"><Users size={16} /></span>
+                <span className="signal-icon"><Users size={17} /></span>
                 <span><strong>{loading ? '—' : teachers.length}</strong><small>Teacher profiles</small></span>
-                <ChevronRight size={14} />
+                <ChevronRight size={15} />
               </Link>
               <Link to="/module/events" className="signal-row">
-                <span className="signal-icon"><CalendarDays size={16} /></span>
+                <span className="signal-icon"><CalendarDays size={17} /></span>
                 <span><strong>{calendarItems.length}</strong><small>Events this week</small></span>
-                <ChevronRight size={14} />
+                <ChevronRight size={15} />
               </Link>
               <Link to="/module/notices" className="signal-row">
-                <span className="signal-icon"><CircleAlert size={16} /></span>
+                <span className="signal-icon"><CircleAlert size={17} /></span>
                 <span><strong>{attention.length}</strong><small>Items in queue</small></span>
-                <ChevronRight size={14} />
+                <ChevronRight size={15} />
               </Link>
             </div>
           </article>
@@ -235,7 +228,7 @@ function PrincipalDashboard() {
 function StatusBlock({ label, value, icon: Icon, tone, loading }) {
   return (
     <div className={`status-block ${tone}`}>
-      <span className="status-icon"><Icon size={17} /></span>
+      <span className="status-icon"><Icon size={19} /></span>
       <div><strong>{loading ? '—' : value}</strong><span>{label}</span></div>
     </div>
   )
@@ -246,7 +239,7 @@ function CalendarItem({ item }) {
     <Link to="/module/events" className="calendar-item">
       <div className="calendar-day"><strong>{item.day}</strong><span>{item.month}</span></div>
       <div className="calendar-copy"><strong>{item.title}</strong><span>{item.type}{item.time ? ` · ${item.time}` : ''}</span></div>
-      <ArrowUpRight size={14} />
+      <ArrowUpRight size={15} />
     </Link>
   )
 }
@@ -261,8 +254,8 @@ function AttentionRow({ item, onAction }) {
         <p>{item.data?.description || item.data?.reason || 'This record is waiting for review.'}</p>
       </div>
       <div className="attention-actions">
-        <button type="button" className="decline-action" onClick={() => onAction(item, 'declined')}><X size={13} /> Decline</button>
-        <button type="button" className="approve-action" onClick={() => onAction(item, 'approved')}><Check size={13} /> Approve</button>
+        <button type="button" className="decline-action" onClick={() => onAction(item, 'declined')}><X size={14} /> Decline</button>
+        <button type="button" className="approve-action" onClick={() => onAction(item, 'approved')}><Check size={14} /> Approve</button>
       </div>
     </div>
   )
@@ -288,14 +281,16 @@ function getTeacherStatus(teachers) {
 
 function getUpcomingEvents(records) {
   const now = new Date()
-  const end = new Date(now)
-  end.setDate(now.getDate() + 7)
+  const start = new Date(now)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(start)
+  end.setDate(start.getDate() + 7)
 
   return records
     .map((record) => {
       const rawDate = record.data?.date || record.data?.startDate || record.data?.eventDate || record.createdAt
       const date = new Date(rawDate)
-      if (Number.isNaN(date.getTime()) || date < new Date(now.setHours(0, 0, 0, 0)) || date > end) return null
+      if (Number.isNaN(date.getTime()) || date < start || date > end) return null
       return {
         id: record._id || record.id,
         title: record.title,
