@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Bell, ChevronDown, Search, LogOut, UserRound, Settings, GraduationCap } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import '../../styles/PremiumProfile.css'
 
 const academicItems = [
   { label: 'Students', href: '/module/students', hint: 'Student records' },
@@ -83,9 +84,7 @@ function Topbar() {
     <header className="premium-topbar" ref={rootRef}>
       <div className="premium-nav-scroll">
         <nav className="premium-nav" aria-label="Primary navigation">
-          <NavLink to="/dashboard/principal" className={({ isActive }) => `nav-pill ${isActive ? 'active' : ''}`}>
-            Home
-          </NavLink>
+          <NavLink to="/dashboard/principal" className={({ isActive }) => `nav-pill ${isActive ? 'active' : ''}`}>Home</NavLink>
           <Menu label="Academic" items={academicItems} open={openMenu === 'academic'} onToggle={() => setOpenMenu(openMenu === 'academic' ? null : 'academic')} onClose={() => setOpenMenu(null)} />
           <Menu label="Operations" items={operationsItems} wide open={openMenu === 'operations'} onToggle={() => setOpenMenu(openMenu === 'operations' ? null : 'operations')} onClose={() => setOpenMenu(null)} />
           <Menu label="Explore" items={exploreItems} wide open={openMenu === 'explore'} onToggle={() => setOpenMenu(openMenu === 'explore' ? null : 'explore')} onClose={() => setOpenMenu(null)} />
@@ -106,18 +105,12 @@ function Topbar() {
         <div className="profile-menu">
           <button className="profile-trigger" type="button" onClick={() => setProfileOpen(!profileOpen)} aria-expanded={profileOpen}>
             <span className="profile-avatar premium-avatar">{user?.name?.charAt(0) || 'P'}</span>
-            <span className="profile-trigger-copy">
-              <strong>{user?.name || 'Principal'}</strong>
-              <small>{user?.roleLabel || 'Principal'}</small>
-            </span>
+            <span className="profile-trigger-copy"><strong>{user?.name || 'Principal'}</strong><small>{user?.roleLabel || 'Principal'}</small></span>
             <ChevronDown size={15} />
           </button>
           {profileOpen && (
             <div className="profile-dropdown">
-              <div className="profile-dropdown-head">
-                <span className="profile-avatar premium-avatar large">{user?.name?.charAt(0) || 'P'}</span>
-                <div><strong>{user?.name || 'Principal'}</strong><small>{user?.email || 'Principal account'}</small></div>
-              </div>
+              <div className="profile-dropdown-head"><span className="profile-avatar premium-avatar large">{user?.name?.charAt(0) || 'P'}</span><div><strong>{user?.name || 'Principal'}</strong><small>{user?.email || 'Principal account'}</small></div></div>
               <button type="button" onClick={() => { setProfileOpen(false); navigate('/module/profile') }}><UserRound size={16} /> Profile</button>
               <button type="button" onClick={() => { setProfileOpen(false); navigate('/module/profile') }}><Settings size={16} /> Account settings</button>
               <div className="profile-divider" />
