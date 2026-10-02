@@ -36,6 +36,7 @@ export default function PrincipalStudentsPage() {
   const [years, setYears] = useState([])
   const [query, setQuery] = useState('')
   const [selectedClass, setSelectedClass] = useState('')
+  const [selectedSection, setSelectedSection] = useState('')
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -79,12 +80,21 @@ export default function PrincipalStudentsPage() {
 
   const getEnrollment = (student) => enrollments.find((item) => idOf(item.student) === student.userId && item.status === 'active') || enrollments.find((item) => idOf(item.student) === student.userId)
 
+  // Only show sections that belong to the currently selected class.
+  // When no class is selected, the section filter stays disabled because
+  // there is no single class context from which to build the section list.
+  const availableSections = useMemo(() => {
+    if (!selectedClass) return []
+    return sections.filter((section) => idOf(section.class) === selectedClass)
+  }, [sections, selectedClass])
+
   const filteredStudents = useMemo(() => {
     const q = query.trim().toLowerCase()
     return students.filter((student) => {
       const enrollment = getEnrollment(student)
       const matchesClass = !selectedClass || idOf(enrollment?.class) === selectedClass
-      if (!matchesClass) return false
+      const matchesSection = !selectedSection || idOf(enrollment?.section) === selectedSection
+      if (!matchesClass || !matchesSection) return false
       if (!q) return true
       return [
         student.name,
@@ -97,12 +107,19 @@ export default function PrincipalStudentsPage() {
         student.guardianEmail,
       ].some((value) => String(value || '').toLowerCase().includes(q))
     })
-  }, [students, enrollments, query, selectedClass])
+  }, [students, enrollments, query, selectedClass, selectedSection])
 
   const suggestions = useMemo(() => {
     if (!query.trim()) return []
     return filteredStudents.slice(0, 6)
   }, [filteredStudents, query])
+
+  const handleClassFilterChange = (value) => {
+    setSelectedClass(value)
+    // A section belongs to a class, so never keep a section selected
+    // after changing the class filter.
+    setSelectedSection('')
+  }
 
   const openStudent = (student) => {
     setSelectedStudent(student)
@@ -136,7 +153,7 @@ export default function PrincipalStudentsPage() {
   }
 
   const openAdd = () => {
-    setForm({ ...emptyForm, classId: selectedClass })
+    setForm({ ...emptyForm, classId: selectedClass, sectionId: selectedSection })
     setModal(true)
     setError('')
     setNotice('')
@@ -223,7 +240,7 @@ export default function PrincipalStudentsPage() {
                 return (
                   <button key={student.id || student._id || student.userId} onClick={() => openStudent(student)}>
                     <span className="suggestion-avatar">{(student.name || 'S').slice(0, 1).toUpperCase()}</span>
-                    <span className="suggestion-copy"><strong>{student.name}</strong><small>{student.admissionNumber || student.userId} · {enrollment ? `Class ${enrollment.class?.name || ''}` : 'Not enrolled'}</small></span>
+                    <span className="suggestion-copy"><strong>{student.name}</strong><small>{student.admissionNumber || student.userId} · {enrollment ? `Class ${enrollment.class?.name || ''}${enrollment.section?.name ? ` · Section ${enrollment.section.name}` : ''}` : 'Not enrolled'}</small></span>
                     <ArrowRight size={16} />
                   </button>
                 )
@@ -231,13 +248,27 @@ export default function PrincipalStudentsPage() {
             </div>
           )}
         </div>
+
         <label className="student-filter">
           <span>CLASS</span>
-          <select value={selectedClass} onChange={(event) => setSelectedClass(event.target.value)}>
+          <select value={selectedClass} onChange={(event) => handleClassFilterChange(event.target.value)}>
             <option value="">All classes</option>
             {classes.map((item) => <option key={item._id} value={item._id}>Class {item.name}</option>)}
           </select>
         </label>
+
+        <label className={`student-filter ${!selectedClass ? 'disabled-filter' : ''}`}>
+          <span>SECTION</span>
+          <select
+            value={selectedSection}
+            onChange={(event) => setSelectedSection(event.target.value)}
+            disabled={!selectedClass}
+          >
+            <option value="">{selectedClass ? 'All sections' : 'Select class first'}</option>
+            {availableSections.map((item) => <option key={item._id} value={item._id}>Section {item.name}</option>)}
+          </select>
+        </label>
+
         <div className="directory-count"><strong>{filteredStudents.length}</strong><span>students</span></div>
       </section>
 
@@ -266,7 +297,7 @@ export default function PrincipalStudentsPage() {
             })}
           </div>
         ) : (
-          <div className="student-empty"><UserRound size={27} /><strong>No matching students</strong><span>Start typing a name or admission ID to find a student.</span></div>
+          <div className="student-empty"><UserRound size={27} /><strong>No matching students</strong><span>{selectedSection ? 'No students are enrolled in this class and section.' : selectedClass ? 'No students are enrolled in this class.' : 'Start typing a name or admission ID to find a student.'}</span></div>
         )}
       </section>
 
