@@ -21,6 +21,7 @@ const OPERATION_MODULES = ['fees', 'notices', 'exams', 'payroll']
 function PrincipalDashboard() {
   const { user } = useAuth()
   const [teachers, setTeachers] = useState([])
+  const [teacherAttendance, setTeacherAttendance] = useState([])
   const [events, setEvents] = useState([])
   const [attention, setAttention] = useState([])
   const [loading, setLoading] = useState(true)
@@ -32,14 +33,19 @@ function PrincipalDashboard() {
 
     const requests = await Promise.allSettled([
       apiClient.get('/teachers'),
+      apiClient.get('/teacher-attendance'),
       apiClient.get(`/events?year=${new Date().getFullYear()}`),
       ...OPERATION_MODULES.map((module) => apiClient.get(`/operations/${module}`)),
     ])
 
-    const [teacherResult, eventResult, ...operationResults] = requests
+    const [teacherResult, teacherAttendanceResult, eventResult, ...operationResults] = requests
 
     if (teacherResult.status === 'fulfilled') {
       setTeachers(teacherResult.value?.data?.teachers || [])
+    }
+
+    if (teacherAttendanceResult.status === 'fulfilled') {
+      setTeacherAttendance(teacherAttendanceResult.value?.data?.teachers || [])
     }
 
     if (eventResult.status === 'fulfilled') {
@@ -73,7 +79,7 @@ function PrincipalDashboard() {
     loadDashboard()
   }, [loadDashboard])
 
-  const teacherStatus = useMemo(() => getTeacherStatus(teachers), [teachers])
+  const teacherStatus = useMemo(() => getTeacherStatus(teacherAttendance), [teacherAttendance])
   const calendarItems = useMemo(() => getUpcomingEvents(events), [events])
   const todayLabel = useMemo(() => new Intl.DateTimeFormat('en-IN', {
     weekday: 'long',
@@ -261,12 +267,12 @@ function AttentionRow({ item, onAction }) {
   )
 }
 
-function getTeacherStatus(teachers) {
-  const records = teachers.filter((teacher) => teacher.attendanceStatus || teacher.attendance?.status || teacher.todayStatus)
+function getTeacherStatus(attendanceTeachers) {
+  const records = attendanceTeachers.filter((teacher) => teacher.status && teacher.status !== 'not_marked')
   if (!records.length) return { present: '—', absent: '—', leave: '—', absentNames: [], hasAttendanceData: false }
 
-  const statusOf = (teacher) => String(teacher.attendanceStatus || teacher.attendance?.status || teacher.todayStatus || '').toLowerCase().replace('-', '_')
-  const present = records.filter((teacher) => ['present', 'late', 'half_day'].includes(statusOf(teacher))).length
+  const statusOf = (teacher) => String(teacher.status || '').toLowerCase().replace('-', '_')
+  const present = records.filter((teacher) => ['present', 'late'].includes(statusOf(teacher))).length
   const absentRecords = records.filter((teacher) => statusOf(teacher) === 'absent')
   const leave = records.filter((teacher) => ['leave', 'on_leave', 'holiday'].includes(statusOf(teacher))).length
 
