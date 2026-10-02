@@ -1,48 +1,14 @@
-import { Award, BookOpen, CalendarDays, CheckCircle2, ClipboardList } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Award, BookOpen, CalendarDays, CheckCircle2, GraduationCap } from 'lucide-react'
 import StatCard from '../../components/dashboard/StatCard'
 import SectionCard from '../../components/dashboard/SectionCard'
 import { useAuth } from '../../context/AuthContext'
+import apiClient from '../../api/client'
 
-function StudentDashboard() {
-  const { user } = useAuth()
-
-  return (
-    <div className="dashboard-page">
-      <div className="page-heading-row">
-        <div>
-          <span className="eyebrow">STUDENT PORTAL</span>
-          <h1>Welcome, {user?.name?.split(' ')[0]}.</h1>
-          <p>Class 10-A · Roll No. 24 · Academic Year 2026–27</p>
-        </div>
-      </div>
-
-      <div className="stats-grid">
-        <StatCard label="Attendance" value="94%" change="1.8%" icon={CheckCircle2} />
-        <StatCard label="Assignments" value="8" change="2 due" trend="down" icon={ClipboardList} />
-        <StatCard label="Average Score" value="86.4%" change="4.2%" icon={Award} />
-        <StatCard label="Next Exam" value="03 Oct" change="Mathematics" icon={BookOpen} />
-      </div>
-
-      <div className="dashboard-grid two-one">
-        <SectionCard title="Today's timetable" subtitle="Your next classes">
-          <div className="schedule-list">
-            <div><strong>08:00</strong><span>Mathematics · Room 204</span></div>
-            <div><strong>09:00</strong><span>Science · Lab 2</span></div>
-            <div><strong>10:30</strong><span>English · Room 101</span></div>
-            <div><strong>12:00</strong><span>History · Room 105</span></div>
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Upcoming" subtitle="Important dates">
-          <div className="event-list">
-            <div><div className="event-icon"><CalendarDays size={17} /></div><span>Math assignment</span><strong>29 Sep</strong></div>
-            <div><div className="event-icon"><CalendarDays size={17} /></div><span>Parent meeting</span><strong>30 Sep</strong></div>
-            <div><div className="event-icon"><CalendarDays size={17} /></div><span>Mid-term exams</span><strong>03 Oct</strong></div>
-          </div>
-        </SectionCard>
-      </div>
-    </div>
-  )
+function StudentDashboard(){
+  const {user}=useAuth(); const [enrollment,setEnrollment]=useState(null); const [timetable,setTimetable]=useState([]); const [attendance,setAttendance]=useState(null); const [loading,setLoading]=useState(true); const [error,setError]=useState('')
+  useEffect(()=>{(async()=>{try{const yearRes=await apiClient.get('/academic/years');const year=(yearRes.data.years||[]).find((item)=>item.isActive)||yearRes.data.years?.[0];if(!year){setLoading(false);return}const [enrollmentRes,timetableRes,attendanceRes]=await Promise.all([apiClient.get('/academic/enrollments',{params:{academicYear:year._id}}),apiClient.get('/timetable',{params:{academicYear:year._id}}),apiClient.get('/attendance/summary',{params:{studentId:user.id}})]);const current=(enrollmentRes.data.enrollments||[]).find((item)=>(item.student?._id||item.student)===user.id&&item.status==='active');setEnrollment(current||null);setTimetable(timetableRes.data.entries||[]);setAttendance(attendanceRes.data)}catch(err){setError(err.response?.data?.message||'Unable to load student data.')}finally{setLoading(false)}})()},[user?.id])
+  const todayKey=new Date().toLocaleDateString('en-US',{weekday:'long'}).toLowerCase(); const today=useMemo(()=>timetable.filter((entry)=>entry.day===todayKey).sort((a,b)=>a.periodNumber-b.periodNumber),[timetable,todayKey]); const weekDays=new Set(timetable.map((entry)=>entry.day)).size
+  return <div className="dashboard-page"><div className="page-heading-row"><div><span className="eyebrow">STUDENT PORTAL</span><h1>Welcome, {user?.name?.split(' ')[0]}.</h1><p>{enrollment?`Class ${enrollment.class?.name} · Section ${enrollment.section?.name} · Current academic year`:'Your current class enrollment will appear here once the principal enrolls you.'}</p></div></div>{error&&<div className="module-alert error">{error}</div>}<div className="stats-grid"><StatCard label="Attendance" value={`${attendance?.percentage||0}%`} change="From saved attendance" icon={CheckCircle2}/><StatCard label="Class" value={enrollment?.class?.name||'—'} change={enrollment?.section?.name?`Section ${enrollment.section.name}`:'Not enrolled'} icon={GraduationCap}/><StatCard label="Weekly lessons" value={timetable.length} change={`${weekDays} active days`} icon={BookOpen}/><StatCard label="Today's periods" value={today.length} change="Published timetable" icon={CalendarDays}/></div><div className="dashboard-grid two-one"><SectionCard title="Today's timetable" subtitle="Your published schedule"><div className="schedule-list">{today.map((entry)=><div key={entry._id}><strong>{entry.startTime}</strong><span>{entry.subject?.name||'Subject'} · {entry.teacher?.name||'Teacher'} · {entry.room||'Room not set'}</span></div>)}{!today.length&&!loading&&<div className="empty-state"><strong>No timetable periods published for today.</strong><span>The principal's timetable will appear here automatically.</span></div>}</div></SectionCard><SectionCard title="Academic snapshot" subtitle="Live enrollment and attendance"><div className="event-list"><div><div className="event-icon"><GraduationCap size={17}/></div><span>Class</span><strong>{enrollment?.class?.name||'—'} {enrollment?.section?.name?`· ${enrollment.section.name}`:''}</strong></div><div><div className="event-icon"><CheckCircle2 size={17}/></div><span>Present days</span><strong>{attendance?.present||0}</strong></div><div><div className="event-icon"><Award size={17}/></div><span>Late days</span><strong>{attendance?.late||0}</strong></div></div></SectionCard></div></div>
 }
-
 export default StudentDashboard

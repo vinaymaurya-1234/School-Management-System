@@ -1,84 +1,335 @@
-import { CalendarDays, CheckCircle2, GraduationCap, IndianRupee, Users } from 'lucide-react'
-import StatCard from '../../components/dashboard/StatCard'
-import SectionCard from '../../components/dashboard/SectionCard'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  ArrowUpRight,
+  CalendarDays,
+  Check,
+  ChevronRight,
+  CircleAlert,
+  Clock3,
+  UserCheck,
+  UserRoundX,
+  Users,
+  X,
+} from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import apiClient from '../../api/client'
+import './PrincipalDashboard.css'
 
-const activities = [
-  ['New teacher added', 'Priya Nair joined the faculty', '10 min ago'],
-  ['Attendance updated', 'Class 10-A attendance completed', '32 min ago'],
-  ['Fee payment received', '₹24,500 collected today', '1 hr ago'],
-  ['Exam schedule published', 'Mid-term timetable is ready', '2 hrs ago'],
-]
+const OPERATION_MODULES = ['fees', 'notices', 'exams', 'payroll']
 
 function PrincipalDashboard() {
   const { user } = useAuth()
+  const [teachers, setTeachers] = useState([])
+  const [teacherAttendance, setTeacherAttendance] = useState([])
+  const [events, setEvents] = useState([])
+  const [attention, setAttention] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const loadDashboard = useCallback(async () => {
+    setLoading(true)
+    setError('')
+
+    const requests = await Promise.allSettled([
+      apiClient.get('/teachers'),
+      apiClient.get('/teacher-attendance'),
+      apiClient.get(`/events?year=${new Date().getFullYear()}`),
+      ...OPERATION_MODULES.map((module) => apiClient.get(`/operations/${module}`)),
+    ])
+
+    const [teacherResult, teacherAttendanceResult, eventResult, ...operationResults] = requests
+
+    if (teacherResult.status === 'fulfilled') {
+      setTeachers(teacherResult.value?.data?.teachers || [])
+    }
+
+    if (teacherAttendanceResult.status === 'fulfilled') {
+      setTeacherAttendance(teacherAttendanceResult.value?.data?.teachers || [])
+    }
+
+    if (eventResult.status === 'fulfilled') {
+      setEvents(eventResult.value?.data?.records || [])
+    }
+
+    const operationRecords = operationResults.flatMap((result) => (
+      result.status === 'fulfilled' ? result.value?.data?.records || [] : []
+    ))
+
+    const pendingRecords = operationRecords
+      .filter((record) => isAttentionRecord(record))
+      .map((record) => ({
+        ...record,
+        priority: normalizePriority(record.data?.priority),
+        moduleLabel: formatModule(record.module),
+      }))
+      .sort((a, b) => priorityRank(b.priority) - priorityRank(a.priority) || new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+      .slice(0, 8)
+
+    setAttention(pendingRecords)
+
+    if (requests.some((result) => result.status === 'rejected')) {
+      setError('Some live sections could not be refreshed. The available sections are still shown.')
+    }
+
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    loadDashboard()
+  }, [loadDashboard])
+
+  const teacherStatus = useMemo(() => getTeacherStatus(teacherAttendance), [teacherAttendance])
+  const calendarItems = useMemo(() => getUpcomingEvents(events), [events])
+  const todayLabel = useMemo(() => new Intl.DateTimeFormat('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date()), [])
+
+  const handleAttentionAction = async (item, status) => {
+    try {
+      const nextData = { ...(item.data || {}), status }
+      await apiClient.put(`/operations/${item.module}/${item._id || item.id}`, { data: nextData })
+      setAttention((current) => current.filter((entry) => (entry._id || entry.id) !== (item._id || item.id)))
+    } catch (actionError) {
+      setError(actionError?.response?.data?.message || 'Could not update this item.')
+    }
+  }
 
   return (
-    <div className="dashboard-page">
-      <div className="page-heading-row">
+    <div className="principal-dashboard">
+      <section className="control-room-header">
         <div>
-          <span className="eyebrow">OVERVIEW</span>
-          <h1>Good morning, {user?.name?.split(' ')[1] || 'Principal'}.</h1>
-          <p>Here is what is happening across Academy School today.</p>
+          <div className="control-room-eyebrow"><span className="status-pulse" /> PRINCIPAL CONTROL ROOM</div>
+          <h1>Today at a glance</h1>
+          <p>{todayLabel} · {user?.school?.name || 'Your school'}</p>
         </div>
-        <button className="primary-button" type="button">+ Add new</button>
-      </div>
+      </section>
 
-      <div className="stats-grid">
-        <StatCard label="Total Students" value="1,245" change="4.8%" icon={Users} />
-        <StatCard label="Teachers" value="68" change="2.1%" icon={GraduationCap} />
-        <StatCard label="Today's Attendance" value="92.4%" change="1.7%" icon={CheckCircle2} />
-        <StatCard label="Fees Collected" value="₹18.4L" change="8.2%" icon={IndianRupee} />
-      </div>
+      {error && (
+        <div className="dashboard-notice" role="status">
+          <CircleAlert size={17} />
+          <span>{error}</span>
+        </div>
+      )}
 
-      <div className="dashboard-grid two-one">
-        <SectionCard title="Attendance overview" subtitle="Student attendance over the current week" action="View report">
-          <div className="chart-placeholder">
-            {[58, 72, 66, 82, 76, 92, 86].map((height, index) => (
-              <div className="chart-column" key={index}>
-                <div className="chart-bar" style={{ height: `${height}%` }} />
-                <span>{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Today'][index]}</span>
-              </div>
-            ))}
+      <section className="dashboard-section teacher-strip-section">
+        <div className="section-heading compact-heading">
+          <div>
+            <span>STAFF PRESENCE</span>
+            <h2>Teacher status today</h2>
+            <p>A quick view of today's staff attendance. Open the attendance module to review individual records.</p>
           </div>
-        </SectionCard>
+          <Link to="/module/attendance" className="quiet-link">Open attendance <ChevronRight size={15} /></Link>
+        </div>
 
-        <SectionCard title="Today's schedule" subtitle="Friday, 27 September" action="View timetable">
-          <div className="schedule-list">
-            <div><strong>08:00</strong><span>Assembly · Main Ground</span></div>
-            <div><strong>10:30</strong><span>Staff meeting · Conference Room</span></div>
-            <div><strong>12:00</strong><span>Parent meeting · Room 204</span></div>
-            <div><strong>15:30</strong><span>Academic review · Principal Office</span></div>
-          </div>
-        </SectionCard>
-      </div>
-
-      <div className="dashboard-grid two-one">
-        <SectionCard title="Recent activity" subtitle="Latest changes across the school" action="View all">
-          <div className="activity-list">
-            {activities.map(([title, description, time]) => (
-              <div className="activity-row" key={title}>
-                <div className="activity-dot" />
-                <div>
-                  <strong>{title}</strong>
-                  <span>{description}</span>
+        <div className="teacher-status-strip">
+          <StatusBlock label="Present" value={teacherStatus.present} icon={UserCheck} tone="green" loading={loading} />
+          <StatusBlock label="Absent" value={teacherStatus.absent} icon={UserRoundX} tone="red" loading={loading} />
+          <StatusBlock label="On leave" value={teacherStatus.leave} icon={Clock3} tone="amber" loading={loading} />
+          <div className="absent-teachers">
+            <div className="strip-label">ABSENT TEACHERS</div>
+            {teacherStatus.hasAttendanceData ? (
+              teacherStatus.absentNames.length ? (
+                <div className="absent-name-list">
+                  {teacherStatus.absentNames.slice(0, 4).map((name) => <span key={name}>{name}</span>)}
+                  {teacherStatus.absentNames.length > 4 && <span>+{teacherStatus.absentNames.length - 4} more</span>}
                 </div>
-                <small>{time}</small>
-              </div>
-            ))}
+              ) : <strong className="muted-value">None today</strong>
+            ) : (
+              <strong className="muted-value">Attendance not recorded</strong>
+            )}
           </div>
-        </SectionCard>
+        </div>
+      </section>
 
-        <SectionCard title="Upcoming events" subtitle="Next 7 days">
-          <div className="event-list">
-            <div><div className="event-icon"><CalendarDays size={17} /></div><span>Parent-Teacher Meeting</span><strong>30 Sep</strong></div>
-            <div><div className="event-icon"><CalendarDays size={17} /></div><span>Mid-term Examinations</span><strong>03 Oct</strong></div>
-            <div><div className="event-icon"><CalendarDays size={17} /></div><span>Sports Day</span><strong>06 Oct</strong></div>
+      <section className="dashboard-section calendar-section">
+        <div className="section-heading compact-heading">
+          <div>
+            <span>THIS WEEK</span>
+            <h2>Calendar</h2>
           </div>
-        </SectionCard>
+          <Link to="/module/events" className="quiet-link">View calendar <ChevronRight size={15} /></Link>
+        </div>
+        <div className="calendar-strip">
+          {calendarItems.length ? calendarItems.map((item) => (
+            <CalendarItem key={item.id} item={item} />
+          )) : (
+            <div className="calendar-empty">
+              <CalendarDays size={18} />
+              <div><strong>No events scheduled this week</strong><span>Add PTMs, holidays and school events from Events.</span></div>
+              <Link to="/module/events">Add event <ArrowUpRight size={14} /></Link>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="dashboard-main-grid">
+        <article className="dashboard-section attention-section">
+          <div className="section-heading">
+            <div>
+              <div className="heading-with-count"><span>NEEDS ATTENTION</span>{attention.length > 0 && <b>{attention.length}</b>}</div>
+              <h2>Approval queue</h2>
+              <p>Resolve the things that need the principal's decision.</p>
+            </div>
+            <CircleAlert size={20} className="heading-icon" />
+          </div>
+
+          <div className="attention-list">
+            {attention.map((item) => (
+              <AttentionRow key={item._id || item.id} item={item} onAction={handleAttentionAction} />
+            ))}
+            {!attention.length && (
+              <div className="attention-empty">
+                <div className="empty-check"><Check size={19} /></div>
+                <div>
+                  <strong>Nothing needs your attention</strong>
+                  <p>Pending approvals from supported operations will appear here automatically.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </article>
+
+        <aside className="dashboard-side-stack">
+          <article className="dashboard-section pulse-card">
+            <div className="section-heading">
+              <div>
+                <span>SCHOOL PULSE</span>
+                <h2>Quick signals</h2>
+              </div>
+            </div>
+            <div className="signal-list">
+              <Link to="/module/teachers" className="signal-row">
+                <span className="signal-icon"><Users size={17} /></span>
+                <span><strong>{loading ? '—' : teachers.length}</strong><small>Teacher profiles</small></span>
+                <ChevronRight size={15} />
+              </Link>
+              <Link to="/module/events" className="signal-row">
+                <span className="signal-icon"><CalendarDays size={17} /></span>
+                <span><strong>{calendarItems.length}</strong><small>Events this week</small></span>
+                <ChevronRight size={15} />
+              </Link>
+              <Link to="/module/notices" className="signal-row">
+                <span className="signal-icon"><CircleAlert size={17} /></span>
+                <span><strong>{attention.length}</strong><small>Items in queue</small></span>
+                <ChevronRight size={15} />
+              </Link>
+            </div>
+          </article>
+
+          <article className="dashboard-section focus-card">
+            <span>PRINCIPAL FOCUS</span>
+            <h2>Keep the queue clear.</h2>
+            <p>Approvals, exceptions and time-sensitive school events stay in one place so the home screen remains operational rather than decorative.</p>
+          </article>
+        </aside>
+      </section>
+    </div>
+  )
+}
+
+function StatusBlock({ label, value, icon: Icon, tone, loading }) {
+  return (
+    <div className={`status-block ${tone}`}>
+      <span className="status-icon"><Icon size={19} /></span>
+      <div><strong>{loading ? '—' : value}</strong><span>{label}</span></div>
+    </div>
+  )
+}
+
+function CalendarItem({ item }) {
+  return (
+    <Link to="/module/events" className="calendar-item">
+      <div className="calendar-day"><strong>{item.day}</strong><span>{item.month}</span></div>
+      <div className="calendar-copy"><strong>{item.title}</strong><span>{item.type}{item.timeRange ? ` · ${item.timeRange}` : ''}</span></div>
+      <ArrowUpRight size={15} />
+    </Link>
+  )
+}
+
+function AttentionRow({ item, onAction }) {
+  return (
+    <div className="attention-row">
+      <div className={`priority-mark ${item.priority}`} />
+      <div className="attention-copy">
+        <div className="attention-meta"><span>{item.moduleLabel}</span><b>{item.priority}</b></div>
+        <strong>{item.title}</strong>
+        <p>{item.data?.description || item.data?.reason || 'This record is waiting for review.'}</p>
+      </div>
+      <div className="attention-actions">
+        <button type="button" className="decline-action" onClick={() => onAction(item, 'declined')}><X size={14} /> Decline</button>
+        <button type="button" className="approve-action" onClick={() => onAction(item, 'approved')}><Check size={14} /> Approve</button>
       </div>
     </div>
   )
+}
+
+function getTeacherStatus(attendanceTeachers) {
+  const records = attendanceTeachers.filter((teacher) => teacher.status && teacher.status !== 'not_marked')
+  if (!records.length) return { present: '—', absent: '—', leave: '—', absentNames: [], hasAttendanceData: false }
+
+  const statusOf = (teacher) => String(teacher.status || '').toLowerCase().replace('-', '_')
+  const present = records.filter((teacher) => ['present', 'late'].includes(statusOf(teacher))).length
+  const absentRecords = records.filter((teacher) => statusOf(teacher) === 'absent')
+  const leave = records.filter((teacher) => ['leave', 'on_leave', 'holiday'].includes(statusOf(teacher))).length
+
+  return {
+    present,
+    absent: absentRecords.length,
+    leave,
+    absentNames: absentRecords.map((teacher) => teacher.name).filter(Boolean),
+    hasAttendanceData: true,
+  }
+}
+
+function getUpcomingEvents(records) {
+  const now = new Date()
+  const start = new Date(now)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(start)
+  end.setDate(start.getDate() + 7)
+
+  return records
+    .map((record) => {
+      const rawDate = record.date || record.data?.date || record.data?.startDate || record.data?.eventDate || record.createdAt
+      const date = new Date(`${rawDate}T00:00:00`)
+      if (Number.isNaN(date.getTime()) || date < start || date > end) return null
+      const startTime = record.startTime || record.data?.startTime || record.data?.time || ''
+      const endTime = record.endTime || record.data?.endTime || ''
+      return {
+        id: record._id || record.id,
+        title: record.title,
+        date,
+        day: new Intl.DateTimeFormat('en-IN', { day: '2-digit' }).format(date),
+        month: new Intl.DateTimeFormat('en-IN', { month: 'short' }).format(date),
+        type: record.type || record.data?.type || record.data?.category || 'School event',
+        timeRange: startTime ? (endTime ? `${startTime} – ${endTime}` : startTime) : '',
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.date - b.date)
+    .slice(0, 6)
+}
+
+function isAttentionRecord(record) {
+  const status = String(record.data?.status || '').toLowerCase()
+  return ['pending', 'pending_approval', 'review', 'open', 'requested', 'submitted'].includes(status) || record.data?.requiresAttention === true
+}
+
+function normalizePriority(priority) {
+  const value = String(priority || 'normal').toLowerCase()
+  return ['urgent', 'high', 'normal', 'low'].includes(value) ? value : 'normal'
+}
+
+function priorityRank(priority) {
+  return { urgent: 4, high: 3, normal: 2, low: 1 }[priority] || 0
+}
+
+function formatModule(module) {
+  return String(module || 'item').replace(/[-_]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
 export default PrincipalDashboard

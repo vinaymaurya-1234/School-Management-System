@@ -1,0 +1,122 @@
+/* Directory pages: remove the repeated red spotlight and use the register as the main workspace. */
+.directory-full-panel { width: 100%; }
+.module-page .directory-full-panel .variant-header { padding-bottom: 18px; }
+
+/* Subject curriculum planner */
+.subjects-workspace { display: grid; gap: 12px; }
+.subjects-class-selector,
+.subjects-list-panel,
+.subject-add-panel,
+.subjects-summary-row,
+.fee-cycle-panel,
+.fee-ledger-panel,
+.fee-attention-panel { border: 1px solid #e4ddd8; border-radius: 18px; background: #fffdfb; box-shadow: 0 9px 28px rgba(65,47,38,.04); }
+.subjects-class-selector { padding: 18px; display: grid; grid-template-columns: minmax(250px,.75fr) minmax(0,1.6fr); gap: 22px; }
+.subjects-selector-copy h2,
+.subject-add-panel h2,
+.fee-cycle-panel h2,
+.fee-attention-panel h2 { margin-top: 6px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 17px; letter-spacing: -.4px; }
+.subjects-selector-copy p,
+.subject-add-panel p,
+.fee-cycle-panel p,
+.fee-attention-panel p { margin-top: 6px; color: #7e7772; font-size: 10px; line-height: 1.65; }
+.subjects-class-groups { display: grid; gap: 10px; }
+.subject-group > span { display:block; margin-bottom:6px; color:#8c817b; font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:.8px; }
+.subject-group > div { display:flex; flex-wrap:wrap; gap:6px; }
+.subject-group button,
+.fee-filter-tabs button { min-height:34px; padding:0 10px; border:1px solid #e2dad5; border-radius:9px; background:#faf7f4; color:#615a55; font-size:9px; font-weight:800; cursor:pointer; }
+.subject-group button:hover,
+.subject-group button.active,
+.fee-filter-tabs button:hover,
+.fee-filter-tabs button.active { background:#a52235; border-color:#a52235; color:#fff; }
+.subjects-summary-row { display:grid; grid-template-columns:repeat(3,1fr); overflow:hidden; }
+.subjects-summary-row > div { padding:15px 17px; border-right:1px solid #eee7e2; }
+.subjects-summary-row > div:last-child { border-right:0; }
+.subjects-summary-row span { display:block; color:#8a827c; font-size:8px; font-weight:800; text-transform:uppercase; letter-spacing:.7px; }
+.subjects-summary-row strong { display:block; margin-top:5px; font-family:'Plus Jakarta Sans',sans-serif; font-size:18px; }
+.subjects-summary-row small { display:block; margin-top:4px; color:#938a84; font-size:8px; }
+.subjects-list-panel { overflow:hidden; }
+.subject-cards-grid { padding:15px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.subject-card { min-height:145px; padding:14px; border:1px solid #e8e0db; border-radius:14px; background:#fcfaf8; transition:.18s ease; }
+.subject-card:hover { transform:translateY(-1px); border-color:#d9aeb6; background:#fff8f9; }
+.subject-card.custom { border-color:#d8a8b0; background:#fff6f7; }
+.subject-card-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.subject-type,.subject-code { display:inline-flex; align-items:center; min-height:21px; padding:0 7px; border-radius:999px; font-size:7px; font-weight:900; text-transform:uppercase; letter-spacing:.4px; }
+.subject-type { background:#f6e8eb; color:#a52235; }
+.subject-type.elective { background:#fff0dd; color:#ad6c1d; }
+.subject-type.activity { background:#e9f4ef; color:#187957; }
+.subject-code { background:#eee9e5; color:#716862; }
+.subject-card h3 { margin-top:18px; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; }
+.subject-card p { margin-top:5px; color:#847b75; font-size:9px; }
+.subject-card p strong { color:#3b3a39; }
+.subject-card-footer { display:flex; justify-content:space-between; gap:7px; margin-top:17px; padding-top:9px; border-top:1px solid #eee6e1; color:#958b84; font-size:7px; font-weight:800; }
+.subject-add-panel { padding:18px; display:grid; grid-template-columns:minmax(220px,.8fr) minmax(0,1.5fr); gap:22px; align-items:end; }
+.subject-add-form { display:grid; grid-template-columns:1.3fr .55fr .65fr auto; gap:8px; align-items:end; }
+.subject-add-form label { display:grid; gap:5px; }
+.subject-add-form label > span { color:#7d756f; font-size:8px; font-weight:800; }
+.subject-add-form input,.subject-add-form select { height:39px; width:100%; padding:0 10px; border:1px solid #ded6d1; border-radius:9px; outline:none; background:#fff; color:#292d32; font-size:9px; font-weight:700; }
+.subject-add-form input:focus,.subject-add-form select:focus { border-color:#bd7582; box-shadow:0 0 0 3px rgba(165,34,53,.06); }
+.subject-add-form .primary-button { height:39px; white-space:nowrap; display:flex; align-items:center; justify-content:center; gap:6px; padding:0 12px; }
+
+/* Fees: a finance workspace instead of another red summary card. */
+.fees-workspace { display:grid; gap:12px; }
+.fee-pulse-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.fee-pulse-grid article { min-height:104px; padding:15px 16px; border:1px solid #e4ddd8; border-radius:15px; background:#fffdfb; display:flex; flex-direction:column; justify-content:space-between; }
+.fee-pulse-grid article:first-child { background:#fbf8f2; border-color:#e4d7bd; }
+.fee-pulse-grid span { color:#817a74; font-size:8px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; }
+.fee-pulse-grid strong { margin-top:4px; font-family:'Plus Jakarta Sans',sans-serif; font-size:24px; letter-spacing:-.6px; }
+.fee-pulse-grid small { font-size:8px; font-weight:800; color:#16845c; }
+.fee-pulse-grid small.negative { color:#c83b48; }
+.fee-cycle-panel { padding:18px; display:grid; grid-template-columns:minmax(240px,.85fr) minmax(0,1.4fr); gap:20px; align-items:center; }
+.fee-cycle { min-height:58px; display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 12px; border:1px solid #e8e0db; border-radius:12px; background:#faf8f6; color:#9a918a; font-size:8px; font-weight:900; }
+.fee-cycle span { padding:8px 9px; border-radius:8px; background:#f1ede9; white-space:nowrap; }
+.fee-cycle span.done { background:#e8f4ee; color:#187957; }
+.fee-cycle span.current { background:#fff0dd; color:#ad6c1d; }
+.fee-ledger-panel { overflow:hidden; }
+.fee-ledger-header { padding-bottom:0; }
+.fee-ledger-header .variant-header { padding-bottom:10px; }
+.fee-filter-tabs { display:flex; gap:6px; padding:0 18px 13px; }
+.fee-table-wrap { overflow-x:auto; }
+.fee-table { width:100%; min-width:850px; border-collapse:collapse; }
+.fee-table th { padding:10px 18px; background:#f6f1ed; border-top:1px solid #e8e0db; border-bottom:1px solid #e4ddd8; color:#847c76; font-size:8px; font-weight:900; text-align:left; text-transform:uppercase; letter-spacing:.7px; }
+.fee-table td { padding:13px 18px; border-bottom:1px solid #eee8e3; color:#6e6863; font-size:9px; }
+.fee-table tbody tr:hover { background:#fffaf9; }
+.fee-table td strong { color:#2d3135; font-size:10px; }
+.table-action { min-height:26px; padding:0 9px; border:1px solid #e2dad5; border-radius:7px; background:#fff; color:#716963; font-size:8px; font-weight:800; }
+.table-action:hover { border-color:#c996a0; color:#a52235; background:#fff7f8; }
+.fee-attention-panel { padding:18px; display:grid; grid-template-columns:minmax(240px,.75fr) minmax(0,1.25fr); gap:18px; }
+.fee-attention-list { display:grid; gap:7px; }
+.fee-attention-list > div { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border:1px solid #eee5df; border-radius:10px; background:#fcfaf8; }
+.fee-attention-list > div > div { display:grid; gap:3px; }
+.fee-attention-list strong { color:#363535; font-size:9px; }
+.fee-attention-list span { color:#8b817a; font-size:8px; }
+
+/* The generic module page should not show the old red side card. */
+.module-page .directory-grid { grid-template-columns:1fr !important; }
+.module-page .directory-spotlight { display:none !important; }
+.module-page .directory-grid > .module-variant-panel { width:100%; }
+
+@media (max-width: 1050px) {
+  .subjects-class-selector,.subject-add-panel,.fee-cycle-panel,.fee-attention-panel { grid-template-columns:1fr; }
+  .subject-cards-grid { grid-template-columns:repeat(2,1fr); }
+  .subject-add-form { grid-template-columns:1.3fr .7fr .8fr; }
+  .subject-add-form .primary-button { grid-column:1 / -1; }
+  .fee-cycle { justify-content:flex-start; overflow-x:auto; }
+  .fee-pulse-grid { grid-template-columns:repeat(2,1fr); }
+}
+
+@media (max-width: 700px) {
+  .subjects-summary-row { grid-template-columns:1fr; }
+  .subjects-summary-row > div { border-right:0; border-bottom:1px solid #eee7e2; }
+  .subjects-summary-row > div:last-child { border-bottom:0; }
+  .subject-cards-grid { grid-template-columns:1fr; }
+  .subject-add-form { grid-template-columns:1fr; }
+  .subject-add-form .primary-button { grid-column:auto; }
+  .fee-pulse-grid { grid-template-columns:1fr 1fr; }
+  .fee-attention-list > div { align-items:flex-start; flex-direction:column; }
+}
+
+@media (max-width: 430px) {
+  .fee-pulse-grid { grid-template-columns:1fr; }
+  .subject-group > div { display:grid; grid-template-columns:1fr 1fr; }
+}
