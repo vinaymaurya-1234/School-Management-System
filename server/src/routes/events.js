@@ -14,45 +14,72 @@ function canManage(req) {
   return req.user.role === ROLES.PRINCIPAL;
 }
 
+function systemHoliday(id, title, date, description, category = "National") {
+  return {
+    _id: `system-${category.toLowerCase()}-${id}`,
+    title,
+    date,
+    startTime: "",
+    endTime: "",
+    type: "Holiday",
+    location: "",
+    audience: "Entire school",
+    description,
+    isSystemHoliday: true,
+    holidayCategory: category,
+  };
+}
+
 function getNationalHolidays(year) {
   return [
-    {
-      _id: `national-${year}-01-26`,
-      title: "Republic Day",
-      date: `${year}-01-26`,
-      startTime: "",
-      endTime: "",
-      type: "Holiday",
-      location: "",
-      audience: "Entire school",
-      description: "India's Republic Day.",
-      isSystemHoliday: true,
-    },
-    {
-      _id: `national-${year}-08-15`,
-      title: "Independence Day",
-      date: `${year}-08-15`,
-      startTime: "",
-      endTime: "",
-      type: "Holiday",
-      location: "",
-      audience: "Entire school",
-      description: "India's Independence Day.",
-      isSystemHoliday: true,
-    },
-    {
-      _id: `national-${year}-10-02`,
-      title: "Gandhi Jayanti",
-      date: `${year}-10-02`,
-      startTime: "",
-      endTime: "",
-      type: "Holiday",
-      location: "",
-      audience: "Entire school",
-      description: "Gandhi Jayanti.",
-      isSystemHoliday: true,
-    },
+    systemHoliday(`${year}-01-26`, "Republic Day", `${year}-01-26`, "India's Republic Day."),
+    systemHoliday(`${year}-08-15`, "Independence Day", `${year}-08-15`, "India's Independence Day."),
+    systemHoliday(`${year}-10-02`, "Gandhi Jayanti", `${year}-10-02`, "Mahatma Gandhi's birthday."),
   ];
+}
+
+// Festival dates are year-specific because many Indian festivals follow lunar calendars.
+// These dates are seeded for the current 2026-27 school year and are based on official
+// Indian holiday calendars. Schools can still add their own local/regional holidays.
+function getFestivalHolidays(year) {
+  const festivalsByYear = {
+    2026: [
+      ["makar-sankranti", "Makar Sankranti", "2026-01-14"],
+      ["maha-shivratri", "Maha Shivratri", "2026-02-15"],
+      ["holi", "Holi", "2026-03-04"],
+      ["ram-navami", "Ram Navami", "2026-03-26"],
+      ["mahavir-jayanti", "Mahavir Jayanti", "2026-03-31"],
+      ["good-friday", "Good Friday", "2026-04-03"],
+      ["buddha-purnima", "Buddha Purnima", "2026-05-01"],
+      ["eid-ul-fitr", "Eid-ul-Fitr", "2026-03-21"],
+      ["bakrid", "Eid-ul-Zuha (Bakrid)", "2026-05-27"],
+      ["muharram", "Muharram", "2026-06-26"],
+      ["eid-milad", "Eid-e-Milad", "2026-08-26"],
+      ["janmashtami", "Janmashtami", "2026-09-04"],
+      ["ganesh-chaturthi", "Ganesh Chaturthi", "2026-09-14"],
+      ["dussehra", "Dussehra", "2026-10-20"],
+      ["diwali", "Diwali (Deepavali)", "2026-11-08"],
+      ["guru-nanak-jayanti", "Guru Nanak Jayanti", "2026-11-24"],
+      ["christmas", "Christmas Day", "2026-12-25"],
+    ],
+    2027: [
+      ["maha-shivratri", "Maha Shivratri", "2027-02-26"],
+      ["holi", "Holi", "2027-03-23"],
+      ["good-friday", "Good Friday", "2027-03-26"],
+      ["mahavir-jayanti", "Mahavir Jayanti", "2027-04-19"],
+      ["eid-ul-zuhа", "Eid-ul-Zuha (Bakrid)", "2027-05-17"],
+      ["buddha-purnima", "Buddha Purnima", "2027-05-20"],
+      ["janmashtami", "Janmashtami", "2027-08-25"],
+      ["dussehra", "Dussehra", "2027-10-09"],
+      ["diwali", "Diwali (Deepavali)", "2027-10-29"],
+      ["guru-nanak-jayanti", "Guru Nanak Jayanti", "2027-11-14"],
+      ["christmas", "Christmas Day", "2027-12-25"],
+    ],
+  };
+
+  return (festivalsByYear[year] || []).map(([id, title, date]) =>
+    systemHoliday(`${year}-${id}`, title, date, `${title} holiday.`, "Festival")
+  );
 }
 
 function validateTimeRange(startTime, endTime) {
@@ -103,13 +130,25 @@ router.get("/", async (req, res, next) => {
       .populate("academicYear", "name")
       .sort({ date: 1, startTime: 1, createdAt: 1 });
 
-    const systemHolidays = getNationalHolidays(year);
-    const combined = [...records.map((record) => ({
-      ...record.toObject(),
-      isSystemHoliday: false,
-    })), ...systemHolidays];
+    const systemHolidays = [
+      ...getNationalHolidays(year),
+      ...getFestivalHolidays(year),
+    ];
 
-    combined.sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.startTime || "").localeCompare(String(b.startTime || "")));
+    const combined = [
+      ...records.map((record) => ({
+        ...record.toObject(),
+        isSystemHoliday: false,
+      })),
+      ...systemHolidays,
+    ];
+
+    combined.sort(
+      (a, b) =>
+        String(a.date).localeCompare(String(b.date)) ||
+        String(a.startTime || "").localeCompare(String(b.startTime || ""))
+    );
+
     res.json({ records: combined, count: combined.length, year });
   } catch (error) {
     next(error);
