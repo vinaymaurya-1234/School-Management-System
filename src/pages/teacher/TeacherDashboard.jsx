@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, BookOpen, CalendarDays, CheckCircle2, Clock3, ShieldCheck, Users, Wifi, WifiOff } from 'lucide-react'
+import {
+  ArrowRight,
+  BookOpen,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  GraduationCap,
+  ShieldCheck,
+  Users,
+  Wifi,
+  WifiOff,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import apiClient from '../../api/client'
@@ -7,7 +18,19 @@ import './TeacherDashboard.css'
 
 function formatTime(value) {
   if (!value) return '—'
-  return new Date(value).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  return new Date(value).toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function formatDate() {
+  return new Date().toLocaleDateString('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
 function TeacherDashboard() {
@@ -21,19 +44,27 @@ function TeacherDashboard() {
 
   useEffect(() => {
     let mounted = true
+
     ;(async () => {
       try {
         setLoading(true)
         setError('')
+
         const yearRes = await apiClient.get('/academic/years')
         const years = yearRes.data.years || []
         const year = years.find((item) => item.isActive) || years[0]
         if (!year) return
 
         const [assignmentRes, enrollmentRes, timetableRes, attendanceRes] = await Promise.all([
-          apiClient.get('/academic/teacher-assignments', { params: { academicYear: year._id, teacherId: user.id } }),
-          apiClient.get('/academic/enrollments', { params: { academicYear: year._id } }),
-          apiClient.get('/timetable', { params: { academicYear: year._id } }),
+          apiClient.get('/academic/teacher-assignments', {
+            params: { academicYear: year._id, teacherId: user.id },
+          }),
+          apiClient.get('/academic/enrollments', {
+            params: { academicYear: year._id },
+          }),
+          apiClient.get('/timetable', {
+            params: { academicYear: year._id },
+          }),
           apiClient.get('/teacher-attendance/me'),
         ])
 
@@ -43,12 +74,17 @@ function TeacherDashboard() {
         setTimetable(timetableRes.data.entries || [])
         setAttendance(attendanceRes.data || null)
       } catch (err) {
-        if (mounted) setError(err.response?.data?.message || 'Unable to load your teacher workspace.')
+        if (mounted) {
+          setError(err.response?.data?.message || 'Unable to load your teacher workspace.')
+        }
       } finally {
         if (mounted) setLoading(false)
       }
     })()
-    return () => { mounted = false }
+
+    return () => {
+      mounted = false
+    }
   }, [user?.id])
 
   const assignedSections = useMemo(() => {
@@ -62,95 +98,224 @@ function TeacherDashboard() {
   }, [assignments])
 
   const studentCount = useMemo(() => {
-    const ids = new Set(assignedSections.map((item) => item.section?._id || item.section))
-    return enrollments.filter((item) => ids.has(item.section?._id || item.section)).length
+    const ids = new Set(
+      assignedSections.map((item) => item.section?._id || item.section),
+    )
+    return enrollments.filter((item) =>
+      ids.has(item.section?._id || item.section),
+    ).length
   }, [assignedSections, enrollments])
 
-  const todayKey = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
-  const todaySchedule = useMemo(() => timetable
-    .filter((entry) => entry.day === todayKey && (!entry.teacher || String(entry.teacher?._id || entry.teacher) === String(user?.id)))
-    .sort((a, b) => a.periodNumber - b.periodNumber), [timetable, todayKey, user?.id])
+  const todayKey = new Date()
+    .toLocaleDateString('en-US', { weekday: 'long' })
+    .toLowerCase()
+
+  const todaySchedule = useMemo(
+    () =>
+      timetable
+        .filter(
+          (entry) =>
+            entry.day === todayKey &&
+            (!entry.teacher ||
+              String(entry.teacher?._id || entry.teacher) === String(user?.id)),
+        )
+        .sort((a, b) => a.periodNumber - b.periodNumber),
+    [timetable, todayKey, user?.id],
+  )
 
   const attendanceMarked = Boolean(attendance?.record?.checkIn)
   const networkOk = attendance?.network?.allowed
-  const attendanceStatus = attendance?.record?.status === 'late' ? 'Late' : attendanceMarked ? 'Present' : 'Not marked'
+  const attendanceStatus =
+    attendance?.record?.status === 'late'
+      ? 'Late'
+      : attendanceMarked
+        ? 'Present'
+        : 'Not marked'
+
+  const firstName = user?.name?.split(' ')[0] || 'Teacher'
 
   return (
-    <div className="teacher-workspace">
-      <header className="teacher-workspace-header">
+    <main className="teacher-dashboard">
+      <section className="teacher-dashboard-hero">
         <div>
-          <span className="teacher-eyebrow">TEACHER WORKSPACE</span>
-          <h1>Good morning, {user?.name?.split(' ')[0] || 'Teacher'}.</h1>
-          <p>Your classes, schedule and attendance — only the things you need for today.</p>
+          <span className="teacher-dashboard-kicker">TEACHER WORKSPACE</span>
+          <h1>Everything you need for today.</h1>
+          <p>
+            Welcome back, {firstName}. Keep your attendance, classes and teaching
+            schedule in one place.
+          </p>
         </div>
-        <Link to="/module/attendance" className="teacher-header-action">
-          <CheckCircle2 size={17} />
-          {attendanceMarked ? 'View attendance' : 'Mark attendance'}
-          <ArrowRight size={15} />
-        </Link>
-      </header>
+        <div className="teacher-date-card">
+          <CalendarDays size={18} />
+          <div>
+            <span>Today</span>
+            <strong>{formatDate()}</strong>
+          </div>
+        </div>
+      </section>
 
       {error && <div className="teacher-dashboard-alert">{error}</div>}
 
-      <section className="teacher-attendance-banner">
-        <div className="attendance-banner-main">
-          <div className={`attendance-status-icon ${attendanceMarked ? 'is-marked' : ''}`}>
-            <CheckCircle2 size={23} />
+      <section className="teacher-focus-card">
+        <div className="teacher-focus-main">
+          <div className={`teacher-attendance-icon ${attendanceMarked ? 'is-present' : ''}`}>
+            <CheckCircle2 size={27} />
           </div>
           <div>
-            <span className="teacher-card-eyebrow">TODAY'S ATTENDANCE</span>
+            <span className="teacher-section-label">YOUR ATTENDANCE</span>
             <h2>{attendanceStatus}</h2>
-            <p>{attendanceMarked ? `Checked in at ${formatTime(attendance.record.checkIn)}${attendance.record.checkOut ? ` · Checked out at ${formatTime(attendance.record.checkOut)}` : ''}` : 'Your attendance has not been marked yet.'}</p>
+            <p>
+              {attendanceMarked
+                ? `Checked in at ${formatTime(attendance.record.checkIn)}${attendance.record.checkOut ? ` · Checked out at ${formatTime(attendance.record.checkOut)}` : ''}`
+                : 'Mark your attendance from the attendance page.'}
+            </p>
           </div>
         </div>
-        <div className="attendance-banner-meta">
-          <div className={`network-status ${networkOk ? 'verified' : 'blocked'}`}>
-            {networkOk ? <Wifi size={16} /> : <WifiOff size={16} />}
-            <span>{networkOk ? 'School network verified' : 'School network required'}</span>
+
+        <div className="teacher-focus-side">
+          <div className={`teacher-network ${networkOk ? 'verified' : 'waiting'}`}>
+            {networkOk ? <Wifi size={17} /> : <WifiOff size={17} />}
+            <span>{networkOk ? 'School network verified' : 'School network check'}</span>
           </div>
-          <Link to="/module/attendance">Open attendance <ArrowRight size={14} /></Link>
+          <Link className="teacher-primary-action" to="/module/attendance">
+            {attendanceMarked ? 'View attendance' : 'Mark attendance'}
+            <ArrowRight size={16} />
+          </Link>
         </div>
       </section>
 
-      <section className="teacher-stat-grid">
-        <div className="teacher-stat-card"><span className="teacher-stat-icon"><BookOpen size={18} /></span><div><strong>{loading ? '—' : assignedSections.length}</strong><span>Assigned classes</span></div></div>
-        <div className="teacher-stat-card"><span className="teacher-stat-icon"><Users size={18} /></span><div><strong>{loading ? '—' : studentCount}</strong><span>Students</span></div></div>
-        <div className="teacher-stat-card"><span className="teacher-stat-icon"><CalendarDays size={18} /></span><div><strong>{loading ? '—' : todaySchedule.length}</strong><span>Periods today</span></div></div>
-        <div className="teacher-stat-card"><span className="teacher-stat-icon"><Clock3 size={18} /></span><div><strong>{attendance?.record?.checkIn ? formatTime(attendance.record.checkIn) : '—'}</strong><span>Check-in time</span></div></div>
+      <section className="teacher-overview-grid">
+        <article className="teacher-overview-card">
+          <div className="teacher-overview-icon purple"><BookOpen size={20} /></div>
+          <div>
+            <strong>{loading ? '—' : assignedSections.length}</strong>
+            <span>Assigned classes</span>
+          </div>
+        </article>
+        <article className="teacher-overview-card">
+          <div className="teacher-overview-icon blue"><Users size={20} /></div>
+          <div>
+            <strong>{loading ? '—' : studentCount}</strong>
+            <span>Students in my sections</span>
+          </div>
+        </article>
+        <article className="teacher-overview-card">
+          <div className="teacher-overview-icon orange"><Clock3 size={20} /></div>
+          <div>
+            <strong>{loading ? '—' : todaySchedule.length}</strong>
+            <span>Periods today</span>
+          </div>
+        </article>
       </section>
 
-      <section className="teacher-content-grid">
-        <article className="teacher-panel">
-          <div className="teacher-panel-heading"><div><span className="teacher-card-eyebrow">TODAY</span><h2>My teaching schedule</h2></div><Link to="/module/timetable">Full timetable <ArrowRight size={14} /></Link></div>
+      <section className="teacher-main-grid">
+        <article className="teacher-dashboard-panel schedule-panel">
+          <div className="teacher-panel-title-row">
+            <div>
+              <span className="teacher-section-label">TODAY'S PLAN</span>
+              <h2>Teaching schedule</h2>
+            </div>
+            <Link to="/module/timetable" className="teacher-text-action">
+              Full timetable <ArrowRight size={15} />
+            </Link>
+          </div>
+
           <div className="teacher-schedule-list">
-            {todaySchedule.map((entry) => (
-              <div className="teacher-schedule-row" key={entry._id}>
-                <div className="schedule-time">{entry.startTime}<small>{entry.endTime || ''}</small></div>
-                <div className="schedule-dot" />
-                <div className="schedule-info"><strong>{entry.subject?.name || 'Subject'}</strong><span>Class {entry.class?.name || entry.section?.class?.name || '—'} · Section {entry.section?.name || '—'}</span></div>
-                <span className="schedule-room">{entry.room || 'Room not set'}</span>
+            {todaySchedule.map((entry, index) => (
+              <div className="teacher-schedule-item" key={entry._id}>
+                <div className="teacher-period-number">{String(index + 1).padStart(2, '0')}</div>
+                <div className="teacher-period-time">
+                  <strong>{entry.startTime || '—'}</strong>
+                  <span>{entry.endTime || ''}</span>
+                </div>
+                <div className="teacher-period-content">
+                  <strong>{entry.subject?.name || 'Subject'}</strong>
+                  <span>
+                    Class {entry.class?.name || entry.section?.class?.name || '—'}
+                    {' · '}
+                    Section {entry.section?.name || '—'}
+                  </span>
+                </div>
+                <span className="teacher-room">{entry.room || 'Room —'}</span>
               </div>
             ))}
-            {!todaySchedule.length && !loading && <div className="teacher-empty"><CalendarDays size={20} /><strong>No periods published for today.</strong><span>Your schedule will appear here after the timetable is published.</span></div>}
+
+            {!todaySchedule.length && !loading && (
+              <div className="teacher-empty-state">
+                <CalendarDays size={24} />
+                <strong>No periods scheduled today</strong>
+                <span>Your published timetable will appear here.</span>
+              </div>
+            )}
           </div>
         </article>
 
-        <article className="teacher-panel">
-          <div className="teacher-panel-heading"><div><span className="teacher-card-eyebrow">ACADEMICS</span><h2>My classes</h2></div><Link to="/module/my-classes">View all <ArrowRight size={14} /></Link></div>
-          <div className="teacher-class-grid">
-            {assignedSections.map((item) => {
+        <article className="teacher-dashboard-panel classes-panel">
+          <div className="teacher-panel-title-row">
+            <div>
+              <span className="teacher-section-label">MY TEACHING</span>
+              <h2>Assigned classes</h2>
+            </div>
+            <Link to="/module/my-classes" className="teacher-text-action">
+              View all <ArrowRight size={15} />
+            </Link>
+          </div>
+
+          <div className="teacher-class-list">
+            {assignedSections.slice(0, 5).map((item) => {
               const sectionId = item.section?._id || item.section
-              const classAssignments = assignments.filter((assignment) => (assignment.class?._id || assignment.class) === (item.class?._id || item.class) && (assignment.section?._id || assignment.section) === sectionId)
-              const count = enrollments.filter((enrollment) => (enrollment.section?._id || enrollment.section) === sectionId).length
-              return <div className="teacher-class-card" key={`${item.class?._id || item.class}-${sectionId}`}><div className="class-card-top"><span>{item.class?.name || 'Class'} · {item.section?.name || '—'}</span>{item.isClassTeacher && <b>Class teacher</b>}</div><strong>{classAssignments.map((assignment) => assignment.subject?.name).filter(Boolean).join(', ') || 'Class assignment'}</strong><small>{count} students</small></div>
+              const classId = item.class?._id || item.class
+              const classAssignments = assignments.filter(
+                (assignment) =>
+                  (assignment.class?._id || assignment.class) === classId &&
+                  (assignment.section?._id || assignment.section) === sectionId,
+              )
+              const count = enrollments.filter(
+                (enrollment) =>
+                  (enrollment.section?._id || enrollment.section) === sectionId,
+              ).length
+
+              return (
+                <div className="teacher-class-row" key={`${classId}-${sectionId}`}>
+                  <div className="teacher-class-badge"><GraduationCap size={19} /></div>
+                  <div>
+                    <strong>
+                      {item.class?.name || 'Class'} · {item.section?.name || '—'}
+                    </strong>
+                    <span>
+                      {classAssignments
+                        .map((assignment) => assignment.subject?.name)
+                        .filter(Boolean)
+                        .join(', ') || 'Class assignment'}
+                    </span>
+                  </div>
+                  <b>{count}</b>
+                </div>
+              )
             })}
-            {!assignedSections.length && !loading && <div className="teacher-empty"><BookOpen size={20} /><strong>No class assignments yet.</strong><span>The principal needs to assign your classes and subjects.</span></div>}
+
+            {!assignedSections.length && !loading && (
+              <div className="teacher-empty-state compact">
+                <BookOpen size={22} />
+                <strong>No class assignments yet</strong>
+                <span>The principal will assign your classes and subjects.</span>
+              </div>
+            )}
           </div>
         </article>
       </section>
 
-      <section className="teacher-security-note"><ShieldCheck size={18} /><div><strong>Attendance is school-network verified</strong><span>Attendance requests are checked by the server. When production Wi-Fi is configured, marking from outside the authorized school network will be blocked.</span></div></section>
-    </div>
+      <section className="teacher-dashboard-footer-card">
+        <div className="teacher-footer-icon"><ShieldCheck size={21} /></div>
+        <div>
+          <strong>Attendance is verified by the school network</strong>
+          <span>
+            Attendance is checked on the server. For now the attendance window stays
+            open all day; the production school Wi-Fi rules can be configured later.
+          </span>
+        </div>
+      </section>
+    </main>
   )
 }
 
