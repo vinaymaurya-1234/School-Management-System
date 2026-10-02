@@ -38,6 +38,12 @@ function sameDay(a, b) {
   return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
 
+function formatTimeRange(startTime, endTime) {
+  if (!startTime) return 'All day'
+  if (!endTime) return startTime
+  return `${startTime} – ${endTime}`
+}
+
 function EventCalendarPage() {
   const [events, setEvents] = useState([])
   const [month, setMonth] = useState(startOfMonth(new Date()))
@@ -49,11 +55,11 @@ function EventCalendarPage() {
   const [error, setError] = useState('')
   const [form, setForm] = useState(getEmptyForm(new Date()))
 
-  const loadEvents = async () => {
+  const loadEvents = async (year = month.getFullYear()) => {
     setLoading(true)
     setError('')
     try {
-      const response = await apiClient.get('/operations/events')
+      const response = await apiClient.get(`/events?year=${year}`)
       setEvents(response?.data?.records || [])
     } catch (requestError) {
       setError(requestError?.response?.data?.message || 'Could not load school events.')
@@ -63,18 +69,18 @@ function EventCalendarPage() {
   }
 
   useEffect(() => {
-    loadEvents()
-  }, [])
+    loadEvents(month.getFullYear())
+  }, [month.getFullYear()])
 
   const calendarDays = useMemo(() => buildCalendarDays(month), [month])
   const monthEvents = useMemo(() => events
     .map(normalizeEvent)
     .filter((event) => event.date && event.date.getFullYear() === month.getFullYear() && event.date.getMonth() === month.getMonth())
-    .sort((a, b) => a.date - b.date), [events, month])
+    .sort((a, b) => a.date - b.date || String(a.startTime || '').localeCompare(String(b.startTime || ''))), [events, month])
   const selectedEvents = useMemo(() => events
     .map(normalizeEvent)
     .filter((event) => sameDay(event.date, selectedDate))
-    .sort((a, b) => String(a.time || '').localeCompare(String(b.time || ''))), [events, selectedDate])
+    .sort((a, b) => String(a.startTime || '').localeCompare(String(b.startTime || ''))), [events, selectedDate])
 
   const openCreate = (date = selectedDate) => {
     setEditingId(null)
@@ -84,11 +90,13 @@ function EventCalendarPage() {
   }
 
   const openEdit = (event) => {
+    if (event.isSystemHoliday) return
     setEditingId(event.id)
     setForm({
       title: event.title,
       date: formatInputDate(event.date),
-      time: event.time || '',
+      startTime: event.startTime || '',
+      endTime: event.endTime || '',
       type: event.type || 'School Event',
       location: event.location || '',
       audience: event.audience || 'Entire school',
@@ -101,11 +109,18 @@ function EventCalendarPage() {
   const handleSave = async (event) => {
     event.preventDefault()
     if (!form.title.trim() || !form.date) return
+    if (form.startTime && form.endTime && form.endTime <= form.startTime) {
+      setError('End time must be later than start time.')
+      return
+    }
+
     setSaving(true)
     setError('')
     const data = {
+      title: form.title.trim(),
       date: form.date,
-      time: form.time,
+      startTime: form.startTime,
+      endTime: form.endTime,
       type: form.type,
       location: form.location,
       audience: form.audience,
@@ -114,12 +129,12 @@ function EventCalendarPage() {
 
     try {
       if (editingId) {
-        await apiClient.put(`/operations/events/${editingId}`, { title: form.title.trim(), data })
+        await apiClient.put(`/events/${editingId}`, data)
       } else {
-        await apiClient.post('/operations/events', { title: form.title.trim(), data })
+        await apiClient.post('/events', data)
       }
       setModalOpen(false)
-      await loadEvents()
+      await loadEvents(month.getFullYear())
     } catch (requestError) {
       setError(requestError?.response?.data?.message || 'Could not save this event.')
     } finally {
@@ -128,9 +143,10 @@ function EventCalendarPage() {
   }
 
   const handleDelete = async (event) => {
+    if (event.isSystemHoliday) return
     if (!window.confirm(`Delete “${event.title}”?`)) return
     try {
-      await apiClient.delete(`/operations/events/${event.id}`)
+      await apiClient.delete(`/events/${event.id}`)
       setEvents((current) => current.filter((record) => (record._id || record.id) !== event.id))
     } catch (requestError) {
       setError(requestError?.response?.data?.message || 'Could not delete this event.')
@@ -218,17 +234,19 @@ function EventCalendarPage() {
                 <article className="agenda-event" key={event.id}>
                   <div className="agenda-event-marker" />
                   <div className="agenda-event-main">
-                    <div className="agenda-event-top"><span>{event.type}</span><b>{event.time || 'All day'}</b></div>
+                    <div className="agenda-event-top"><span>{event.type}</span><b>{formatTimeRange(event.startTime, event.endTime)}</b></div>
                     <h3>{event.title}</h3>
                     {event.description && <p>{event.description}</p>}
                     <div className="agenda-meta">
                       {event.location && <span><MapPin size={12} /> {event.location}</span>}
                       {event.audience && <span>{event.audience}</span>}
                     </div>
-                    <div className="agenda-actions">
-                      <button type="button" onClick={() => openEdit(event)}><Edit3 size={12} /> Edit</button>
-                      <button type="button" className="delete" onClick={() => handleDelete(event)}><Trash2 size={12} /> Delete</button>
-                    </div>
+                    {!event.isSystemHoliday && (
+                      <div className="agenda-actions">
+                        <button type="button" onClick={() => openEdit(event)}><Edit3 size={12} /> Edit</button>
+                        <button type="button" className="delete" onClick={() => handleDelete(event)}><Trash2 size={12} /> Delete</button>
+                      </div>
+                    )}
                   </div>
                 </article>
               ))}
@@ -251,8 +269,8 @@ function EventCalendarPage() {
             {monthEvents.map((event) => (
               <button type="button" className="upcoming-row" key={event.id} onClick={() => selectDay(event.date)}>
                 <span className="upcoming-date"><b>{event.date.getDate()}</b><small>{event.date.toLocaleDateString('en-IN', { month: 'short' })}</small></span>
-                <span className="upcoming-copy"><strong>{event.title}</strong><small>{event.type}{event.time ? ` · ${event.time}` : ''}</small></span>
-                <span className="upcoming-status"><Check size={13} /> Scheduled</span>
+                <span className="upcoming-copy"><strong>{event.title}</strong><small>{event.type}{event.startTime ? ` · ${formatTimeRange(event.startTime, event.endTime)}` : ''}</small></span>
+                <span className="upcoming-status"><Check size={13} /> {event.isSystemHoliday ? 'National holiday' : 'Scheduled'}</span>
               </button>
             ))}
           </div>
@@ -266,7 +284,8 @@ function EventCalendarPage() {
             <div className="event-form-grid">
               <label className="full"><span>Event name</span><input autoFocus value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="e.g. Parent Teacher Meeting" required /></label>
               <label><span>Date</span><input type="date" value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} required /></label>
-              <label><span>Time</span><div className="input-with-icon"><Clock3 size={15} /><input type="time" value={form.time} onChange={(event) => setForm({ ...form, time: event.target.value })} /></div></label>
+              <label><span>Start time</span><div className="input-with-icon"><Clock3 size={15} /><input type="time" value={form.startTime} onChange={(event) => setForm({ ...form, startTime: event.target.value })} /></div></label>
+              <label><span>End time</span><div className="input-with-icon"><Clock3 size={15} /><input type="time" value={form.endTime} min={form.startTime || undefined} onChange={(event) => setForm({ ...form, endTime: event.target.value })} /></div></label>
               <label><span>Type</span><select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value })}>{EVENT_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
               <label><span>Audience</span><select value={form.audience} onChange={(event) => setForm({ ...form, audience: event.target.value })}><option>Entire school</option><option>Teachers</option><option>Students</option><option>Parents</option><option>Specific classes</option></select></label>
               <label className="full"><span>Location</span><div className="input-with-icon"><MapPin size={15} /><input value={form.location} onChange={(event) => setForm({ ...form, location: event.target.value })} placeholder="e.g. Main Auditorium" /></div></label>
@@ -281,20 +300,21 @@ function EventCalendarPage() {
 }
 
 function getEmptyForm(date) {
-  return { title: '', date: formatInputDate(date || new Date()), time: '', type: 'School Event', location: '', audience: 'Entire school', description: '' }
+  return { title: '', date: formatInputDate(date || new Date()), startTime: '', endTime: '', type: 'School Event', location: '', audience: 'Entire school', description: '' }
 }
 
 function normalizeEvent(record) {
-  const data = record.data || {}
   return {
     id: record._id || record.id,
     title: record.title || 'Untitled event',
-    date: parseDate(data.date || data.startDate || data.eventDate),
-    time: data.time || data.startTime || '',
-    type: data.type || data.category || 'School Event',
-    location: data.location || '',
-    audience: data.audience || '',
-    description: data.description || data.notes || '',
+    date: parseDate(record.date || record.data?.date || record.data?.startDate || record.data?.eventDate),
+    startTime: record.startTime || record.data?.startTime || record.data?.time || '',
+    endTime: record.endTime || record.data?.endTime || '',
+    type: record.type || record.data?.type || record.data?.category || 'School Event',
+    location: record.location || record.data?.location || '',
+    audience: record.audience || record.data?.audience || '',
+    description: record.description || record.data?.description || record.data?.notes || '',
+    isSystemHoliday: record.isSystemHoliday === true,
   }
 }
 
