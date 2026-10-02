@@ -10,6 +10,7 @@ import parentRoutes from "./routes/parents.js";
 import subjectRoutes from "./routes/subjects.js";
 import timetableRoutes from "./routes/timetable.js";
 import attendanceRoutes from "./routes/attendance.js";
+import teacherAttendanceRoutes from "./routes/teacherAttendance.js";
 import operationsRoutes from "./routes/operations.js";
 
 const app = express();
@@ -38,6 +39,7 @@ app.use("/api/parents", parentRoutes);
 app.use("/api/subjects", subjectRoutes);
 app.use("/api/timetable", timetableRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/teacher-attendance", teacherAttendanceRoutes);
 app.use("/api/operations", operationsRoutes);
 
 app.use((err, _req, res, _next) => {
