@@ -12,6 +12,7 @@ import timetableRoutes from "./routes/timetable.js";
 import attendanceRoutes from "./routes/attendance.js";
 import teacherAttendanceRoutes from "./routes/teacherAttendance.js";
 import operationsRoutes from "./routes/operations.js";
+import eventRoutes from "./routes/events.js";
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use("/api/timetable", timetableRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/teacher-attendance", teacherAttendanceRoutes);
 app.use("/api/operations", operationsRoutes);
+app.use("/api/events", eventRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
