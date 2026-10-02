@@ -18,10 +18,10 @@ import AccountantDashboard from '../pages/accountant/AccountantDashboard'
 import ModulePage from '../pages/module/ModulePage'
 import TimetablePage from '../pages/module/TimetablePage'
 import AttendancePage from '../pages/module/AttendancePage'
+import TeacherAttendancePage from '../pages/module/TeacherAttendancePage'
 import '../pages/module/ModuleFeature.css'
 
 const PRINCIPAL_OPERATIONS = new Set(['fees', 'exams', 'notices', 'payroll'])
-
 function ProtectedRoute() { const { isAuthenticated } = useAuth(); return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace /> }
 function RoleRoute({ role, children }) { const { user } = useAuth(); const homeRoute = ROLE_HOME_ROUTES[user?.role] || ROLE_HOME_ROUTES[ROLES.PRINCIPAL]; if (!user || user.role !== role) return <Navigate to={homeRoute} replace />; return children }
 function PermissionRoute({ permission, children }) { const { user } = useAuth(); if (!hasPermission(user?.role, permission)) { const homeRoute = ROLE_HOME_ROUTES[user?.role] || '/login'; return <Navigate to={homeRoute} replace /> } return children }
@@ -29,7 +29,7 @@ function ModuleRoute() {
   const { user } = useAuth(); const { moduleKey } = useParams(); const module = MODULES[moduleKey]; const permission = module?.permissionByRole?.[user?.role]; const homeRoute = ROLE_HOME_ROUTES[user?.role] || '/login'
   if (!module || !permission || !hasPermission(user?.role, permission)) return <Navigate to={homeRoute} replace />
   if (moduleKey === 'timetable') return <TimetablePage />
-  if (moduleKey === 'attendance') return <AttendancePage />
+  if (moduleKey === 'attendance') return user?.role === ROLES.TEACHER ? <TeacherAttendancePage /> : <AttendancePage />
   if (user?.role === 'principal' && moduleKey === 'events') return <EventCalendarPage />
   if (user?.role === 'principal' && moduleKey === 'students') return <PrincipalStudentsPage />
   if (user?.role === 'principal' && moduleKey === 'teachers') return <PrincipalTeachersPage />

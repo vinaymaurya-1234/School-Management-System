@@ -15,6 +15,7 @@ import operationsRoutes from "./routes/operations.js";
 import eventRoutes from "./routes/events.js";
 
 const app = express();
+app.set("trust proxy", true);
 
 app.use(cors({
   origin: process.env.CLIENT_URL || "http://localhost:5173",
@@ -24,11 +25,7 @@ app.use(express.json({ limit: "1mb" }));
 
 app.get("/api/health", (_req, res) => {
   const dbState = mongoose.connection.readyState;
-  res.json({
-    ok: true,
-    service: "school-management-system-server",
-    database: dbState === 1 ? "connected" : "disconnected",
-  });
+  res.json({ ok: true, service: "school-management-system-server", database: dbState === 1 ? "connected" : "disconnected" });
 });
 
 app.use("/api/auth", authRoutes);
