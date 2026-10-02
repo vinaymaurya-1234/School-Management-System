@@ -8,6 +8,7 @@ import PrincipalDashboard from '../pages/principal/PrincipalDashboard'
 import PrincipalModulePage from '../pages/module/PrincipalModulePage'
 import PrincipalClassesPage from '../pages/module/PrincipalClassesPage'
 import PrincipalSubjectsPage from '../pages/module/PrincipalSubjectsPage'
+import EventCalendarPage from '../pages/module/EventCalendarPage'
 import TeacherDashboard from '../pages/teacher/TeacherDashboard'
 import StudentDashboard from '../pages/student/StudentDashboard'
 import ParentDashboard from '../pages/parent/ParentDashboard'
@@ -17,7 +18,7 @@ import TimetablePage from '../pages/module/TimetablePage'
 import AttendancePage from '../pages/module/AttendancePage'
 import '../pages/module/ModuleFeature.css'
 
-const PRINCIPAL_OPERATIONS = new Set(['fees', 'exams', 'notices', 'events', 'payroll'])
+const PRINCIPAL_OPERATIONS = new Set(['fees', 'exams', 'notices', 'payroll'])
 
 function ProtectedRoute() { const { isAuthenticated } = useAuth(); return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace /> }
 function RoleRoute({ role, children }) { const { user } = useAuth(); const homeRoute = ROLE_HOME_ROUTES[user?.role] || ROLE_HOME_ROUTES[ROLES.PRINCIPAL]; if (!user || user.role !== role) return <Navigate to={homeRoute} replace />; return children }
@@ -27,6 +28,7 @@ function ModuleRoute() {
   if (!module || !permission || !hasPermission(user?.role, permission)) return <Navigate to={homeRoute} replace />
   if (moduleKey === 'timetable') return <TimetablePage />
   if (moduleKey === 'attendance') return <AttendancePage />
+  if (user?.role === 'principal' && moduleKey === 'events') return <EventCalendarPage />
   if (user?.role === 'principal' && moduleKey === 'classes') return <PrincipalClassesPage />
   if (user?.role === 'principal' && moduleKey === 'subjects') return <PrincipalSubjectsPage />
   if (user?.role === 'principal' && PRINCIPAL_OPERATIONS.has(moduleKey)) return <ModulePage moduleKey={moduleKey} />
