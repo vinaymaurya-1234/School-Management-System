@@ -6,6 +6,7 @@ import DashboardLayout from '../layouts/DashboardLayout'
 import Login from '../pages/auth/Login'
 import PrincipalDashboard from '../pages/principal/PrincipalDashboard'
 import PrincipalModulePage from '../pages/module/PrincipalModulePage'
+import PrincipalStudentsPage from '../pages/module/PrincipalStudentsPage'
 import PrincipalClassesPage from '../pages/module/PrincipalClassesPage'
 import PrincipalSubjectsPage from '../pages/module/PrincipalSubjectsPage'
 import EventCalendarPage from '../pages/module/EventCalendarPage'
@@ -29,6 +30,7 @@ function ModuleRoute() {
   if (moduleKey === 'timetable') return <TimetablePage />
   if (moduleKey === 'attendance') return <AttendancePage />
   if (user?.role === 'principal' && moduleKey === 'events') return <EventCalendarPage />
+  if (user?.role === 'principal' && moduleKey === 'students') return <PrincipalStudentsPage />
   if (user?.role === 'principal' && moduleKey === 'classes') return <PrincipalClassesPage />
   if (user?.role === 'principal' && moduleKey === 'subjects') return <PrincipalSubjectsPage />
   if (user?.role === 'principal' && PRINCIPAL_OPERATIONS.has(moduleKey)) return <ModulePage moduleKey={moduleKey} />
