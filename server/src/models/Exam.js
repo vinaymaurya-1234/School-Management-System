@@ -31,10 +31,16 @@ const examSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    // scheduledAt is the exam start time.
     scheduledAt: {
       type: Date,
       required: true,
       index: true,
+    },
+    // Exam end time. Kept separate so the schedule represents the full exam window.
+    endsAt: {
+      type: Date,
+      required: true,
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
