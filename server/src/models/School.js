@@ -10,9 +10,9 @@ const schoolSchema = new mongoose.Schema(
       enabled: { type: Boolean, default: false },
       allowedIps: { type: [String], default: [] },
       networkName: { type: String, trim: true, default: "School Wi-Fi" },
-      checkInStart: { type: String, default: "00:00" },
-      lateAfter: { type: String, default: "08:15" },
-      checkInClose: { type: String, default: "23:59" },
+      checkInStart: { type: String, default: "07:00" },
+      lateAfter: { type: String, default: "07:15" },
+      checkInClose: { type: String, default: "08:00" },
     },
   },
   { timestamps: true }
