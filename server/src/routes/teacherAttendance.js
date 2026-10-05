@@ -80,50 +80,45 @@ async function getOrCreateSession(schoolId, date) {
   );
 }
 
+// IMPORTANT: never read a whole attendance session, modify it in memory and
+// save it after another request may have updated a teacher. That stale-document
+// pattern was able to overwrite an approved record back to absent.
 async function ensureAbsentRecords(schoolId, date) {
-  if (!isPastCheckInWindow(date)) return null;
-  const teachers = await Teacher.find({ school: schoolId }).select("_id");
-  if (!teachers.length) return null;
+  if (!isPastCheckInWindow(date)) return TeacherAttendance.findOne({ school: schoolId, date });
 
-  const session = await getOrCreateSession(schoolId, date);
-  const existing = new Set(session.records.map((record) => String(record.teacher)));
-  let changed = false;
+  const teachers = await Teacher.find({ school: schoolId }).select("_id");
+  if (!teachers.length) return TeacherAttendance.findOne({ school: schoolId, date });
+
+  await getOrCreateSession(schoolId, date);
 
   for (const teacher of teachers) {
-    if (existing.has(String(teacher._id))) continue;
-    session.records.push({ teacher: teacher._id, status: "absent", checkIn: null, checkOut: null, source: "development", verification: { networkVerified: false, ipAddress: "" }, note: "No check-in recorded before the attendance window closed.", markedBy: null, manuallyAdjusted: false });
-    changed = true;
+    await TeacherAttendance.updateOne(
+      { school: schoolId, date, "records.teacher": { $ne: teacher._id } },
+      {
+        $push: {
+          records: {
+            teacher: teacher._id,
+            status: "absent",
+            checkIn: null,
+            checkOut: null,
+            source: "development",
+            verification: { networkVerified: false, ipAddress: "" },
+            note: "No check-in recorded before the attendance window closed.",
+            markedBy: null,
+            manuallyAdjusted: false,
+          },
+        },
+      },
+    );
   }
 
-  if (changed) {
-    session.markModified("records");
-    await session.save();
-  }
-  return session;
-}
-
-function applyApprovalToRecord(session, request, decisionStatus) {
-  let record = session.records.find((item) => String(item.teacher) === String(request.teacher));
-
-  if (!record) {
-    record = { teacher: request.teacher, status: decisionStatus, checkIn: null, checkOut: null, source: "admin", verification: { networkVerified: false, ipAddress: "" }, note: `Approved attendance request: ${request.reason}`, markedBy: request.reviewedBy || null, manuallyAdjusted: true };
-    session.records.push(record);
-  } else {
-    record.status = decisionStatus;
-    record.source = "admin";
-    record.note = `Approved attendance request: ${request.reason}`;
-    record.markedBy = request.reviewedBy || record.markedBy || null;
-    record.manuallyAdjusted = true;
-  }
-
-  session.markModified("records");
-  return record;
+  return TeacherAttendance.findOne({ school: schoolId, date });
 }
 
 async function persistApprovedAttendance(schoolId, request, decisionStatus) {
-  // Update an existing teacher record atomically. This avoids relying on a
-  // previously-read Mongoose document when another attendance action has
-  // changed the same daily session.
+  // The approval itself is the only place that changes an attendance status
+  // from absent/not-marked to an approved decision. Reads never perform this
+  // reconciliation anymore, so a later GET cannot rewrite the record.
   const update = await TeacherAttendance.updateOne(
     { school: schoolId, date: request.date, "records.teacher": request.teacher },
     {
@@ -140,33 +135,50 @@ async function persistApprovedAttendance(schoolId, request, decisionStatus) {
   );
 
   if (update.matchedCount === 0) {
-    // If the daily session does not exist yet, create it with the approved
-    // teacher record. If it exists but has no record for this teacher, append
-    // the record without replacing any other teacher's attendance.
-    const session = await getOrCreateSession(schoolId, request.date);
-    const record = applyApprovalToRecord(session, request, decisionStatus);
-    session.markedBy = request.reviewedBy || session.markedBy;
-    session.submittedAt = new Date();
-    await session.save();
-    return { session, record };
+    await getOrCreateSession(schoolId, request.date);
+    const appendResult = await TeacherAttendance.updateOne(
+      { school: schoolId, date: request.date, "records.teacher": { $ne: request.teacher } },
+      {
+        $push: {
+          records: {
+            teacher: request.teacher,
+            status: decisionStatus,
+            checkIn: null,
+            checkOut: null,
+            source: "admin",
+            verification: { networkVerified: false, ipAddress: "" },
+            note: `Approved attendance request: ${request.reason}`,
+            markedBy: request.reviewedBy || null,
+            manuallyAdjusted: true,
+          },
+        },
+        $set: { submittedAt: new Date(), markedBy: request.reviewedBy || null },
+      },
+    );
+
+    if (appendResult.matchedCount === 0) {
+      // Another request inserted the teacher between the two atomic operations.
+      // Re-run the targeted update rather than saving a stale session document.
+      await TeacherAttendance.updateOne(
+        { school: schoolId, date: request.date, "records.teacher": request.teacher },
+        {
+          $set: {
+            "records.$.status": decisionStatus,
+            "records.$.source": "admin",
+            "records.$.note": `Approved attendance request: ${request.reason}`,
+            "records.$.markedBy": request.reviewedBy || null,
+            "records.$.manuallyAdjusted": true,
+            submittedAt: new Date(),
+            markedBy: request.reviewedBy || null,
+          },
+        },
+      );
+    }
   }
 
   const session = await TeacherAttendance.findOne({ school: schoolId, date: request.date });
   const record = session?.records?.find((item) => String(item.teacher) === String(request.teacher)) || null;
   return { session, record };
-}
-
-async function syncApprovedRequests(schoolId, date, existingSession = null) {
-  const approved = await TeacherAttendanceRequest.find({ school: schoolId, date, status: "approved" }).sort({ reviewedAt: 1, updatedAt: 1 });
-  if (!approved.length) return existingSession;
-
-  let session = existingSession;
-  for (const request of approved) {
-    const decisionStatus = ["present", "late", "on_leave"].includes(request.decisionStatus) ? request.decisionStatus : "present";
-    const persisted = await persistApprovedAttendance(schoolId, request, decisionStatus);
-    session = persisted.session;
-  }
-  return session;
 }
 
 router.get("/me", async (req, res, next) => {
@@ -176,8 +188,7 @@ router.get("/me", async (req, res, next) => {
     if (!teacher) return res.status(404).json({ message: "Teacher profile not found" });
     const school = await getSchool(req);
     const date = normalizeDate(schoolDateKey());
-    let session = await ensureAbsentRecords(req.user.school, date);
-    session = await syncApprovedRequests(req.user.school, date, session);
+    const session = await ensureAbsentRecords(req.user.school, date);
     const record = session?.records?.find((item) => String(item.teacher) === String(teacher._id)) || null;
     const network = networkCheck(school, req);
     const request = await TeacherAttendanceRequest.findOne({ school: req.user.school, teacher: teacher._id, date }).sort({ createdAt: -1 });
@@ -276,8 +287,7 @@ router.get("/", principalOnly, async (req, res, next) => {
   try {
     const date = normalizeDate(req.query.date || schoolDateKey());
     if (!date) return res.status(400).json({ message: "Invalid date" });
-    let session = await ensureAbsentRecords(req.user.school, date);
-    session = await syncApprovedRequests(req.user.school, date, session);
+    const session = await ensureAbsentRecords(req.user.school, date);
     const teachers = await Teacher.find({ school: req.user.school }).populate({ path: "user", select: "name email active role" }).sort({ createdAt: 1 });
     const recordMap = new Map((session?.records || []).map((record) => [String(record.teacher), record]));
     const items = teachers.filter((teacher) => teacher.user).map((teacher) => {
