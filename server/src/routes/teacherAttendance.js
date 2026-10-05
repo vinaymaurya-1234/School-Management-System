@@ -80,9 +80,9 @@ async function getOrCreateSession(schoolId, date) {
   );
 }
 
-// IMPORTANT: never read a whole attendance session, modify it in memory and
-// save it after another request may have updated a teacher. That stale-document
-// pattern was able to overwrite an approved record back to absent.
+// Attendance records are updated with targeted MongoDB operations only. We do
+// not load the whole daily session, change it in memory and save it, because a
+// stale session can overwrite another teacher's approved attendance.
 async function ensureAbsentRecords(schoolId, date) {
   if (!isPastCheckInWindow(date)) return TeacherAttendance.findOne({ school: schoolId, date });
 
@@ -116,24 +116,26 @@ async function ensureAbsentRecords(schoolId, date) {
 }
 
 async function persistApprovedAttendance(schoolId, request, decisionStatus) {
-  // The approval itself is the only place that changes an attendance status
-  // from absent/not-marked to an approved decision. Reads never perform this
-  // reconciliation anymore, so a later GET cannot rewrite the record.
+  const note = `Approved attendance request: ${request.reason}`;
+  const updateFields = {
+    "records.$.status": decisionStatus,
+    "records.$.source": "admin",
+    "records.$.note": note,
+    "records.$.markedBy": request.reviewedBy || null,
+    "records.$.manuallyAdjusted": true,
+    submittedAt: new Date(),
+    markedBy: request.reviewedBy || null,
+  };
+
+  // First try to update the existing teacher record atomically.
   const update = await TeacherAttendance.updateOne(
     { school: schoolId, date: request.date, "records.teacher": request.teacher },
-    {
-      $set: {
-        "records.$.status": decisionStatus,
-        "records.$.source": "admin",
-        "records.$.note": `Approved attendance request: ${request.reason}`,
-        "records.$.markedBy": request.reviewedBy || null,
-        "records.$.manuallyAdjusted": true,
-        submittedAt: new Date(),
-        markedBy: request.reviewedBy || null,
-      },
-    },
+    { $set: updateFields },
   );
 
+  // If the record does not exist yet, create the daily session if necessary and
+  // append only this teacher. If another request inserts it concurrently, the
+  // final targeted update wins instead of saving a stale whole-session object.
   if (update.matchedCount === 0) {
     await getOrCreateSession(schoolId, request.date);
     const appendResult = await TeacherAttendance.updateOne(
@@ -147,7 +149,7 @@ async function persistApprovedAttendance(schoolId, request, decisionStatus) {
             checkOut: null,
             source: "admin",
             verification: { networkVerified: false, ipAddress: "" },
-            note: `Approved attendance request: ${request.reason}`,
+            note,
             markedBy: request.reviewedBy || null,
             manuallyAdjusted: true,
           },
@@ -157,28 +159,33 @@ async function persistApprovedAttendance(schoolId, request, decisionStatus) {
     );
 
     if (appendResult.matchedCount === 0) {
-      // Another request inserted the teacher between the two atomic operations.
-      // Re-run the targeted update rather than saving a stale session document.
       await TeacherAttendance.updateOne(
         { school: schoolId, date: request.date, "records.teacher": request.teacher },
-        {
-          $set: {
-            "records.$.status": decisionStatus,
-            "records.$.source": "admin",
-            "records.$.note": `Approved attendance request: ${request.reason}`,
-            "records.$.markedBy": request.reviewedBy || null,
-            "records.$.manuallyAdjusted": true,
-            submittedAt: new Date(),
-            markedBy: request.reviewedBy || null,
-          },
-        },
+        { $set: updateFields },
       );
     }
   }
 
+  // Verify the exact record that was just approved before returning success.
   const session = await TeacherAttendance.findOne({ school: schoolId, date: request.date });
   const record = session?.records?.find((item) => String(item.teacher) === String(request.teacher)) || null;
+  if (!record || record.status !== decisionStatus) {
+    throw new Error("Attendance approval could not be persisted to the daily register.");
+  }
+
   return { session, record };
+}
+
+// Approved requests are the authoritative exception decision. This is used as
+// a read-time safety net so an already-approved request can never appear as
+// absent because of an old/missing daily record.
+async function getApprovedDecisionMap(schoolId, date) {
+  const approved = await TeacherAttendanceRequest.find({ school: schoolId, date, status: "approved" }).select("teacher decisionStatus reviewedBy reviewedAt reason");
+  return new Map(
+    approved
+      .filter((request) => ["present", "late", "on_leave"].includes(request.decisionStatus))
+      .map((request) => [String(request.teacher), request]),
+  );
 }
 
 router.get("/me", async (req, res, next) => {
@@ -190,9 +197,14 @@ router.get("/me", async (req, res, next) => {
     const date = normalizeDate(schoolDateKey());
     const session = await ensureAbsentRecords(req.user.school, date);
     const record = session?.records?.find((item) => String(item.teacher) === String(teacher._id)) || null;
+    const approvedMap = await getApprovedDecisionMap(req.user.school, date);
+    const approvedRequest = approvedMap.get(String(teacher._id));
+    const authoritativeRecord = approvedRequest && (!record || record.status === "absent")
+      ? { ...(record?.toObject?.() || record || {}), teacher: teacher._id, status: approvedRequest.decisionStatus, source: "admin", manuallyAdjusted: true, note: `Approved attendance request: ${approvedRequest.reason}`, markedBy: approvedRequest.reviewedBy, checkIn: record?.checkIn || null, checkOut: record?.checkOut || null }
+      : record;
     const network = networkCheck(school, req);
     const request = await TeacherAttendanceRequest.findOne({ school: req.user.school, teacher: teacher._id, date }).sort({ createdAt: -1 });
-    res.json({ teacher: { id: teacher._id, name: teacher.user?.name || req.user.name, employeeId: teacher.employeeId }, date: schoolDateKey(), record, request, network, window: windowForResponse() });
+    res.json({ teacher: { id: teacher._id, name: teacher.user?.name || req.user.name, employeeId: teacher.employeeId }, date: schoolDateKey(), record: authoritativeRecord, request, network, window: windowForResponse() });
   } catch (error) { next(error); }
 });
 
@@ -209,28 +221,45 @@ router.post("/check-in", async (req, res, next) => {
     if (time > WINDOW.close) return res.status(400).json({ code: "CHECK_IN_WINDOW_CLOSED", message: "Today's check-in window is closed. Send an attendance request to the principal with your reason.", network });
 
     const date = normalizeDate(schoolDateKey());
-    const session = await getOrCreateSession(req.user.school, date);
-    const record = session.records.find((item) => String(item.teacher) === String(teacher._id));
-    if (record?.checkIn) return res.status(409).json({ message: "Today's attendance is already checked in.", record, network });
-
     const now = new Date();
     const status = statusForCheckIn();
-    if (!record) {
-      session.records.push({ teacher: teacher._id, status, checkIn: now, checkOut: null, source: network.source, verification: { networkVerified: network.verified, ipAddress: network.ip }, note: "", markedBy: req.user._id, manuallyAdjusted: false });
+    const existingSession = await TeacherAttendance.findOne({ school: req.user.school, date }).select("records");
+    const existingRecord = existingSession?.records?.find((item) => String(item.teacher) === String(teacher._id));
+    if (existingRecord?.checkIn) return res.status(409).json({ message: "Today's attendance is already checked in.", record: existingRecord, network });
+
+    if (existingRecord) {
+      const update = await TeacherAttendance.updateOne(
+        { school: req.user.school, date, "records.teacher": teacher._id },
+        {
+          $set: {
+            "records.$.status": status,
+            "records.$.checkIn": now,
+            "records.$.checkOut": null,
+            "records.$.source": network.source,
+            "records.$.verification": { networkVerified: network.verified, ipAddress: network.ip },
+            "records.$.note": "",
+            "records.$.markedBy": req.user._id,
+            "records.$.manuallyAdjusted": false,
+            submittedAt: now,
+          },
+        },
+      );
+      if (!update.matchedCount) return res.status(409).json({ message: "Attendance changed while checking in. Please try again." });
     } else {
-      record.status = status;
-      record.checkIn = now;
-      record.checkOut = null;
-      record.source = network.source;
-      record.verification = { networkVerified: network.verified, ipAddress: network.ip };
-      record.note = "";
-      record.markedBy = req.user._id;
-      record.manuallyAdjusted = false;
+      await getOrCreateSession(req.user.school, date);
+      const update = await TeacherAttendance.updateOne(
+        { school: req.user.school, date, "records.teacher": { $ne: teacher._id } },
+        {
+          $push: { records: { teacher: teacher._id, status, checkIn: now, checkOut: null, source: network.source, verification: { networkVerified: network.verified, ipAddress: network.ip }, note: "", markedBy: req.user._id, manuallyAdjusted: false } },
+          $set: { submittedAt: now },
+        },
+      );
+      if (!update.matchedCount) return res.status(409).json({ message: "Attendance changed while checking in. Please try again." });
     }
-    session.submittedAt = now;
-    session.markModified("records");
-    await session.save();
-    res.json({ message: status === "late" ? "Check-in recorded as late." : "Attendance marked successfully.", record: session.records.find((item) => String(item.teacher) === String(teacher._id)), network });
+
+    const session = await TeacherAttendance.findOne({ school: req.user.school, date });
+    const record = session?.records?.find((item) => String(item.teacher) === String(teacher._id));
+    res.json({ message: status === "late" ? "Check-in recorded as late." : "Attendance marked successfully.", record, network });
   } catch (error) { next(error); }
 });
 
@@ -243,15 +272,20 @@ router.post("/check-out", async (req, res, next) => {
     const network = networkCheck(school, req);
     if (!network.allowed) return res.status(403).json({ code: "SCHOOL_NETWORK_REQUIRED", message: network.message, network });
     const date = normalizeDate(schoolDateKey());
+    const now = new Date();
+    const update = await TeacherAttendance.updateOne(
+      { school: req.user.school, date, records: { $elemMatch: { teacher: teacher._id, checkIn: { $ne: null }, checkOut: null } } },
+      { $set: { "records.$.checkOut": now, "records.$.verification": { networkVerified: network.verified, ipAddress: network.ip }, submittedAt: now } },
+    );
+    if (!update.matchedCount) {
+      const session = await TeacherAttendance.findOne({ school: req.user.school, date });
+      const record = session?.records?.find((item) => String(item.teacher) === String(teacher._id));
+      if (!record?.checkIn) return res.status(400).json({ message: "Check-in is required before check-out." });
+      if (record.checkOut) return res.status(409).json({ message: "Today's attendance is already checked out.", record });
+      return res.status(409).json({ message: "Attendance changed while checking out. Please try again." });
+    }
     const session = await TeacherAttendance.findOne({ school: req.user.school, date });
     const record = session?.records?.find((item) => String(item.teacher) === String(teacher._id));
-    if (!record?.checkIn) return res.status(400).json({ message: "Check-in is required before check-out." });
-    if (record.checkOut) return res.status(409).json({ message: "Today's attendance is already checked out.", record });
-    record.checkOut = new Date();
-    record.verification = { networkVerified: network.verified, ipAddress: network.ip };
-    session.submittedAt = new Date();
-    session.markModified("records");
-    await session.save();
     res.json({ message: "Check-out recorded successfully.", record, network });
   } catch (error) { next(error); }
 });
@@ -288,11 +322,16 @@ router.get("/", principalOnly, async (req, res, next) => {
     const date = normalizeDate(req.query.date || schoolDateKey());
     if (!date) return res.status(400).json({ message: "Invalid date" });
     const session = await ensureAbsentRecords(req.user.school, date);
+    const approvedMap = await getApprovedDecisionMap(req.user.school, date);
     const teachers = await Teacher.find({ school: req.user.school }).populate({ path: "user", select: "name email active role" }).sort({ createdAt: 1 });
     const recordMap = new Map((session?.records || []).map((record) => [String(record.teacher), record]));
     const items = teachers.filter((teacher) => teacher.user).map((teacher) => {
       const record = recordMap.get(String(teacher._id));
-      return { id: teacher._id, userId: teacher.user._id, name: teacher.user.name, email: teacher.user.email, active: teacher.user.active, employeeId: teacher.employeeId, designation: teacher.designation || "Teacher", department: teacher.department || "", status: record?.status || "not_marked", note: record?.note || "", checkIn: record?.checkIn || null, checkOut: record?.checkOut || null, verification: record?.verification || null };
+      const approvedRequest = approvedMap.get(String(teacher._id));
+      const approvedStatus = approvedRequest?.decisionStatus;
+      const status = approvedStatus && (!record || record.status === "absent") ? approvedStatus : (record?.status || "not_marked");
+      const note = approvedStatus && (!record || record.status === "absent") ? `Approved attendance request: ${approvedRequest.reason}` : (record?.note || "");
+      return { id: teacher._id, userId: teacher.user._id, name: teacher.user.name, email: teacher.user.email, active: teacher.user.active, employeeId: teacher.employeeId, designation: teacher.designation || "Teacher", department: teacher.department || "", status, note, checkIn: record?.checkIn || null, checkOut: record?.checkOut || null, verification: record?.verification || null };
     });
     res.json({ teachers: items, session, window: windowForResponse() });
   } catch (error) { next(error); }
@@ -319,15 +358,16 @@ router.patch("/requests/:id/approve", principalOnly, async (req, res, next) => {
     const decisionStatus = ["present", "late", "on_leave"].includes(req.body?.status) ? req.body.status : null;
     if (!decisionStatus) return res.status(400).json({ message: "Choose present, late or on leave when approving the request." });
 
-    request.status = "approved";
+    // Prepare the request decision first, but only mark it approved after the
+    // daily attendance record has been verified in MongoDB.
     request.decisionStatus = decisionStatus;
     request.reviewedBy = req.user._id;
     request.reviewedAt = new Date();
     request.reviewNote = String(req.body?.reviewNote || "").trim();
-    await request.save();
 
     const persisted = await persistApprovedAttendance(req.user.school, request, decisionStatus);
-    if (!persisted.record) return res.status(500).json({ message: "Attendance approval was recorded but the daily register could not be updated." });
+    request.status = "approved";
+    await request.save();
 
     res.json({ message: `Attendance request approved as ${decisionStatus}.`, request, record: persisted.record, session: persisted.session });
   } catch (error) { next(error); }
