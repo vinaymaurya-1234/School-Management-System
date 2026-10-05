@@ -23,7 +23,7 @@ function ExamSchedulePage() {
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [form, setForm] = useState({ classId: '', sectionId: '', subjectName: '', scheduledAt: '', endsAt: '' })
+  const [form, setForm] = useState({ classId: '', sectionId: '', subjectName: '', examDate: '', startTime: '', endTime: '' })
 
   const filteredSections = useMemo(() => sections.filter((section) => idOf(section.class) === form.classId), [sections, form.classId])
   const browseSections = useMemo(() => sections.filter((section) => !selectedClass || idOf(section.class) === selectedClass), [sections, selectedClass])
@@ -84,19 +84,22 @@ function ExamSchedulePage() {
   const classCount = new Set(exams.map((exam) => idOf(exam.class))).size
 
   const openForm = () => {
-    setForm({ classId: selectedClass || classes[0]?._id || '', sectionId: selectedSection || '', subjectName: '', scheduledAt: '', endsAt: '' })
+    setForm({ classId: selectedClass || classes[0]?._id || '', sectionId: selectedSection || '', subjectName: '', examDate: '', startTime: '', endTime: '' })
     setShowForm(true)
     setError('')
     setNotice('')
   }
 
   const createExam = async () => {
-    if (!year?._id || !form.classId || !form.sectionId || !form.subjectName.trim() || !form.scheduledAt || !form.endsAt) {
-      setError('Class, section, subject name, start time and end time are required.')
+    if (!year?._id || !form.classId || !form.sectionId || !form.subjectName.trim() || !form.examDate || !form.startTime || !form.endTime) {
+      setError('Class, section, subject name, exam date, start time and end time are required.')
       return
     }
 
-    if (new Date(form.endsAt) <= new Date(form.scheduledAt)) {
+    const scheduledAt = `${form.examDate}T${form.startTime}`
+    const endsAt = `${form.examDate}T${form.endTime}`
+
+    if (new Date(endsAt) <= new Date(scheduledAt)) {
       setError('Exam end time must be after the start time.')
       return
     }
@@ -106,8 +109,11 @@ function ExamSchedulePage() {
     try {
       await apiClient.post('/exams', {
         academicYear: year._id,
-        ...form,
+        classId: form.classId,
+        sectionId: form.sectionId,
         subjectName: form.subjectName.trim(),
+        scheduledAt,
+        endsAt,
       })
       setNotice('Exam scheduled successfully. It is now visible to teachers and the selected class.')
       setShowForm(false)
@@ -165,7 +171,7 @@ function ExamSchedulePage() {
         </article>)}</div> : <div className="exam-empty"><div><CalendarDays size={22} /></div><h3>No exams scheduled</h3><p>{isPrincipal ? 'Create the first exam using the Schedule exam button.' : 'No exam has been scheduled for the classes available to you yet.'}</p></div>}
       </section>
 
-      {isPrincipal && showForm && <div className="exam-modal-backdrop"><div className="exam-modal"><div className="exam-modal-head"><div><span className="exam-eyebrow">NEW ASSESSMENT</span><h2>Schedule an exam</h2><p>Set the class, subject and complete exam time window.</p></div><button className="exam-close" onClick={() => setShowForm(false)}><X size={17} /></button></div><div className="exam-form"><label><span>Class</span><select value={form.classId} onChange={(event) => setForm((current) => ({ ...current, classId: event.target.value, sectionId: '' }))}><option value="">Select class</option>{classes.map((item) => <option key={item._id} value={item._id}>Class {item.name}</option>)}</select></label><label><span>Section</span><select value={form.sectionId} onChange={(event) => setForm((current) => ({ ...current, sectionId: event.target.value }))}><option value="">Select section</option>{filteredSections.map((item) => <option key={item._id} value={item._id}>Section {item.name}</option>)}</select></label><label><span>Subject name</span><input value={form.subjectName} onChange={(event) => setForm((current) => ({ ...current, subjectName: event.target.value }))} placeholder="e.g. Mathematics" /></label><label><span>Start time</span><input type="datetime-local" value={form.scheduledAt} onChange={(event) => setForm((current) => ({ ...current, scheduledAt: event.target.value }))} /></label><label><span>End time</span><input type="datetime-local" min={form.scheduledAt || undefined} value={form.endsAt} onChange={(event) => setForm((current) => ({ ...current, endsAt: event.target.value }))} /></label></div><div className="exam-modal-foot"><button className="exam-secondary-btn" type="button" onClick={() => setShowForm(false)} disabled={saving}>Cancel</button><button className="exam-primary-btn" type="button" onClick={createExam} disabled={saving}>{saving ? <Loader2 className="spin" size={16} /> : <Check size={16} />} {saving ? 'Saving...' : 'Schedule exam'}</button></div></div></div>}
+      {isPrincipal && showForm && <div className="exam-modal-backdrop"><div className="exam-modal"><div className="exam-modal-head"><div><span className="exam-eyebrow">NEW ASSESSMENT</span><h2>Schedule an exam</h2><p>Set the class, subject and complete exam time window.</p></div><button className="exam-close" onClick={() => setShowForm(false)}><X size={17} /></button></div><div className="exam-form"><label><span>Class</span><select value={form.classId} onChange={(event) => setForm((current) => ({ ...current, classId: event.target.value, sectionId: '' }))}><option value="">Select class</option>{classes.map((item) => <option key={item._id} value={item._id}>Class {item.name}</option>)}</select></label><label><span>Section</span><select value={form.sectionId} onChange={(event) => setForm((current) => ({ ...current, sectionId: event.target.value }))}><option value="">Select section</option>{filteredSections.map((item) => <option key={item._id} value={item._id}>Section {item.name}</option>)}</select></label><label><span>Subject name</span><input value={form.subjectName} onChange={(event) => setForm((current) => ({ ...current, subjectName: event.target.value }))} placeholder="e.g. Mathematics" /></label><label className="exam-date-field"><span>Exam date</span><input type="date" value={form.examDate} onChange={(event) => setForm((current) => ({ ...current, examDate: event.target.value }))} /></label><div className="exam-time-fields"><label><span>Start time</span><input type="time" value={form.startTime} onChange={(event) => setForm((current) => ({ ...current, startTime: event.target.value }))} /></label><label><span>End time</span><input type="time" value={form.endTime} min={form.startTime || undefined} onChange={(event) => setForm((current) => ({ ...current, endTime: event.target.value }))} /></label></div></div><div className="exam-modal-foot"><button className="exam-secondary-btn" type="button" onClick={() => setShowForm(false)} disabled={saving}>Cancel</button><button className="exam-primary-btn" type="button" onClick={createExam} disabled={saving}>{saving ? <Loader2 className="spin" size={16} /> : <Check size={16} />} {saving ? 'Saving...' : 'Schedule exam'}</button></div></div></div>}
     </div>
   )
 }
