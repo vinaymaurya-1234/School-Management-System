@@ -49,6 +49,63 @@ async function ensureAbsentRecords(schoolId, date) {
   if (changed) await session.save();
   return session;
 }
+
+// Approved requests are the principal's authoritative correction to the daily register.
+// This reconciliation also protects the dashboard from stale/older attendance records.
+async function syncApprovedRequests(schoolId, date, existingSession = null) {
+  const approved = await TeacherAttendanceRequest.find({
+    school: schoolId,
+    date,
+    status: "approved",
+    decisionStatus: { $in: ["present", "late", "on_leave"] },
+  }).sort({ reviewedAt: 1, updatedAt: 1 });
+
+  if (!approved.length) return existingSession;
+
+  const session = existingSession || await TeacherAttendance.findOneAndUpdate(
+    { school: schoolId, date },
+    { $setOnInsert: { school: schoolId, date, records: [] } },
+    { new: true, upsert: true, setDefaultsOnInsert: true }
+  );
+
+  let changed = false;
+  for (const request of approved) {
+    let record = session.records.find((item) => item.teacher.toString() === request.teacher.toString());
+    if (!record) {
+      record = {
+        teacher: request.teacher,
+        status: request.decisionStatus,
+        checkIn: null,
+        checkOut: null,
+        source: "admin",
+        verification: { networkVerified: false, ipAddress: "" },
+        note: `Approved attendance request: ${request.reason}`,
+        markedBy: request.reviewedBy || null,
+        manuallyAdjusted: true,
+      };
+      session.records.push(record);
+      changed = true;
+      continue;
+    }
+
+    if (record.status !== request.decisionStatus || !record.manuallyAdjusted || record.source !== "admin") {
+      record.status = request.decisionStatus;
+      record.source = "admin";
+      record.note = `Approved attendance request: ${request.reason}`;
+      record.markedBy = request.reviewedBy || record.markedBy || null;
+      record.manuallyAdjusted = true;
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    session.markedBy = approved[approved.length - 1].reviewedBy || session.markedBy;
+    session.submittedAt = new Date();
+    await session.save();
+  }
+  return session;
+}
+
 async function getOrCreateTodaySession(schoolId) {
   const date = normalizeDate(schoolDateKey());
   return TeacherAttendance.findOneAndUpdate({ school: schoolId, date }, { $setOnInsert: { school: schoolId, date, records: [] } }, { new: true, upsert: true, setDefaultsOnInsert: true });
@@ -59,7 +116,8 @@ router.get("/me", async (req, res, next) => {
     if (req.user.role !== ROLES.TEACHER) return res.status(403).json({ message: "Teacher access required" });
     const teacher = await getTeacher(req); if (!teacher) return res.status(404).json({ message: "Teacher profile not found" });
     const school = await getSchool(req); const date = normalizeDate(schoolDateKey());
-    const session = await ensureAbsentRecords(req.user.school, date);
+    let session = await ensureAbsentRecords(req.user.school, date);
+    session = await syncApprovedRequests(req.user.school, date, session);
     const record = session?.records?.find((item) => item.teacher.toString() === teacher._id.toString()) || null;
     const network = networkCheck(school, req);
     const request = await TeacherAttendanceRequest.findOne({ school: req.user.school, teacher: teacher._id, date }).sort({ createdAt: -1 });
@@ -133,7 +191,8 @@ router.get("/history", async (req, res, next) => {
 router.get("/", principalOnly, async (req, res, next) => {
   try {
     const date = normalizeDate(req.query.date || schoolDateKey()); if (!date) return res.status(400).json({ message: "Invalid date" });
-    const session = await ensureAbsentRecords(req.user.school, date);
+    let session = await ensureAbsentRecords(req.user.school, date);
+    session = await syncApprovedRequests(req.user.school, date, session);
     const teachers = await Teacher.find({ school: req.user.school }).populate({ path: "user", select: "name email active role" }).sort({ createdAt: 1 });
     const recordMap = new Map((session?.records || []).map((record) => [record.teacher.toString(), record]));
     const items = teachers.filter((teacher) => teacher.user).map((teacher) => { const record = recordMap.get(teacher._id.toString()); return { id: teacher._id, userId: teacher.user._id, name: teacher.user.name, email: teacher.user.email, active: teacher.user.active, employeeId: teacher.employeeId, designation: teacher.designation || "Teacher", department: teacher.department || "", status: record?.status || "not_marked", note: record?.note || "", checkIn: record?.checkIn || null, checkOut: record?.checkOut || null, verification: record?.verification || null }; });
