@@ -49,13 +49,7 @@ function networkCheck(school, req) {
   }
   const allowedIps = (school.attendanceNetwork.allowedIps || []).map(normalizeIp).filter(Boolean);
   const allowed = allowedIps.includes(ip);
-  return {
-    allowed,
-    verified: allowed,
-    source: "wifi",
-    ip,
-    message: allowed ? "School network verified." : `Connect to ${school.attendanceNetwork.networkName || "the school's authorized Wi-Fi"} to mark attendance.`,
-  };
+  return { allowed, verified: allowed, source: "wifi", ip, message: allowed ? "School network verified." : `Connect to ${school.attendanceNetwork.networkName || "the school's authorized Wi-Fi"} to mark attendance.` };
 }
 
 function currentTimeHHMM() {
@@ -97,50 +91,34 @@ async function ensureAbsentRecords(schoolId, date) {
 
   for (const teacher of teachers) {
     if (existing.has(String(teacher._id))) continue;
-    session.records.push({
-      teacher: teacher._id,
-      status: "absent",
-      checkIn: null,
-      checkOut: null,
-      source: "development",
-      verification: { networkVerified: false, ipAddress: "" },
-      note: "No check-in recorded before the attendance window closed.",
-      markedBy: null,
-      manuallyAdjusted: false,
-    });
+    session.records.push({ teacher: teacher._id, status: "absent", checkIn: null, checkOut: null, source: "development", verification: { networkVerified: false, ipAddress: "" }, note: "No check-in recorded before the attendance window closed.", markedBy: null, manuallyAdjusted: false });
     changed = true;
   }
 
-  if (changed) await session.save();
+  if (changed) {
+    session.markModified("records");
+    await session.save();
+  }
   return session;
 }
 
 function applyApprovalToRecord(session, request, decisionStatus) {
-  let record = session.records.find((item) => item.teacher.toString() === request.teacher.toString());
+  let record = session.records.find((item) => String(item.teacher) === String(request.teacher));
 
   if (!record) {
-    record = {
-      teacher: request.teacher,
-      status: decisionStatus,
-      checkIn: null,
-      checkOut: null,
-      source: "admin",
-      verification: { networkVerified: false, ipAddress: "" },
-      note: `Approved attendance request: ${request.reason}`,
-      markedBy: request.reviewedBy || null,
-      manuallyAdjusted: true,
-    };
+    record = { teacher: request.teacher, status: decisionStatus, checkIn: null, checkOut: null, source: "admin", verification: { networkVerified: false, ipAddress: "" }, note: `Approved attendance request: ${request.reason}`, markedBy: request.reviewedBy || null, manuallyAdjusted: true };
     session.records.push(record);
-    return record;
+  } else {
+    record.status = decisionStatus;
+    record.source = "admin";
+    record.note = `Approved attendance request: ${request.reason}`;
+    record.markedBy = request.reviewedBy || record.markedBy || null;
+    record.manuallyAdjusted = true;
   }
 
-  // Principal approval is authoritative. Keep any real check-in/check-out timestamps,
-  // but replace the attendance classification with the approved classification.
-  record.status = decisionStatus;
-  record.source = "admin";
-  record.note = `Approved attendance request: ${request.reason}`;
-  record.markedBy = request.reviewedBy || record.markedBy || null;
-  record.manuallyAdjusted = true;
+  // Explicitly mark the array dirty so approval is persisted even when the
+  // record already existed as an automatically-created absent subdocument.
+  session.markModified("records");
   return record;
 }
 
@@ -152,10 +130,8 @@ async function syncApprovedRequests(schoolId, date, existingSession = null) {
   let changed = false;
 
   for (const request of approved) {
-    // Older approved requests may not have decisionStatus. Treat those as present;
-    // all new approvals always persist the explicit decision below.
     const decisionStatus = ["present", "late", "on_leave"].includes(request.decisionStatus) ? request.decisionStatus : "present";
-    const before = session.records.find((item) => item.teacher.toString() === request.teacher.toString());
+    const before = session.records.find((item) => String(item.teacher) === String(request.teacher));
     const beforeStatus = before?.status;
     const beforeManual = before?.manuallyAdjusted;
     const beforeSource = before?.source;
@@ -167,6 +143,7 @@ async function syncApprovedRequests(schoolId, date, existingSession = null) {
     const latest = approved[approved.length - 1];
     session.markedBy = latest.reviewedBy || session.markedBy;
     session.submittedAt = new Date();
+    session.markModified("records");
     await session.save();
   }
   return session;
@@ -181,7 +158,7 @@ router.get("/me", async (req, res, next) => {
     const date = normalizeDate(schoolDateKey());
     let session = await ensureAbsentRecords(req.user.school, date);
     session = await syncApprovedRequests(req.user.school, date, session);
-    const record = session?.records?.find((item) => item.teacher.toString() === teacher._id.toString()) || null;
+    const record = session?.records?.find((item) => String(item.teacher) === String(teacher._id)) || null;
     const network = networkCheck(school, req);
     const request = await TeacherAttendanceRequest.findOne({ school: req.user.school, teacher: teacher._id, date }).sort({ createdAt: -1 });
     res.json({ teacher: { id: teacher._id, name: teacher.user?.name || req.user.name, employeeId: teacher.employeeId }, date: schoolDateKey(), record, request, network, window: windowForResponse() });
@@ -196,21 +173,19 @@ router.post("/check-in", async (req, res, next) => {
     const school = await getSchool(req);
     const network = networkCheck(school, req);
     if (!network.allowed) return res.status(403).json({ code: "SCHOOL_NETWORK_REQUIRED", message: network.message, network });
-
     const time = currentTimeHHMM();
     if (time < WINDOW.start) return res.status(400).json({ message: `Teacher attendance opens at ${WINDOW.start}.`, network });
     if (time > WINDOW.close) return res.status(400).json({ code: "CHECK_IN_WINDOW_CLOSED", message: "Today's check-in window is closed. Send an attendance request to the principal with your reason.", network });
 
     const date = normalizeDate(schoolDateKey());
     const session = await getOrCreateSession(req.user.school, date);
-    let record = session.records.find((item) => item.teacher.toString() === teacher._id.toString());
+    let record = session.records.find((item) => String(item.teacher) === String(teacher._id));
     if (record?.checkIn) return res.status(409).json({ message: "Today's attendance is already checked in.", record, network });
 
     const now = new Date();
     const status = statusForCheckIn();
     if (!record) {
-      record = { teacher: teacher._id, status, checkIn: now, checkOut: null, source: network.source, verification: { networkVerified: network.verified, ipAddress: network.ip }, note: "", markedBy: req.user._id, manuallyAdjusted: false };
-      session.records.push(record);
+      session.records.push({ teacher: teacher._id, status, checkIn: now, checkOut: null, source: network.source, verification: { networkVerified: network.verified, ipAddress: network.ip }, note: "", markedBy: req.user._id, manuallyAdjusted: false });
     } else {
       record.status = status;
       record.checkIn = now;
@@ -222,8 +197,9 @@ router.post("/check-in", async (req, res, next) => {
       record.manuallyAdjusted = false;
     }
     session.submittedAt = now;
+    session.markModified("records");
     await session.save();
-    res.json({ message: status === "late" ? "Check-in recorded as late." : "Attendance marked successfully.", record, network });
+    res.json({ message: status === "late" ? "Check-in recorded as late." : "Attendance marked successfully.", record: session.records.find((item) => String(item.teacher) === String(teacher._id)), network });
   } catch (error) { next(error); }
 });
 
@@ -235,16 +211,15 @@ router.post("/check-out", async (req, res, next) => {
     const school = await getSchool(req);
     const network = networkCheck(school, req);
     if (!network.allowed) return res.status(403).json({ code: "SCHOOL_NETWORK_REQUIRED", message: network.message, network });
-
     const date = normalizeDate(schoolDateKey());
     const session = await TeacherAttendance.findOne({ school: req.user.school, date });
-    const record = session?.records?.find((item) => item.teacher.toString() === teacher._id.toString());
+    const record = session?.records?.find((item) => String(item.teacher) === String(teacher._id));
     if (!record?.checkIn) return res.status(400).json({ message: "Check-in is required before check-out." });
     if (record.checkOut) return res.status(409).json({ message: "Today's attendance is already checked out.", record });
-
     record.checkOut = new Date();
     record.verification = { networkVerified: network.verified, ipAddress: network.ip };
     session.submittedAt = new Date();
+    session.markModified("records");
     await session.save();
     res.json({ message: "Check-out recorded successfully.", record, network });
   } catch (error) { next(error); }
@@ -255,14 +230,11 @@ router.post("/request", async (req, res, next) => {
     if (req.user.role !== ROLES.TEACHER) return res.status(403).json({ message: "Teacher access required" });
     const teacher = await getTeacher(req);
     if (!teacher) return res.status(404).json({ message: "Teacher profile not found" });
-
     const date = normalizeDate(req.body?.date || schoolDateKey());
     const reason = String(req.body?.reason || "").trim();
     if (!reason) return res.status(400).json({ message: "Please provide a reason for the attendance request." });
-
     const existing = await TeacherAttendanceRequest.findOne({ school: req.user.school, teacher: teacher._id, date, status: "pending" });
     if (existing) return res.status(409).json({ message: "An attendance request is already pending for this date.", request: existing });
-
     const request = await TeacherAttendanceRequest.create({ school: req.user.school, teacher: teacher._id, date, reason });
     res.status(201).json({ message: "Attendance request sent to the principal.", request });
   } catch (error) { next(error); }
@@ -275,7 +247,7 @@ router.get("/history", async (req, res, next) => {
     if (!teacher) return res.status(404).json({ message: "Teacher profile not found" });
     const limit = Math.min(Math.max(Number(req.query.limit) || 31, 1), 90);
     const sessions = await TeacherAttendance.find({ school: req.user.school, "records.teacher": teacher._id }).sort({ date: -1 }).limit(limit);
-    const history = sessions.map((session) => ({ date: session.date, record: session.records.find((item) => item.teacher.toString() === teacher._id.toString()) }));
+    const history = sessions.map((session) => ({ date: session.date, record: session.records.find((item) => String(item.teacher) === String(teacher._id)) }));
     res.json({ history });
   } catch (error) { next(error); }
 });
@@ -284,31 +256,14 @@ router.get("/", principalOnly, async (req, res, next) => {
   try {
     const date = normalizeDate(req.query.date || schoolDateKey());
     if (!date) return res.status(400).json({ message: "Invalid date" });
-
     let session = await ensureAbsentRecords(req.user.school, date);
     session = await syncApprovedRequests(req.user.school, date, session);
-
     const teachers = await Teacher.find({ school: req.user.school }).populate({ path: "user", select: "name email active role" }).sort({ createdAt: 1 });
-    const recordMap = new Map((session?.records || []).map((record) => [record.teacher.toString(), record]));
+    const recordMap = new Map((session?.records || []).map((record) => [String(record.teacher), record]));
     const items = teachers.filter((teacher) => teacher.user).map((teacher) => {
-      const record = recordMap.get(teacher._id.toString());
-      return {
-        id: teacher._id,
-        userId: teacher.user._id,
-        name: teacher.user.name,
-        email: teacher.user.email,
-        active: teacher.user.active,
-        employeeId: teacher.employeeId,
-        designation: teacher.designation || "Teacher",
-        department: teacher.department || "",
-        status: record?.status || "not_marked",
-        note: record?.note || "",
-        checkIn: record?.checkIn || null,
-        checkOut: record?.checkOut || null,
-        verification: record?.verification || null,
-      };
+      const record = recordMap.get(String(teacher._id));
+      return { id: teacher._id, userId: teacher.user._id, name: teacher.user.name, email: teacher.user.email, active: teacher.user.active, employeeId: teacher.employeeId, designation: teacher.designation || "Teacher", department: teacher.department || "", status: record?.status || "not_marked", note: record?.note || "", checkIn: record?.checkIn || null, checkOut: record?.checkOut || null, verification: record?.verification || null };
     });
-
     res.json({ teachers: items, session, window: windowForResponse() });
   } catch (error) { next(error); }
 });
@@ -321,9 +276,7 @@ router.get("/requests", principalOnly, async (req, res, next) => {
       if (!date) return res.status(400).json({ message: "Invalid date" });
       filter.date = date;
     }
-    const requests = await TeacherAttendanceRequest.find(filter)
-      .populate({ path: "teacher", populate: { path: "user", select: "name email" } })
-      .sort({ createdAt: -1 });
+    const requests = await TeacherAttendanceRequest.find(filter).populate({ path: "teacher", populate: { path: "user", select: "name email" } }).sort({ createdAt: -1 });
     res.json({ requests });
   } catch (error) { next(error); }
 });
@@ -343,13 +296,20 @@ router.patch("/requests/:id/approve", principalOnly, async (req, res, next) => {
     request.reviewNote = String(req.body?.reviewNote || "").trim();
     await request.save();
 
-    const session = await getOrCreateSession(req.user.school, request.date);
-    const record = applyApprovalToRecord(session, request, decisionStatus);
+    // Approval must update the authoritative daily attendance register, not only the request document.
+    // This also works when the register already contains an automatically-created absent record.
+    let session = await getOrCreateSession(req.user.school, request.date);
+    applyApprovalToRecord(session, request, decisionStatus);
     session.markedBy = req.user._id;
     session.submittedAt = new Date();
     await session.save();
 
-    res.json({ message: `Attendance request approved as ${decisionStatus}.`, request, record, session });
+    // Read it back from MongoDB so the API response and the next frontend refresh
+    // are based on the persisted daily register, never on stale request state.
+    session = await TeacherAttendance.findOne({ school: req.user.school, date: request.date });
+    const persistedRecord = session?.records?.find((item) => String(item.teacher) === String(request.teacher));
+
+    res.json({ message: `Attendance request approved as ${decisionStatus}.`, request, record: persistedRecord, session });
   } catch (error) { next(error); }
 });
 
@@ -357,16 +317,12 @@ router.patch("/requests/:id/reject", principalOnly, async (req, res, next) => {
   try {
     const request = await TeacherAttendanceRequest.findOne({ _id: req.params.id, school: req.user.school, status: "pending" });
     if (!request) return res.status(404).json({ message: "Attendance request not found or already reviewed." });
-
     request.status = "rejected";
     request.decisionStatus = null;
     request.reviewedBy = req.user._id;
     request.reviewedAt = new Date();
     request.reviewNote = String(req.body?.reviewNote || "").trim();
     await request.save();
-
-    // Rejection does not let the principal manually turn a teacher into another status.
-    // If the window is closed and an absent record exists, it remains absent.
     const session = await TeacherAttendance.findOne({ school: req.user.school, date: request.date });
     res.json({ message: "Attendance request rejected. Teacher remains absent unless a valid attendance record already exists.", request, session });
   } catch (error) { next(error); }
