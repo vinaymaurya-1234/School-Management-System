@@ -116,35 +116,55 @@ function applyApprovalToRecord(session, request, decisionStatus) {
     record.manuallyAdjusted = true;
   }
 
-  // Explicitly mark the array dirty so approval is persisted even when the
-  // record already existed as an automatically-created absent subdocument.
   session.markModified("records");
   return record;
+}
+
+async function persistApprovedAttendance(schoolId, request, decisionStatus) {
+  // Update an existing teacher record atomically. This avoids relying on a
+  // previously-read Mongoose document when another attendance action has
+  // changed the same daily session.
+  const update = await TeacherAttendance.updateOne(
+    { school: schoolId, date: request.date, "records.teacher": request.teacher },
+    {
+      $set: {
+        "records.$.status": decisionStatus,
+        "records.$.source": "admin",
+        "records.$.note": `Approved attendance request: ${request.reason}`,
+        "records.$.markedBy": request.reviewedBy || null,
+        "records.$.manuallyAdjusted": true,
+        submittedAt: new Date(),
+        markedBy: request.reviewedBy || null,
+      },
+    },
+  );
+
+  if (update.matchedCount === 0) {
+    // If the daily session does not exist yet, create it with the approved
+    // teacher record. If it exists but has no record for this teacher, append
+    // the record without replacing any other teacher's attendance.
+    const session = await getOrCreateSession(schoolId, request.date);
+    const record = applyApprovalToRecord(session, request, decisionStatus);
+    session.markedBy = request.reviewedBy || session.markedBy;
+    session.submittedAt = new Date();
+    await session.save();
+    return { session, record };
+  }
+
+  const session = await TeacherAttendance.findOne({ school: schoolId, date: request.date });
+  const record = session?.records?.find((item) => String(item.teacher) === String(request.teacher)) || null;
+  return { session, record };
 }
 
 async function syncApprovedRequests(schoolId, date, existingSession = null) {
   const approved = await TeacherAttendanceRequest.find({ school: schoolId, date, status: "approved" }).sort({ reviewedAt: 1, updatedAt: 1 });
   if (!approved.length) return existingSession;
 
-  const session = existingSession || await getOrCreateSession(schoolId, date);
-  let changed = false;
-
+  let session = existingSession;
   for (const request of approved) {
     const decisionStatus = ["present", "late", "on_leave"].includes(request.decisionStatus) ? request.decisionStatus : "present";
-    const before = session.records.find((item) => String(item.teacher) === String(request.teacher));
-    const beforeStatus = before?.status;
-    const beforeManual = before?.manuallyAdjusted;
-    const beforeSource = before?.source;
-    applyApprovalToRecord(session, request, decisionStatus);
-    if (!before || beforeStatus !== decisionStatus || !beforeManual || beforeSource !== "admin") changed = true;
-  }
-
-  if (changed) {
-    const latest = approved[approved.length - 1];
-    session.markedBy = latest.reviewedBy || session.markedBy;
-    session.submittedAt = new Date();
-    session.markModified("records");
-    await session.save();
+    const persisted = await persistApprovedAttendance(schoolId, request, decisionStatus);
+    session = persisted.session;
   }
   return session;
 }
@@ -179,7 +199,7 @@ router.post("/check-in", async (req, res, next) => {
 
     const date = normalizeDate(schoolDateKey());
     const session = await getOrCreateSession(req.user.school, date);
-    let record = session.records.find((item) => String(item.teacher) === String(teacher._id));
+    const record = session.records.find((item) => String(item.teacher) === String(teacher._id));
     if (record?.checkIn) return res.status(409).json({ message: "Today's attendance is already checked in.", record, network });
 
     const now = new Date();
@@ -296,20 +316,10 @@ router.patch("/requests/:id/approve", principalOnly, async (req, res, next) => {
     request.reviewNote = String(req.body?.reviewNote || "").trim();
     await request.save();
 
-    // Approval must update the authoritative daily attendance register, not only the request document.
-    // This also works when the register already contains an automatically-created absent record.
-    let session = await getOrCreateSession(req.user.school, request.date);
-    applyApprovalToRecord(session, request, decisionStatus);
-    session.markedBy = req.user._id;
-    session.submittedAt = new Date();
-    await session.save();
+    const persisted = await persistApprovedAttendance(req.user.school, request, decisionStatus);
+    if (!persisted.record) return res.status(500).json({ message: "Attendance approval was recorded but the daily register could not be updated." });
 
-    // Read it back from MongoDB so the API response and the next frontend refresh
-    // are based on the persisted daily register, never on stale request state.
-    session = await TeacherAttendance.findOne({ school: req.user.school, date: request.date });
-    const persistedRecord = session?.records?.find((item) => String(item.teacher) === String(request.teacher));
-
-    res.json({ message: `Attendance request approved as ${decisionStatus}.`, request, record: persistedRecord, session });
+    res.json({ message: `Attendance request approved as ${decisionStatus}.`, request, record: persisted.record, session: persisted.session });
   } catch (error) { next(error); }
 });
 
