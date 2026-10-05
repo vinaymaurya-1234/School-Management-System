@@ -87,9 +87,9 @@ router.post("/", async (req, res, next) => {
       return res.status(403).json({ message: "Only the principal can create exams" });
     }
 
-    const { academicYear, classId, sectionId, subjectName, scheduledAt } = req.body || {};
-    if (!academicYear || !classId || !sectionId || !subjectName?.trim() || !scheduledAt) {
-      return res.status(400).json({ message: "Class, section, subject name and exam date/time are required" });
+    const { academicYear, classId, sectionId, subjectName, scheduledAt, endsAt } = req.body || {};
+    if (!academicYear || !classId || !sectionId || !subjectName?.trim() || !scheduledAt || !endsAt) {
+      return res.status(400).json({ message: "Class, section, subject name, start time and end time are required" });
     }
 
     const year = await AcademicYear.findOne({ _id: academicYear, school: req.user.school });
@@ -99,8 +99,14 @@ router.post("/", async (req, res, next) => {
     if (!schoolClass) return res.status(404).json({ message: "Class not found" });
     if (!section) return res.status(404).json({ message: "Section does not belong to the selected class" });
 
-    const date = new Date(scheduledAt);
-    if (Number.isNaN(date.getTime())) return res.status(400).json({ message: "Invalid exam date/time" });
+    const start = new Date(scheduledAt);
+    const end = new Date(endsAt);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return res.status(400).json({ message: "Invalid exam start or end time" });
+    }
+    if (end <= start) {
+      return res.status(400).json({ message: "Exam end time must be after the start time" });
+    }
 
     const exam = await Exam.create({
       school: req.user.school,
@@ -108,7 +114,8 @@ router.post("/", async (req, res, next) => {
       class: classId,
       section: sectionId,
       subjectName: subjectName.trim(),
-      scheduledAt: date,
+      scheduledAt: start,
+      endsAt: end,
       createdBy: req.user._id,
     });
 
