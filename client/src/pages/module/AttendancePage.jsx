@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CalendarDays, Check, CheckCircle2, Clock3, Search, ShieldCheck, UserCheck, Users, X } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import apiClient from '../../api/client'
@@ -43,6 +43,7 @@ function AttendancePage() {
   const [query, setQuery] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
   const [reviewing, setReviewing] = useState('')
+  const teacherLoadSequence = useRef(0)
 
   const activeYear = useMemo(() => years.find((year) => year.isActive) || years[0] || null, [years])
   const selectedClassName = classes.find((item) => item._id === selectedClass)?.name || ''
@@ -95,14 +96,22 @@ function AttendancePage() {
   }
 
   const loadTeacherRegister = async () => {
+    const sequence = ++teacherLoadSequence.current
     try {
       const [registerRes, requestRes] = await Promise.all([
         apiClient.get('/teacher-attendance', { params: { date } }),
         apiClient.get('/teacher-attendance/requests', { params: { date } }),
       ])
+
+      // A previous register request can finish after an approval request. Never
+      // allow that stale response to overwrite the newer authoritative state.
+      if (sequence !== teacherLoadSequence.current) return
+
       setTeachers(registerRes.data.teachers || [])
       setRequests(requestRes.data.requests || [])
-    } catch (err) { setError(err.response?.data?.message || 'Unable to load teacher attendance.') }
+    } catch (err) {
+      if (sequence === teacherLoadSequence.current) setError(err.response?.data?.message || 'Unable to load teacher attendance.')
+    }
   }
 
   useEffect(() => {
@@ -136,26 +145,32 @@ function AttendancePage() {
   }
 
   const reviewRequest = async (requestId, status) => {
+    // Invalidate every register request already in flight. Otherwise an older
+    // GET can resolve after the approval and visually revert the register.
+    ++teacherLoadSequence.current
     setReviewing(requestId); setError(''); setNotice('')
     try {
       const response = await apiClient.patch(`/teacher-attendance/requests/${requestId}/approve`, { status })
       const persistedRecord = response.data?.record
       if (!persistedRecord) throw new Error('The server did not return the updated attendance record.')
 
-      // Update the visible register immediately from the authoritative backend
-      // response, then re-fetch the full register to verify the persisted state.
       setTeachers((current) => current.map((teacher) => String(teacher.id) === String(persistedRecord.teacher)
         ? { ...teacher, status: persistedRecord.status, checkIn: persistedRecord.checkIn, checkOut: persistedRecord.checkOut, note: persistedRecord.note, verification: persistedRecord.verification }
         : teacher))
       setRequests((current) => current.filter((request) => request._id !== requestId))
       setNotice(`Request approved as ${statusLabel(status)}. Attendance register updated.`)
+
+      // Re-fetch only after the approval has been persisted. The sequence guard
+      // ensures this fresh response is the only response allowed to win.
       await loadTeacherRegister()
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Unable to approve attendance request.')
+      await loadTeacherRegister()
     } finally { setReviewing('') }
   }
 
   const rejectRequest = async (requestId) => {
+    ++teacherLoadSequence.current
     setReviewing(requestId); setError(''); setNotice('')
     try {
       await apiClient.patch(`/teacher-attendance/requests/${requestId}/reject`)
