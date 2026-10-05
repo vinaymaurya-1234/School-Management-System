@@ -26,7 +26,15 @@ const teacherAttendanceSchema = new mongoose.Schema(
     markedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     submittedAt: { type: Date, default: Date.now },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    // A school has one attendance session per day and multiple requests can
+    // update different teacher records during the same day. Disabling the
+    // Mongoose version-key check prevents a stale session read from turning
+    // an otherwise valid attendance approval into a VersionError.
+    versionKey: false,
+    optimisticConcurrency: false,
+  }
 );
 
 teacherAttendanceSchema.index({ school: 1, date: 1 }, { unique: true });
