@@ -136,17 +136,27 @@ function AttendancePage() {
   }
 
   const reviewRequest = async (requestId, status) => {
-    setReviewing(requestId); setError('')
+    setReviewing(requestId); setError(''); setNotice('')
     try {
-      await apiClient.patch(`/teacher-attendance/requests/${requestId}/approve`, { status })
-      setNotice(`Request approved as ${statusLabel(status)}.`)
+      const response = await apiClient.patch(`/teacher-attendance/requests/${requestId}/approve`, { status })
+      const persistedRecord = response.data?.record
+      if (!persistedRecord) throw new Error('The server did not return the updated attendance record.')
+
+      // Update the visible register immediately from the authoritative backend
+      // response, then re-fetch the full register to verify the persisted state.
+      setTeachers((current) => current.map((teacher) => String(teacher.id) === String(persistedRecord.teacher)
+        ? { ...teacher, status: persistedRecord.status, checkIn: persistedRecord.checkIn, checkOut: persistedRecord.checkOut, note: persistedRecord.note, verification: persistedRecord.verification }
+        : teacher))
+      setRequests((current) => current.filter((request) => request._id !== requestId))
+      setNotice(`Request approved as ${statusLabel(status)}. Attendance register updated.`)
       await loadTeacherRegister()
-    } catch (err) { setError(err.response?.data?.message || 'Unable to approve attendance request.') }
-    finally { setReviewing('') }
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Unable to approve attendance request.')
+    } finally { setReviewing('') }
   }
 
   const rejectRequest = async (requestId) => {
-    setReviewing(requestId); setError('')
+    setReviewing(requestId); setError(''); setNotice('')
     try {
       await apiClient.patch(`/teacher-attendance/requests/${requestId}/reject`)
       setNotice('Attendance request rejected.')
