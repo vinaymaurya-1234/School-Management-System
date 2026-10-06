@@ -11,7 +11,6 @@ function ParentDashboard() {
   const [enrollments, setEnrollments] = useState([])
   const [attendance, setAttendance] = useState({})
   const [timetables, setTimetables] = useState({})
-  const [exams, setExams] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -37,15 +36,10 @@ function ParentDashboard() {
           return
         }
 
-        const [enrollmentRes, examRes] = await Promise.all([
-          apiClient.get('/academic/enrollments', { params: { academicYear: year._id } }),
-          apiClient.get('/exams', { params: { academicYear: year._id } }),
-        ])
+        const enrollmentRes = await apiClient.get('/academic/enrollments', { params: { academicYear: year._id } })
 
         if (cancelled) return
-
         setEnrollments(enrollmentRes.data.enrollments || [])
-        setExams(examRes.data.exams || [])
 
         const summaries = {}
         const schedules = {}
@@ -181,41 +175,7 @@ function ParentDashboard() {
         </div>
       </section>
 
-      <section className="parent-content-grid">
-        <div className="parent-panel">
-          <div className="parent-panel-header">
-            <div>
-              <span className="parent-panel-kicker">MY CHILDREN</span>
-              <h2>Linked student records</h2>
-              <p>Live school records available to this parent account.</p>
-            </div>
-          </div>
-          <div className="parent-children-list">
-            {childCards.map((child) => (
-              <div className="parent-child-row" key={child._id}>
-                <div className="avatar">{child.name?.charAt(0).toUpperCase()}</div>
-                <div className="parent-child-copy">
-                  <strong>{child.name}</strong>
-                  <span>
-                    {child.enrollment
-                      ? `Class ${child.enrollment.class?.name || '—'} · Section ${child.enrollment.section?.name || '—'} · Attendance ${child.attendance?.percentage ?? '—'}%`
-                      : 'Not enrolled for the current academic year'}
-                  </span>
-                </div>
-                {child.enrollment?.class?.name && <span className="class-badge">Class {child.enrollment.class.name}</span>}
-              </div>
-            ))}
-            {!childCards.length && !loading && (
-              <div className="parent-empty">
-                <div className="parent-empty-icon"><Users size={21} /></div>
-                <strong>No child is linked to this parent account.</strong>
-                <span>The principal must link a student to this parent login.</span>
-              </div>
-            )}
-            {loading && <div className="parent-loading"><span /><span /></div>}
-          </div>
-        </div>
-
+      <section className="parent-content-grid parent-main-grid">
         <div className="parent-panel">
           <div className="parent-panel-header">
             <div>
@@ -250,75 +210,80 @@ function ParentDashboard() {
             {loading && <div className="parent-loading"><span /><span /><span /></div>}
           </div>
         </div>
-      </section>
 
-      <section className="parent-content-grid">
-        <div className="parent-panel">
+        <div className="parent-panel parent-children-panel">
           <div className="parent-panel-header">
             <div>
-              <span className="parent-panel-kicker">EXAMINATION</span>
-              <h2>Exam timetable</h2>
-              <p>Published exams available for your linked children.</p>
+              <span className="parent-panel-kicker">MY CHILDREN</span>
+              <h2>Linked student records</h2>
+              <p>Live school records available to this parent account.</p>
             </div>
-            <Link to="/module/exams" className="parent-text-link">View all exams <ArrowRight size={15} /></Link>
           </div>
-          <div className="parent-exam-list">
-            {exams.slice(0, 5).map((exam) => {
-              const date = new Date(exam.scheduledAt)
-              return (
-                <div className="parent-exam-row" key={exam._id}>
-                  <div className="exam-date">
-                    <strong>{Number.isNaN(date.getTime()) ? '—' : date.getDate()}</strong>
-                    <span>{Number.isNaN(date.getTime()) ? 'DATE' : date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</span>
-                  </div>
-                  <div className="exam-copy">
-                    <strong>{exam.subjectName}</strong>
-                    <span>Class {exam.class?.name || '—'} · Section {exam.section?.name || '—'}</span>
-                  </div>
-                  <span className="exam-time">
-                    {Number.isNaN(date.getTime()) ? '—' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          <div className="parent-children-list">
+            {childCards.map((child) => (
+              <div className="parent-child-row" key={child._id}>
+                <div className="avatar">{child.name?.charAt(0).toUpperCase()}</div>
+                <div className="parent-child-copy">
+                  <strong>{child.name}</strong>
+                  <span>
+                    {child.enrollment
+                      ? `Class ${child.enrollment.class?.name || '—'} · Section ${child.enrollment.section?.name || '—'} · Attendance ${child.attendance?.percentage ?? '—'}%`
+                      : 'Not enrolled for the current academic year'}
                   </span>
                 </div>
-              )
-            })}
-            {!exams.length && !loading && (
+                {child.enrollment?.class?.name && <span className="class-badge">Class {child.enrollment.class.name}</span>}
+              </div>
+            ))}
+            {!childCards.length && !loading && (
               <div className="parent-empty">
-                <div className="parent-empty-icon"><CalendarDays size={21} /></div>
-                <strong>No exam timetable published yet.</strong>
-                <span>Published exams for your linked children will appear here.</span>
+                <div className="parent-empty-icon"><Users size={21} /></div>
+                <strong>No child is linked to this parent account.</strong>
+                <span>The principal must link a student to this parent login.</span>
               </div>
             )}
             {loading && <div className="parent-loading"><span /><span /></div>}
           </div>
         </div>
+      </section>
 
-        <div className="parent-panel">
-          <div className="parent-panel-header">
-            <div>
-              <span className="parent-panel-kicker">ATTENDANCE</span>
-              <h2>Attendance summary</h2>
-              <p>Real saved attendance registers.</p>
-            </div>
+      <section className="parent-exam-action parent-panel">
+        <div>
+          <span className="parent-panel-kicker">EXAMINATION</span>
+          <h2>Exam timetable</h2>
+          <p>Open the examination timetable for your linked children.</p>
+        </div>
+        <Link to="/module/exams" className="parent-primary-button">
+          View exam timetable <ArrowRight size={16} />
+        </Link>
+      </section>
+
+      <section className="parent-panel parent-attendance-panel">
+        <div className="parent-panel-header">
+          <div>
+            <span className="parent-panel-kicker">ATTENDANCE</span>
+            <h2>Attendance summary</h2>
+            <p>Real saved attendance registers.</p>
           </div>
-          <div className="parent-attendance-list">
-            {childCards.map((child) => {
-              const percentage = Number(child.attendance?.percentage)
-              const hasAttendance = Number.isFinite(percentage)
-              return (
-                <div className="parent-attendance-row" key={child._id}>
-                  <div className="parent-attendance-name">
-                    <strong>{child.name}</strong>
-                    <span>{hasAttendance ? 'Saved attendance' : 'No attendance recorded yet'}</span>
-                  </div>
-                  <div className="attendance-track"><div className="attendance-fill" style={{ width: `${hasAttendance ? Math.min(Math.max(percentage, 0), 100) : 0}%` }} /></div>
-                  <div className="attendance-value">{hasAttendance ? `${percentage}%` : '—'}</div>
+        </div>
+        <div className="parent-attendance-list">
+          {childCards.map((child) => {
+            const percentage = Number(child.attendance?.percentage)
+            const hasAttendance = Number.isFinite(percentage)
+            return (
+              <div className="parent-attendance-row" key={child._id}>
+                <div className="parent-attendance-name">
+                  <strong>{child.name}</strong>
+                  <span>{hasAttendance ? 'Saved attendance' : 'No attendance recorded yet'}</span>
                 </div>
-              )
-            })}
-            {!childCards.length && !loading && (
-              <div className="parent-empty"><strong>No attendance records available.</strong></div>
-            )}
-          </div>
+                <div className="attendance-track"><div className="attendance-fill" style={{ width: `${hasAttendance ? Math.min(Math.max(percentage, 0), 100) : 0}%` }} /></div>
+                <div className="attendance-value">{hasAttendance ? `${percentage}%` : '—'}</div>
+              </div>
+            )
+          })}
+          {!childCards.length && !loading && (
+            <div className="parent-empty"><strong>No attendance records available.</strong></div>
+          )}
+          {loading && <div className="parent-loading"><span /><span /></div>}
         </div>
       </section>
 
