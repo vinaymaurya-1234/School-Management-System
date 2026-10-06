@@ -43,6 +43,48 @@ async function parentScope(userId, schoolId, academicYearId) {
   }).select("class section student");
 }
 
+async function validateExamItems({ school, academicYear, classId, sectionId, items }) {
+  const year = await AcademicYear.findOne({ _id: academicYear, school });
+  const schoolClass = await SchoolClass.findOne({ _id: classId, school, academicYear });
+  const section = await Section.findOne({ _id: sectionId, school, academicYear, class: classId });
+
+  if (!year) return { error: [404, "Academic year not found"] };
+  if (!schoolClass) return { error: [404, "Class not found"] };
+  if (!section) return { error: [404, "Section does not belong to the selected class"] };
+  if (!Array.isArray(items) || items.length < 1 || items.length > 30) {
+    return { error: [400, "Add between 1 and 30 exams"] };
+  }
+
+  const normalized = [];
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index] || {};
+    if (!item.subjectName?.trim() || !item.scheduledAt || !item.endsAt) {
+      return { error: [400, `Exam ${index + 1}: subject, start time and end time are required`] };
+    }
+
+    const start = new Date(item.scheduledAt);
+    const end = new Date(item.endsAt);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return { error: [400, `Exam ${index + 1}: invalid exam date or time`] };
+    }
+    if (end <= start) {
+      return { error: [400, `Exam ${index + 1}: end time must be after the start time`] };
+    }
+
+    normalized.push({
+      school,
+      academicYear,
+      class: classId,
+      section: sectionId,
+      subjectName: item.subjectName.trim(),
+      scheduledAt: start,
+      endsAt: end,
+    });
+  }
+
+  return { year, normalized };
+}
+
 router.get("/", async (req, res, next) => {
   try {
     const year = await activeYearForSchool(req.user.school, req.query.academicYear);
@@ -81,6 +123,29 @@ router.get("/", async (req, res, next) => {
   }
 });
 
+router.post("/bulk", async (req, res, next) => {
+  try {
+    if (req.user.role !== ROLES.PRINCIPAL) {
+      return res.status(403).json({ message: "Only the principal can create exams" });
+    }
+
+    const { academicYear, classId, sectionId, items } = req.body || {};
+    const result = await validateExamItems({ school: req.user.school, academicYear, classId, sectionId, items });
+    if (result.error) return res.status(result.error[0]).json({ message: result.error[1] });
+
+    const documents = result.normalized.map((item) => ({ ...item, createdBy: req.user._id }));
+    const exams = await Exam.insertMany(documents, { ordered: true });
+    const populated = await Exam.find({ _id: { $in: exams.map((exam) => exam._id) } })
+      .populate("class", "name")
+      .populate("section", "name")
+      .sort({ scheduledAt: 1, subjectName: 1 });
+
+    res.status(201).json({ message: `${populated.length} exams scheduled successfully`, exams: populated });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post("/", async (req, res, next) => {
   try {
     if (req.user.role !== ROLES.PRINCIPAL) {
@@ -88,37 +153,16 @@ router.post("/", async (req, res, next) => {
     }
 
     const { academicYear, classId, sectionId, subjectName, scheduledAt, endsAt } = req.body || {};
-    if (!academicYear || !classId || !sectionId || !subjectName?.trim() || !scheduledAt || !endsAt) {
-      return res.status(400).json({ message: "Class, section, subject name, start time and end time are required" });
-    }
-
-    const year = await AcademicYear.findOne({ _id: academicYear, school: req.user.school });
-    const schoolClass = await SchoolClass.findOne({ _id: classId, school: req.user.school, academicYear });
-    const section = await Section.findOne({ _id: sectionId, school: req.user.school, academicYear, class: classId });
-    if (!year) return res.status(404).json({ message: "Academic year not found" });
-    if (!schoolClass) return res.status(404).json({ message: "Class not found" });
-    if (!section) return res.status(404).json({ message: "Section does not belong to the selected class" });
-
-    const start = new Date(scheduledAt);
-    const end = new Date(endsAt);
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      return res.status(400).json({ message: "Invalid exam start or end time" });
-    }
-    if (end <= start) {
-      return res.status(400).json({ message: "Exam end time must be after the start time" });
-    }
-
-    const exam = await Exam.create({
+    const result = await validateExamItems({
       school: req.user.school,
       academicYear,
-      class: classId,
-      section: sectionId,
-      subjectName: subjectName.trim(),
-      scheduledAt: start,
-      endsAt: end,
-      createdBy: req.user._id,
+      classId,
+      sectionId,
+      items: [{ subjectName, scheduledAt, endsAt }],
     });
+    if (result.error) return res.status(result.error[0]).json({ message: result.error[1] });
 
+    const exam = await Exam.create({ ...result.normalized[0], createdBy: req.user._id });
     const populated = await Exam.findById(exam._id)
       .populate("class", "name")
       .populate("section", "name");
