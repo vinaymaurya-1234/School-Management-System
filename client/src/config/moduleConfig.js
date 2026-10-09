@@ -31,6 +31,17 @@ export const MODULES = {
     ],
     actions: ['Add student', 'Import students', 'Export list'],
   },
+  'teacher-assignments': {
+    title: 'Teacher Assignments',
+    eyebrow: 'ACADEMIC ALLOCATION',
+    description: 'Assign teachers to multiple classes, sections and subjects by academic year.',
+    icon: GraduationCap,
+    permissionByRole: { principal: 'teachers.manage' },
+    stats: [],
+    columns: [],
+    rows: [],
+    actions: ['Assign teacher', 'Edit assignment'],
+  },
   teachers: {
     title: 'Teachers', eyebrow: 'STAFF MANAGEMENT', description: 'Manage faculty profiles, subjects, workload and teaching assignments.', icon: GraduationCap,
     permissionByRole: { principal: 'teachers.manage' },
