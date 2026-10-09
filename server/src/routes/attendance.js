@@ -237,7 +237,12 @@ router.post("/session", async (req, res, next) => {
       { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
     );
     const absentUserIds = cleanRecords.filter((record) => record.status === "absent").map((record) => record.student);
-    await notifyParentsOfAbsences({ schoolId: req.user.school, academicYearId: academicYear, sectionId, date, sessionId: session._id, absentUserIds });
+    try {
+      await notifyParentsOfAbsences({ schoolId: req.user.school, academicYearId: academicYear, sectionId, date, sessionId: session._id, absentUserIds });
+    } catch (notificationError) {
+      // A notification delivery failure must not undo a successfully saved register.
+      console.error("Attendance saved, but parent absence alerts could not be created:", notificationError.message);
+    }
     res.json({ message: previous ? "Attendance updated successfully." : "Attendance submitted successfully.", session });
   } catch (error) { next(error); }
 });
