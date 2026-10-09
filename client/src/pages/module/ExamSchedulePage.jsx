@@ -87,7 +87,7 @@ function ExamSchedulePage() {
       const matchesQuery = !value || [exam.subjectName, exam.class?.name, exam.section?.name].some((item) => String(item || '').toLowerCase().includes(value))
       const time = new Date(exam.scheduledAt).getTime()
       const matchesView = viewFilter === 'upcoming'
-        ? time >= dayStart.getTime()
+        ? time >= Date.now()
         : viewFilter === 'completed'
           ? time < dayStart.getTime()
           : true
@@ -175,7 +175,7 @@ function ExamSchedulePage() {
   return (
     <div className="exam-page">
       <header className="exam-hero">
-        <div><span className="exam-eyebrow">ASSESSMENT · {year?.name || 'ACADEMIC YEAR'}</span><div className="exam-title-row"><div className="exam-icon"><FileText size={22} /></div><div><h1>Exam schedule</h1><p>{isPrincipal ? 'Create and publish the school exam schedule by class and section.' : user?.role === 'teacher' ? 'View the complete school exam schedule across all classes.' : user?.role === 'parent' ? 'View exam dates and times for your linked children.' : 'View the exam schedule for your class and section.'}</p></div></div></div>
+        <div><span className="exam-eyebrow">ASSESSMENT · {year?.name || 'ACADEMIC YEAR'}</span><div className="exam-title-row"><div className="exam-icon"><FileText size={22} /></div><div><h1>{isPrincipal ? 'Exams & Results' : 'Exam schedule'}</h1><p>{isPrincipal ? 'Manage school exam schedules and monitor marks and results readiness.' : user?.role === 'teacher' ? 'View the complete school exam schedule across all classes.' : user?.role === 'parent' ? 'View exam dates and times for your linked children.' : 'View the exam schedule for your class and section.'}</p></div></div></div>
         {isPrincipal && <button className="exam-primary-btn" type="button" onClick={openForm}><Plus size={17} /> Schedule exams</button>}
       </header>
 
