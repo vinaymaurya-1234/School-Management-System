@@ -20,6 +20,7 @@ import ModulePage from '../pages/module/ModulePage'
 import TimetablePage from '../pages/module/TimetablePage'
 import ExamSchedulePage from '../pages/module/ExamSchedulePage'
 import AttendancePage from '../pages/module/AttendancePage'
+import TeacherAttendancePage from '../pages/module/TeacherAttendancePage'
 import '../pages/module/ModuleFeature.css'
 
 const PRINCIPAL_OPERATIONS = new Set(['fees', 'notices', 'payroll'])
@@ -31,7 +32,8 @@ function ModuleRoute() {
   if (!module || !permission || !hasPermission(user?.role, permission)) return <Navigate to={homeRoute} replace />
   if (moduleKey === 'timetable') return <TimetablePage />
   if (moduleKey === 'exams') return <ExamSchedulePage />
-  if (moduleKey === 'attendance') return <AttendancePage />
+  if (moduleKey === 'attendance') return user?.role === ROLES.TEACHER ? <TeacherAttendancePage /> : <AttendancePage />
+  if (moduleKey === 'class-attendance') return <AttendancePage />
   if (user?.role === 'principal' && moduleKey === 'events') return <EventCalendarPage />
   if (user?.role === 'principal' && moduleKey === 'students') return <PrincipalStudentsPage />
   if (user?.role === 'principal' && moduleKey === 'teachers') return <PrincipalTeachersPage />
