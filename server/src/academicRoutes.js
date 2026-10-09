@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { AcademicYear, SchoolClass, Section, StudentEnrollment, TeacherAssignment } from "./models/Academic.js";
 import User from "./models/User.js";
+import { ClassSubject } from "./models/Subject.js";
 import TimetableEntry from "./models/Timetable.js";
 import AttendanceSession from "./models/Attendance.js";
 import { requireAuth } from "./middleware/auth.js";
@@ -253,16 +254,59 @@ router.post("/teacher-assignments", async (req, res, next) => {
       const classExists = await SchoolClass.findOne({ _id: classId, school: req.user.school, academicYear });
       if (!classExists) return res.status(404).json({ message: "Class not found for academic year" });
     }
-    if (section) {
-      const sectionExists = await Section.findOne({ _id: section, school: req.user.school, academicYear, class: classId });
-      if (!sectionExists) return res.status(404).json({ message: "Section not found for selected class" });
-    }
-    const assignment = await TeacherAssignment.create({ school: req.user.school, academicYear, teacher, class: classId || undefined, section: section || undefined, subject: subject || undefined, isClassTeacher });
+    if (!classId || !section || !subject) return res.status(400).json({ message: "class, section and subject are required for a teaching assignment" });
+    const classSubject = await ClassSubject.findOne({ school: req.user.school, academicYear, class: classId, subject });
+    if (!classSubject) return res.status(400).json({ message: "This subject is not mapped to the selected class. Map the subject first." });
+    const sectionExists = await Section.findOne({ _id: section, school: req.user.school, academicYear, class: classId });
+    if (!sectionExists) return res.status(404).json({ message: "Section not found for selected class" });
+    const assignment = await TeacherAssignment.create({ school: req.user.school, academicYear, teacher, class: classId, section, subject, isClassTeacher });
     res.status(201).json({ assignment });
   } catch (error) {
     if (error.code === 11000) return res.status(409).json({ message: "This teacher assignment already exists" });
     next(error);
   }
+});
+
+router.put("/teacher-assignments/:assignmentId", async (req, res, next) => {
+  try {
+    if (!canManageAcademic(req)) return res.status(403).json({ message: "Only the principal can manage teacher assignments" });
+    const { academicYear, teacher, class: classId, section, subject, isClassTeacher = false } = req.body || {};
+    if (!academicYear || !teacher || !classId || !section || !subject) return res.status(400).json({ message: "academicYear, teacher, class, section and subject are required" });
+    const assignment = await TeacherAssignment.findOne({ _id: req.params.assignmentId, school: req.user.school, status: "active" });
+    if (!assignment) return res.status(404).json({ message: "Active assignment not found" });
+    const [teacherUser, schoolClass, sectionDoc, classSubject] = await Promise.all([
+      User.findOne({ _id: teacher, school: req.user.school, role: ROLES.TEACHER, active: true }),
+      SchoolClass.findOne({ _id: classId, school: req.user.school, academicYear }),
+      Section.findOne({ _id: section, school: req.user.school, academicYear, class: classId }),
+      ClassSubject.findOne({ school: req.user.school, academicYear, class: classId, subject }),
+    ]);
+    if (!teacherUser) return res.status(404).json({ message: "Teacher not found" });
+    if (!schoolClass || !sectionDoc) return res.status(404).json({ message: "Class or section not found for academic year" });
+    if (!classSubject) return res.status(400).json({ message: "This subject is not mapped to the selected class. Map the subject first." });
+    const duplicate = await TeacherAssignment.findOne({
+      _id: { $ne: assignment._id }, school: req.user.school, academicYear, teacher, class: classId, section, subject, isClassTeacher, status: "active",
+    });
+    if (duplicate) return res.status(409).json({ message: "This exact assignment already exists" });
+    assignment.academicYear = academicYear;
+    assignment.teacher = teacher;
+    assignment.class = classId;
+    assignment.section = section;
+    assignment.subject = subject;
+    assignment.isClassTeacher = isClassTeacher;
+    await assignment.save();
+    res.json({ message: "Teacher assignment updated", assignment });
+  } catch (error) { next(error); }
+});
+
+router.delete("/teacher-assignments/:assignmentId", async (req, res, next) => {
+  try {
+    if (!canManageAcademic(req)) return res.status(403).json({ message: "Only the principal can manage teacher assignments" });
+    const assignment = await TeacherAssignment.findOne({ _id: req.params.assignmentId, school: req.user.school, status: "active" });
+    if (!assignment) return res.status(404).json({ message: "Active assignment not found" });
+    assignment.status = "inactive";
+    await assignment.save();
+    res.json({ message: "Assignment deactivated successfully" });
+  } catch (error) { next(error); }
 });
 
 export default router;
