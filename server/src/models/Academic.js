@@ -133,8 +133,8 @@ const teacherAssignmentSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// A teacher can work with multiple subjects/sections, but only inside one class
-// for a given academic year. Repeated saves of the same assignment are idempotent.
+// A teacher can be assigned across multiple classes, sections and subjects in an academic year.
+// Repeated saves of the exact same assignment are idempotent.
 teacherAssignmentSchema.pre("save", async function (next) {
   if (!this.isNew || this.status !== "active") return next();
 
@@ -158,21 +158,6 @@ teacherAssignmentSchema.pre("save", async function (next) {
     this._id = existingSameAssignment._id;
     this.isNew = false;
     return next();
-  }
-
-  if (this.class) {
-    const existingDifferentClass = await TeacherAssignment.findOne({
-      ...baseFilter,
-      class: { $exists: true, $ne: this.class },
-    }).select("class");
-
-    if (existingDifferentClass) {
-      const error = new Error(
-        "A teacher can be assigned to only one class per academic year. Multiple subjects and sections are allowed within that class.",
-      );
-      error.status = 409;
-      return next(error);
-    }
   }
 
   return next();
