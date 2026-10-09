@@ -23,6 +23,7 @@ function AttendancePage() {
   const isPrincipal = user?.role === 'principal'
   const isTeacher = user?.role === 'teacher'
   const isParent = user?.role === 'parent'
+  const isStudent = user?.role === 'student'
   const [mode, setMode] = useState(isPrincipal ? 'teachers' : 'students')
   const [date, setDate] = useState(today)
   const [years, setYears] = useState([])
@@ -102,6 +103,9 @@ function AttendancePage() {
       }
       if (isParent && selectedChild) {
         const summaryRes = await apiClient.get('/attendance/summary', { params: { studentId: selectedChild } })
+        setSummary(summaryRes.data)
+      } else if (isStudent) {
+        const summaryRes = await apiClient.get('/attendance/summary')
         setSummary(summaryRes.data)
       }
     } catch (err) { setError(err.response?.data?.message || 'Unable to load student attendance.') }
