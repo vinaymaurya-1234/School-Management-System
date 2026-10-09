@@ -79,7 +79,7 @@ function ExamSchedulePage() {
   const today = useMemo(() => exams.filter((exam) => {
     const time = new Date(exam.scheduledAt).getTime()
     return time >= dayStart.getTime() && time < nextDay.getTime()
-  }), [exams])
+  }), [exams, dayStart, nextDay])
   const classCount = new Set(exams.map((exam) => idOf(exam.class)).filter(Boolean)).size
   const visibleExams = useMemo(() => {
     const value = query.trim().toLowerCase()
@@ -93,7 +93,7 @@ function ExamSchedulePage() {
           : true
       return matchesQuery && matchesView
     })
-  }, [exams, query, viewFilter])
+  }, [exams, query, viewFilter, dayStart])
 
   const openForm = () => {
     setForm({ classId: selectedClass || classes[0]?._id || '', sectionId: selectedSection || '', exams: [emptyExam()] })
