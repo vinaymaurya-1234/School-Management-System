@@ -19,6 +19,7 @@ function ExamSchedulePage() {
   const [selectedClass, setSelectedClass] = useState('')
   const [selectedSection, setSelectedSection] = useState('')
   const [query, setQuery] = useState('')
+  const [viewFilter, setViewFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -69,14 +70,30 @@ function ExamSchedulePage() {
     loadExams().catch((err) => setError(err.response?.data?.message || 'Unable to load exams.'))
   }, [year?._id, selectedClass, selectedSection, user?.role])
 
+  const dayStart = new Date()
+  dayStart.setHours(0, 0, 0, 0)
+  const nextDay = new Date(dayStart)
+  nextDay.setDate(nextDay.getDate() + 1)
+
+  const upcoming = useMemo(() => exams.filter((exam) => new Date(exam.scheduledAt).getTime() >= nextDay.getTime()), [exams])
+  const today = useMemo(() => exams.filter((exam) => {
+    const time = new Date(exam.scheduledAt).getTime()
+    return time >= dayStart.getTime() && time < nextDay.getTime()
+  }), [exams])
+  const classCount = new Set(exams.map((exam) => idOf(exam.class)).filter(Boolean)).size
   const visibleExams = useMemo(() => {
     const value = query.trim().toLowerCase()
-    if (!value) return exams
-    return exams.filter((exam) => [exam.subjectName, exam.class?.name, exam.section?.name].some((item) => String(item || '').toLowerCase().includes(value)))
-  }, [exams, query])
-  const upcoming = useMemo(() => exams.filter((exam) => new Date(exam.scheduledAt).getTime() >= Date.now()), [exams])
-  const today = useMemo(() => exams.filter((exam) => new Date(exam.scheduledAt).toDateString() === new Date().toDateString()), [exams])
-  const classCount = new Set(exams.map((exam) => idOf(exam.class))).size
+    return exams.filter((exam) => {
+      const matchesQuery = !value || [exam.subjectName, exam.class?.name, exam.section?.name].some((item) => String(item || '').toLowerCase().includes(value))
+      const time = new Date(exam.scheduledAt).getTime()
+      const matchesView = viewFilter === 'upcoming'
+        ? time >= dayStart.getTime()
+        : viewFilter === 'completed'
+          ? time < dayStart.getTime()
+          : true
+      return matchesQuery && matchesView
+    })
+  }, [exams, query, viewFilter])
 
   const openForm = () => {
     setForm({ classId: selectedClass || classes[0]?._id || '', sectionId: selectedSection || '', exams: [emptyExam()] })
@@ -165,11 +182,27 @@ function ExamSchedulePage() {
       {error && <div className="exam-alert error"><span>{error}</span><button onClick={() => setError('')}><X size={15} /></button></div>}
       {notice && <div className="exam-alert success"><Check size={15} /><span>{notice}</span><button onClick={() => setNotice('')}><X size={15} /></button></div>}
 
-      <section className="exam-stats"><article><span>Upcoming</span><strong>{upcoming.length}</strong><small><Clock3 size={13} /> Scheduled ahead</small></article><article><span>Today</span><strong>{today.length}</strong><small><CalendarDays size={13} /> Exams today</small></article><article><span>Classes</span><strong>{classCount}</strong><small><Users size={13} /> In this view</small></article><article><span>Academic year</span><strong>{year?.name || '—'}</strong><small><Check size={13} /> Live database</small></article></section>
+      <section className="exam-stats" aria-label="Exam overview">
+        <article><span>Upcoming exams</span><strong>{loading ? '—' : upcoming.length}</strong><small><Clock3 size={13} /> Scheduled ahead</small></article>
+        <article><span>Exams today</span><strong>{loading ? '—' : today.length}</strong><small><CalendarDays size={13} /> On today's schedule</small></article>
+        <article><span>Classes with exams</span><strong>{loading ? '—' : classCount}</strong><small><Users size={13} /> Across this school year</small></article>
+        <article><span>Academic year</span><strong>{year?.name || '—'}</strong><small><Check size={13} /> Current school records</small></article>
+      </section>
 
       <section className="exam-toolbar"><div className="exam-search"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search subject, class or section..." /></div>{(isPrincipal || user?.role === 'teacher') && <div className="exam-filters"><select value={selectedClass} onChange={(event) => { setSelectedClass(event.target.value); setSelectedSection('') }}><option value="">All classes</option>{classes.map((item) => <option key={item._id} value={item._id}>Class {item.name}</option>)}</select><select value={selectedSection} onChange={(event) => setSelectedSection(event.target.value)}><option value="">All sections</option>{browseSections.map((item) => <option key={item._id} value={item._id}>Section {item.name}</option>)}</select></div>}</section>
 
-      <section className="exam-list-panel"><div className="exam-list-head"><div><span className="exam-eyebrow">LIVE REGISTER</span><h2>{isPrincipal ? 'School examination schedule' : 'Your examination schedule'}</h2></div><span>{visibleExams.length} exam{visibleExams.length === 1 ? '' : 's'}</span></div>{loading ? <div className="exam-loading"><Loader2 className="spin" size={20} /> Loading schedule...</div> : visibleExams.length ? <div className="exam-list">{visibleExams.map((exam) => <article className="exam-row" key={exam._id}><div className="exam-date"><strong>{new Date(exam.scheduledAt).toLocaleDateString('en-IN', { day: '2-digit' })}</strong><span>{new Date(exam.scheduledAt).toLocaleDateString('en-IN', { month: 'short' })}</span></div><div className="exam-main"><div className="exam-subject">{exam.subjectName}</div><div className="exam-meta"><span>Class {exam.class?.name}</span><span>Section {exam.section?.name}</span><span>{formatDate(exam.scheduledAt)}</span></div></div><div className="exam-time"><Clock3 size={15} /><strong>{formatTime(exam.scheduledAt)}{exam.endsAt ? ` – ${formatTime(exam.endsAt)}` : ''}</strong></div>{isPrincipal && <button className="exam-delete" type="button" onClick={() => removeExam(exam)} aria-label="Remove exam"><Trash2 size={16} /></button>}</article>)}</div> : <div className="exam-empty"><div><CalendarDays size={22} /></div><h3>No exams scheduled</h3><p>{isPrincipal ? 'Create the first exam using the Schedule exams button.' : 'No exam has been scheduled for the classes available to you yet.'}</p></div>}</section>
+      <section className="exam-list-panel">
+        <div className="exam-list-head">
+          <div><span className="exam-eyebrow">EXAM REGISTER</span><h2>{isPrincipal ? 'School examination schedule' : 'Your examination schedule'}</h2><p>Open an exam record to review its class, section, subject and timing.</p></div>
+          <span className="exam-record-count">{visibleExams.length} record{visibleExams.length === 1 ? '' : 's'}</span>
+        </div>
+        <div className="exam-register-toolbar">
+          <div className="exam-view-tabs" role="group" aria-label="Filter exams">
+            {[['all', 'All exams'], ['upcoming', 'Upcoming'], ['completed', 'Past exams']].map(([value, label]) => <button key={value} type="button" className={viewFilter === value ? 'active' : ''} onClick={() => setViewFilter(value)}>{label}</button>)}
+          </div>
+          <span className="exam-register-hint">{loading ? 'Loading records…' : `${visibleExams.length} shown`}</span>
+        </div>
+        {loading ? <div className="exam-loading"><Loader2 className="spin" size={20} /> Loading schedule...</div> : visibleExams.length ? <div className="exam-list">{visibleExams.map((exam) => <article className="exam-row" key={exam._id}><div className="exam-date"><strong>{new Date(exam.scheduledAt).toLocaleDateString('en-IN', { day: '2-digit' })}</strong><span>{new Date(exam.scheduledAt).toLocaleDateString('en-IN', { month: 'short' })}</span></div><div className="exam-main"><div className="exam-subject">{exam.subjectName}</div><div className="exam-meta"><span>Class {exam.class?.name}</span><span>Section {exam.section?.name}</span><span>{formatDate(exam.scheduledAt)}</span></div></div><div className="exam-time"><Clock3 size={15} /><strong>{formatTime(exam.scheduledAt)}{exam.endsAt ? ` – ${formatTime(exam.endsAt)}` : ''}</strong></div>{isPrincipal && <button className="exam-delete" type="button" onClick={() => removeExam(exam)} aria-label="Remove exam"><Trash2 size={16} /></button>}</article>)}</div> : <div className="exam-empty"><div><CalendarDays size={22} /></div><h3>No exams scheduled</h3><p>{isPrincipal ? 'Create the first exam using the Schedule exams button.' : 'No exam has been scheduled for the classes available to you yet.'}</p></div>}</section>
 
       {isPrincipal && showForm && <div className="exam-modal-backdrop"><div className="exam-modal exam-bulk-modal"><div className="exam-modal-head"><div><span className="exam-eyebrow">BULK ASSESSMENT SETUP</span><h2>Schedule class exams</h2><p>Select one class and section, then add all subjects with their individual dates and time windows.</p></div><button className="exam-close" onClick={() => setShowForm(false)}><X size={17} /></button></div>
         <div className="exam-form exam-bulk-form">
