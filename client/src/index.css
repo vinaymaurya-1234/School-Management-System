@@ -379,3 +379,13 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 3px rgba(0,0,0,.045);
 }
 @media (max-width: 900px) { .page-content { padding: 20px; } }
+
+
+/* Final neutral accent pass for shared app chrome and reusable controls */
+:root { --primary:#171717; --primary-dark:#000; --primary-soft:#f1f0ed; }
+.sidebar .nav-item.active, .sidebar .nav-item[aria-current="page"] { background:#f1f0ed !important; color:#171717 !important; }
+.sidebar .nav-item.active .nav-icon, .sidebar .nav-item[aria-current="page"] .nav-icon { color:#171717 !important; }
+.premium-avatar, .profile-avatar.premium-avatar { background:#efeeeb !important; color:#171717 !important; }
+.premium-topbar .nav-pill.active, .premium-topbar .nav-dropdown-item.active { color:#171717 !important; background:#f1f0ed !important; }
+.premium-topbar .nav-dropdown-icon { color:#171717 !important; background:#f1f0ed !important; }
+.premium-topbar .notification-dot { background:#171717 !important; }
