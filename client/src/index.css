@@ -11,9 +11,9 @@
   --soft: #eef1f7;
   --surface: #fbfcff;
   --line: #e1e6ef;
-  --primary: #4b5de3;
-  --primary-dark: #394ac9;
-  --primary-soft: #edf0ff;
+  --primary: #171717;
+  --primary-dark: #303030;
+  --primary-soft: #f3f3f3;
   --success: #16865c;
   --danger: #d64545;
   --shadow: 0 18px 50px rgba(31, 41, 71, 0.08);
@@ -323,3 +323,59 @@ h1, h2, h3, p { margin: 0; }
   .immersive-login-card { width: calc(100% - 22px); }
   .immersive-login-footer span:last-child { display: none; }
 }
+
+
+/* Neutral school-admin design system — shared across every role */
+:root {
+  color: #151515;
+  background: #f8f8f7;
+  --ink: #151515;
+  --muted: #737373;
+  --soft: #f8f8f7;
+  --surface: #ffffff;
+  --line: #e7e7e5;
+  --primary: #171717;
+  --primary-dark: #000000;
+  --primary-soft: #f2f2f1;
+  --success: #16865c;
+  --danger: #d64545;
+  --shadow: 0 14px 38px rgba(0,0,0,.045);
+}
+body, .app-main { background: #f8f8f7; color: #151515; }
+.sidebar {
+  background: #fff;
+  color: #171717;
+  border-right: 1px solid #e9e9e7;
+  box-shadow: none;
+}
+.sidebar::after { display: none; }
+.sidebar-brand-copy strong { color: #171717; }
+.sidebar-brand-copy span { color: #858585; }
+.sidebar-brand .brand-mark {
+  background: #171717;
+  color: #fff;
+  box-shadow: none;
+}
+.sidebar a, .sidebar button { transition: background .18s ease, color .18s ease; }
+.sidebar a.active, .sidebar button.active,
+.sidebar [aria-current="page"] {
+  background: #f1f1ef;
+  color: #111;
+}
+.sidebar a:hover, .sidebar button:hover { background: #f5f5f4; color: #111; }
+.app-main { background: #f8f8f7; }
+button[class*="primary"], .btn-primary, .primary-button,
+button[type="submit"] {
+  background-color: #171717;
+  border-color: #171717;
+  color: #fff;
+}
+button[class*="primary"]:hover, .btn-primary:hover, .primary-button:hover,
+button[type="submit"]:hover { background-color: #333; border-color: #333; }
+a { color: inherit; }
+input:focus, select:focus, textarea:focus {
+  outline-color: #a3a3a3;
+  border-color: #a3a3a3;
+  box-shadow: 0 0 0 3px rgba(0,0,0,.045);
+}
+@media (max-width: 900px) { .page-content { padding: 20px; } }
