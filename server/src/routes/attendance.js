@@ -132,7 +132,10 @@ router.get("/", async (req, res, next) => {
         status: record?.status || "not_marked", note: record?.note || "",
       };
     });
-    res.json({ students, session, canEdit, academicYear: year, sectionId, submittedAt: session?.submittedAt || null });
+    const responseSession = session && ownStudentUserIds
+      ? { _id: session._id, date: session.date, submittedAt: session.submittedAt, records: session.records.filter((record) => ownStudentUserIds.some((id) => sameId(id, record.student))) }
+      : session;
+    res.json({ students, session: responseSession, canEdit: ownStudentUserIds ? false : canEdit, academicYear: year, sectionId, submittedAt: session?.submittedAt || null });
   } catch (error) { next(error); }
 });
 
