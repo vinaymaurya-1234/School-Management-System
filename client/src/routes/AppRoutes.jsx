@@ -32,7 +32,7 @@ function ModuleRoute() {
   if (!module || !permission || !hasPermission(user?.role, permission)) return <Navigate to={homeRoute} replace />
   if (moduleKey === 'timetable') return <TimetablePage />
   if (moduleKey === 'exams') return <ExamSchedulePage />
-  if (moduleKey === 'attendance') return user?.role === ROLES.TEACHER ? <TeacherAttendancePage /> : <AttendancePage />
+  if (moduleKey === 'attendance') return <AttendancePage />
   if (user?.role === 'principal' && moduleKey === 'events') return <EventCalendarPage />
   if (user?.role === 'principal' && moduleKey === 'students') return <PrincipalStudentsPage />
   if (user?.role === 'principal' && moduleKey === 'teachers') return <PrincipalTeachersPage />
