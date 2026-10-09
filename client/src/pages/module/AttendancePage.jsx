@@ -153,6 +153,11 @@ function AttendancePage() {
   const updateStudentStatus = (userId, status) => setStudents((current) => current.map((student) => student.userId === userId ? { ...student, status } : student))
   const markAllPresent = () => setStudents((current) => current.map((student) => ({ ...student, status: 'present' })))
   const markedCount = students.filter((student) => Object.hasOwn(STUDENT_STATUS, student.status)).length
+  const statusCounts = students.reduce((counts, student) => {
+    if (Object.hasOwn(STUDENT_STATUS, student.status)) counts[student.status] += 1
+    else counts.not_marked += 1
+    return counts
+  }, { present: 0, absent: 0, late: 0, half_day: 0, not_marked: 0 })
 
   const saveStudents = async () => {
     if (!selectedSection) return setError('Select a section first.')
