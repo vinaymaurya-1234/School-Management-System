@@ -38,12 +38,12 @@ export default function TeacherAssignmentsPage() {
     })
   }, [assignments, query, teacherFilter, activeYear])
 
-  async function load() {
+  async function load(requestedYearId = yearId) {
     setLoading(true); setError('')
     try {
       const yearResponse = await apiClient.get('/academic/years')
       const nextYears = yearResponse.data.years || []
-      const year = nextYears.find((item) => item._id === yearId) || nextYears.find((item) => item.isActive) || nextYears[0]
+      const year = nextYears.find((item) => item._id === requestedYearId) || nextYears.find((item) => item.isActive) || nextYears[0]
       setYears(nextYears)
       if (!year) {
         setAssignments([]); setTeachers([]); setClasses([]); setSections([]); setSubjectMappings([])
@@ -122,7 +122,7 @@ export default function TeacherAssignmentsPage() {
     </section>
     <section className="ta-panel">
       <div className="ta-toolbar">
-        <label className="ta-year"><span>ACADEMIC YEAR</span><select value={activeYear?._id || ''} onChange={(event) => { setYearId(event.target.value); setTimeout(load, 0) }}>{years.map((year) => <option key={year._id} value={year._id}>{year.name}{year.isActive ? ' · Active' : ''}</option>)}</select></label>
+        <label className="ta-year"><span>ACADEMIC YEAR</span><select value={activeYear?._id || ''} onChange={(event) => { setYearId(event.target.value); load(event.target.value) }}>{years.map((year) => <option key={year._id} value={year._id}>{year.name}{year.isActive ? ' · Active' : ''}</option>)}</select></label>
         <label className="ta-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search teacher, class, section or subject"/></label>
         <label className="ta-filter"><span>TEACHER</span><select value={teacherFilter} onChange={(event) => setTeacherFilter(event.target.value)}><option value="">All teachers</option>{teachers.map((teacher) => <option key={idOf(teacher)} value={idOf(teacher)}>{teacher.name}</option>)}</select></label>
         <button className="ta-refresh" onClick={load} aria-label="Refresh"><RefreshCw size={16}/></button>
