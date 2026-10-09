@@ -82,6 +82,11 @@ export const MODULES = {
     rows: [['10-A', '34', '1', '1', '94.4%'], ['10-B', '31', '2', '1', '91.2%'], ['9-A', '33', '2', '0', '94.3%'], ['8-A', '29', '3', '0', '90.6%'], ['7-C', '30', '1', '0', '96.8%']],
     actions: ['Mark attendance', 'View report', 'Export report'],
   },
+  'class-attendance': {
+    title: 'Class Attendance', eyebrow: 'DAILY STUDENT ATTENDANCE', description: 'Mark and review daily attendance for your assigned classes and sections.', icon: ClipboardCheck,
+    permissionByRole: { teacher: 'attendance.manage.assigned' },
+    stats: [], columns: [], rows: [], actions: ['Mark all present', 'Save attendance'],
+  },
   fees: {
     title: 'Fees & Payments', eyebrow: 'FINANCE', description: 'Track fee collections, dues, receipts and payment status.', icon: CreditCard,
     permissionByRole: { principal: 'fees.manage', accountant: 'fees.manage', student: 'fees.view.own', parent: 'fees.view.children' },
