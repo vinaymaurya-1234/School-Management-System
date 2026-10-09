@@ -89,3 +89,22 @@
   .exam-time{font-size:12px;white-space:normal}
   .exam-modal-backdrop{padding:10px}
 }
+
+.exam-stats .exam-stat-unavailable{background:#fdfdfc}
+.exam-stats .exam-stat-unavailable strong{color:#777}
+.exam-stats .exam-stat-unavailable small{line-height:1.45}
+.exam-quick-actions{max-width:1500px;margin:22px auto 0;padding:24px 26px;background:#fff;border:1px solid #e3e3e1;border-radius:20px;box-shadow:0 12px 34px rgba(20,20,20,.03)}
+.exam-quick-actions-heading h2{margin:7px 0 0;font-size:23px;letter-spacing:-.04em}
+.exam-quick-actions-heading p{margin:7px 0 0;color:#737373;font-size:13px;line-height:1.5}
+.exam-quick-actions-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:19px}
+.exam-quick-action{min-width:0;min-height:88px;padding:15px;display:flex;align-items:center;gap:12px;text-align:left;border:1px solid #e3e3e1;border-radius:15px;background:#fff;color:#171717;font:inherit;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
+.exam-quick-action:not(.is-unavailable):hover{background:#fafaf8;border-color:#cfcfca;transform:translateY(-1px)}
+.exam-quick-action-icon{width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;border-radius:12px;background:#f1f1ee;color:#252525}
+.exam-quick-action>span:nth-child(2){display:flex;flex:1;flex-direction:column;gap:5px;min-width:0}
+.exam-quick-action strong{font-size:13px;font-weight:800}
+.exam-quick-action small{font-size:11px;line-height:1.45;color:#777}
+.exam-quick-action-arrow{color:#777;font-size:18px}
+.exam-quick-action.is-unavailable{background:#fbfbfa;color:#777;cursor:default}
+.exam-quick-action.is-unavailable .exam-quick-action-icon{background:#f0f0ed;color:#888}
+@media(max-width:850px){.exam-quick-actions{padding:20px}.exam-quick-actions-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.exam-quick-actions{padding:18px 14px}.exam-quick-actions-heading h2{font-size:21px}.exam-quick-actions-grid{grid-template-columns:1fr;gap:9px}.exam-quick-action{min-height:78px;padding:13px}}
