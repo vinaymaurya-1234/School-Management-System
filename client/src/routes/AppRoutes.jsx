@@ -20,7 +20,6 @@ import ModulePage from '../pages/module/ModulePage'
 import TimetablePage from '../pages/module/TimetablePage'
 import ExamSchedulePage from '../pages/module/ExamSchedulePage'
 import AttendancePage from '../pages/module/AttendancePage'
-import TeacherAttendancePage from '../pages/module/TeacherAttendancePage'
 import '../pages/module/ModuleFeature.css'
 
 const PRINCIPAL_OPERATIONS = new Set(['fees', 'notices', 'payroll'])
