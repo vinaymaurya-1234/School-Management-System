@@ -6,7 +6,8 @@ import '../../styles/PremiumProfile.css'
 
 const academicItems = [
   { label: 'Students', href: '/module/students', hint: 'Student records' },
-  { label: 'Teachers', href: '/module/teachers', hint: 'Faculty & assignments' },
+  { label: 'Teachers', href: '/module/teachers', hint: 'Faculty directory' },
+  { label: 'Assign Teachers', href: '/module/teacher-assignments', hint: 'Class, section & subject allocation' },
   { label: 'Classes', href: '/module/classes', hint: 'Manage classes' },
   { label: 'Timetable', href: '/module/timetable', hint: 'School schedule' },
 ]
