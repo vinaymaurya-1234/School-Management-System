@@ -13,7 +13,7 @@ const menuByRole = {
   ],
   teacher: [
     { section: 'Overview', items: [['Dashboard', '/dashboard/teacher', LayoutDashboard, 'dashboard.view']] },
-    { section: 'Teaching', items: [['My Classes', '/module/my-classes', BookOpen, 'classes.view.assigned'], ['Timetable', '/module/timetable', CalendarDays, 'timetable.view.assigned'], ['Attendance', '/module/attendance', ClipboardCheck, 'attendance.manage.assigned'], ['Assignments', '/module/assignments', FileText, 'assignments.manage.assigned'], ['Exams & Marks', '/module/exams', BarChart3, 'exams.manage.assigned']] },
+    { section: 'Teaching', items: [['My Classes', '/module/my-classes', BookOpen, 'classes.view.assigned'], ['Timetable', '/module/timetable', CalendarDays, 'timetable.view.assigned'], ['My Attendance', '/module/attendance', ClipboardCheck, 'attendance.manage.assigned'], ['Class Attendance', '/module/class-attendance', Users, 'attendance.manage.assigned'], ['Assignments', '/module/assignments', FileText, 'assignments.manage.assigned'], ['Exams & Marks', '/module/exams', BarChart3, 'exams.manage.assigned']] },
     { section: 'School', items: [['Notices', '/module/notices', Megaphone, 'notices.view'], ['Events', '/module/events', CalendarDays, 'events.view']] },
   ],
   student: [
