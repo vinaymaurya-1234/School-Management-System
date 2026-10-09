@@ -95,8 +95,12 @@ router.get("/", async (req, res, next) => {
       ownStudentUserIds = [req.user._id];
     } else if (req.user.role === ROLES.PARENT) {
       const parent = await Parent.findOne({ user: req.user._id, school: req.user.school }).select("children");
-      const profiles = await Student.find({ _id: { $in: parent?.children || [] }, school: req.user.school }).select("user");
-      ownStudentUserIds = profiles.map((profile) => profile.user);
+      let linkedProfiles = await Student.find({ _id: { $in: parent?.children || [] }, school: req.user.school }).select("_id user");
+      if (req.query.studentId) {
+        linkedProfiles = linkedProfiles.filter((profile) => sameId(profile._id, req.query.studentId));
+        if (!linkedProfiles.length) return res.status(403).json({ message: "You are not linked to this student." });
+      }
+      ownStudentUserIds = linkedProfiles.map((profile) => profile.user);
       const enrollment = await StudentEnrollment.findOne({ school: req.user.school, academicYear: year._id, student: { $in: ownStudentUserIds }, status: "active" });
       sectionId = enrollment?.section;
     }
