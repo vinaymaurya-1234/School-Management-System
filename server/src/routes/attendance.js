@@ -4,8 +4,7 @@ import AttendanceSession from "../models/Attendance.js";
 import AttendanceNotification from "../models/AttendanceNotification.js";
 import Student from "../models/Student.js";
 import Parent from "../models/Parent.js";
-import User from "../models/User.js";
-import { AcademicYear, Section, StudentEnrollment, TeacherAssignment, SchoolClass } from "../models/Academic.js";
+import { AcademicYear, Section, StudentEnrollment, TeacherAssignment } from "../models/Academic.js";
 import { requireAuth } from "../middleware/auth.js";
 import { ROLES } from "../config/permissions.js";
 
