@@ -26,3 +26,11 @@
  .attendance-board-actions button { flex:1; }
  .attendance-filter-bar>label { flex:1 1 135px; }
 }
+
+.attendance-summary-row.student-counts { grid-template-columns:repeat(5,minmax(0,1fr)); margin:0 0 12px; }
+.attendance-summary-row.student-counts>div { min-width:0; padding:15px 17px; min-height:100px; }
+.attendance-summary-row.student-counts>div span { display:block; color:#777; font-size:9px; text-transform:uppercase; letter-spacing:1px; font-weight:800; }
+.attendance-summary-row.student-counts>div strong { display:block; margin:8px 0 3px; color:#171717; font-size:27px; letter-spacing:-1px; }
+.attendance-summary-row.student-counts>div small { display:block; color:#888; font-size:10px; }
+@media(max-width:900px) { .attendance-summary-row.student-counts { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media(max-width:560px) { .attendance-summary-row.student-counts { grid-template-columns:repeat(2,minmax(0,1fr)); } }
