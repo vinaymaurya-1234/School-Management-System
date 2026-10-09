@@ -26,6 +26,6 @@ const attendanceSessionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-attendanceSessionSchema.index({ section: 1, date: 1 }, { unique: true });
+attendanceSessionSchema.index({ school: 1, academicYear: 1, section: 1, date: 1 }, { unique: true });
 
 export default mongoose.model("AttendanceSession", attendanceSessionSchema);
