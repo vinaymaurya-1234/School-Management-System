@@ -10,6 +10,7 @@ import PrincipalStudentsPage from '../pages/module/PrincipalStudentsPage'
 import PrincipalTeachersPage from '../pages/module/PrincipalTeachersPage'
 import PrincipalClassesPage from '../pages/module/PrincipalClassesPage'
 import PrincipalSubjectsPage from '../pages/module/PrincipalSubjectsPage'
+import TeacherAssignmentsPage from '../pages/module/TeacherAssignmentsPage'
 import EventCalendarPage from '../pages/module/EventCalendarPage'
 import TeacherDashboard from '../pages/teacher/TeacherDashboard'
 import StudentDashboard from '../pages/student/StudentDashboard'
@@ -37,6 +38,7 @@ function ModuleRoute() {
   if (user?.role === 'principal' && moduleKey === 'teachers') return <PrincipalTeachersPage />
   if (user?.role === 'principal' && moduleKey === 'classes') return <PrincipalClassesPage />
   if (user?.role === 'principal' && moduleKey === 'subjects') return <PrincipalSubjectsPage />
+  if (user?.role === 'principal' && moduleKey === 'teacher-assignments') return <TeacherAssignmentsPage />
   if (user?.role === 'principal' && PRINCIPAL_OPERATIONS.has(moduleKey)) return <ModulePage moduleKey={moduleKey} />
   if (user?.role === 'principal') return <PrincipalModulePage moduleKey={moduleKey} />
   return <ModulePage moduleKey={moduleKey} />
