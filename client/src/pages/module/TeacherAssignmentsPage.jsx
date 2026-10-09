@@ -118,13 +118,13 @@ export default function TeacherAssignmentsPage() {
     <section className="ta-stats">
       <article><span>Active assignments</span><strong>{assignments.length}</strong><small>Saved for selected year</small></article>
       <article><span>Teachers assigned</span><strong>{new Set(assignments.map((item) => idOf(item.teacher))).size}</strong><small>Unique teachers</small></article>
-      <article><span>Unassigned teachers</span><strong>{teachers.filter((teacher) => !assignments.some((item) => idOf(item.teacher) === idOf(teacher))).length}</strong><small>Need allocation</small></article>
+      <article><span>Unassigned teachers</span><strong>{teachers.filter((teacher) => !assignments.some((item) => idOf(item.teacher) === idOf(teacher.user))).length}</strong><small>Need allocation</small></article>
     </section>
     <section className="ta-panel">
       <div className="ta-toolbar">
         <label className="ta-year"><span>ACADEMIC YEAR</span><select value={activeYear?._id || ''} onChange={(event) => { setYearId(event.target.value); load(event.target.value) }}>{years.map((year) => <option key={year._id} value={year._id}>{year.name}{year.isActive ? ' · Active' : ''}</option>)}</select></label>
         <label className="ta-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search teacher, class, section or subject"/></label>
-        <label className="ta-filter"><span>TEACHER</span><select value={teacherFilter} onChange={(event) => setTeacherFilter(event.target.value)}><option value="">All teachers</option>{teachers.map((teacher) => <option key={idOf(teacher)} value={idOf(teacher)}>{teacher.name}</option>)}</select></label>
+        <label className="ta-filter"><span>TEACHER</span><select value={teacherFilter} onChange={(event) => setTeacherFilter(event.target.value)}><option value="">All teachers</option>{teachers.map((teacher) => <option key={idOf(teacher.user)} value={idOf(teacher.user)}>{teacher.name}</option>)}</select></label>
         <button className="ta-refresh" onClick={load} aria-label="Refresh"><RefreshCw size={16}/></button>
       </div>
       {loading ? <div className="ta-empty"><Loader2 className="ta-spin" size={24}/> Loading assignments…</div> : filteredAssignments.length === 0 ? <div className="ta-empty"><BookOpen size={28}/><strong>No assignments found</strong><span>Assign an existing teacher or adjust your filters.</span><button className="ta-primary" onClick={openCreate}><Plus size={16}/> Assign teacher</button></div> :
@@ -136,7 +136,7 @@ export default function TeacherAssignmentsPage() {
     {modal && <div className="ta-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && !saving && setModal(false)}><section className="ta-modal">
       <header><div><span>{editing ? 'UPDATE ALLOCATION' : 'NEW ALLOCATION'}</span><h2>{editing ? 'Edit teacher assignment' : 'Assign a teacher'}</h2><p>Each row assigns one teacher to one class, section and subject.</p></div><button onClick={() => !saving && setModal(false)}><X size={19}/></button></header>
       <div className="ta-form-grid">
-        <label><span>Teacher *</span><select value={form.teacher} onChange={(event) => setField('teacher', event.target.value)}><option value="">Select teacher</option>{teachers.map((teacher) => <option key={idOf(teacher)} value={idOf(teacher)}>{teacher.name} · {teacher.employeeId || teacher.email}</option>)}</select></label>
+        <label><span>Teacher *</span><select value={form.teacher} onChange={(event) => setField('teacher', event.target.value)}><option value="">Select teacher</option>{teachers.map((teacher) => <option key={idOf(teacher.user)} value={idOf(teacher.user)}>{teacher.name} · {teacher.employeeId || teacher.email}</option>)}</select></label>
         <label><span>Class *</span><select value={form.classId} onChange={(event) => setField('classId', event.target.value)}><option value="">Select class</option>{yearClasses.map((item) => <option key={item._id} value={item._id}>Class {item.name}</option>)}</select></label>
         <label><span>Section *</span><select value={form.section} onChange={(event) => setField('section', event.target.value)}><option value="">Select section</option>{availableSections.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}</select></label>
         <label><span>Subject *</span><select value={form.subject} onChange={(event) => setField('subject', event.target.value)}><option value="">Select subject</option>{classSubjects.map((item) => <option key={idOf(item.subject)} value={idOf(item.subject)}>{nameOf(item.subject)}{item.subject?.code ? ' · ' + item.subject.code : ''}</option>)}</select></label>
