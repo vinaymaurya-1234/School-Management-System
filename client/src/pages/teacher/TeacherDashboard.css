@@ -6,3 +6,6 @@
 .teacher-secondary-action { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 14px; border:1px solid #deddda; border-radius:11px; background:#fff; color:#171717; text-decoration:none; font-size:12px; font-weight:800; white-space:nowrap; }
 .teacher-primary-action.teacher-class-attendance-action { background:#171717 !important; color:#fff !important; border-color:#171717 !important; box-shadow:none !important; }
 .teacher-primary-action.teacher-class-attendance-action:hover { background:#303030 !important; }
+
+.teacher-focus-side .teacher-marks-action { background:#171717 !important; color:#fff !important; border-color:#171717 !important; }
+.teacher-focus-side .teacher-marks-action:hover { background:#333 !important; }
