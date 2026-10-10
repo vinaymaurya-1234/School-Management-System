@@ -3,6 +3,7 @@ import Exam from "../models/Exam.js";
 import StudentMarks from "../models/StudentMarks.js";
 import Parent from "../models/Parent.js";
 import Student from "../models/Student.js";
+import User from "../models/User.js";
 import { AcademicYear, SchoolClass, Section, StudentEnrollment, TeacherAssignment } from "../models/Academic.js";
 import { requireAuth } from "../middleware/auth.js";
 import { ROLES } from "../config/permissions.js";
@@ -98,21 +99,24 @@ router.get("/:id/marks", async (req, res, next) => {
       class: exam.class,
       section: exam.section,
       status: "active",
-    }).populate("student", "name email").sort({ createdAt: 1 });
+    }).select("student").sort({ createdAt: 1 }).lean();
 
-    const studentIds = enrollments.map((item) => item.student?._id).filter(Boolean);
-    const [records, profiles] = await Promise.all([
-      StudentMarks.find({ exam: exam._id, student: { $in: studentIds } }).lean(),
+    const studentIds = enrollments.map((item) => item.student).filter(Boolean);
+    const [records, profiles, users] = await Promise.all([
+      StudentMarks.find({ school: req.user.school, exam: exam._id, student: { $in: studentIds } }).lean(),
       Student.find({ school: req.user.school, user: { $in: studentIds } }).select("user admissionNumber").lean(),
+      User.find({ _id: { $in: studentIds }, school: req.user.school }).select("name email").lean(),
     ]);
     const recordByStudent = new Map(records.map((item) => [String(item.student), item]));
     const profileByUser = new Map(profiles.map((item) => [String(item.user), item]));
-    const students = enrollments.filter((item) => item.student).map((item) => {
-      const student = item.student;
-      const profile = profileByUser.get(String(student._id));
-      const record = recordByStudent.get(String(student._id));
+    const userById = new Map(users.map((item) => [String(item._id), item]));
+    const students = studentIds.map((studentId) => {
+      const student = userById.get(String(studentId));
+      if (!student) return null;
+      const profile = profileByUser.get(String(studentId));
+      const record = recordByStudent.get(String(studentId));
       return {
-        studentId: String(student._id),
+        studentId: String(studentId),
         name: student.name,
         email: student.email,
         admissionNumber: profile?.admissionNumber || "",
@@ -120,7 +124,7 @@ router.get("/:id/marks", async (req, res, next) => {
         remarks: record?.remarks || "",
         status: record?.status || "not-entered",
       };
-    });
+    }).filter(Boolean);
 
     res.json({
       exam: {
