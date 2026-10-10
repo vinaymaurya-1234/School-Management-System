@@ -43,13 +43,20 @@ function ExamSchedulePage() {
       apiClient.get('/academic/classes', { params: { academicYear: active._id } }),
       apiClient.get('/academic/sections', { params: { academicYear: active._id } }),
     ])
-    setClasses(classResponse.data.classes || [])
-    setSections(sectionResponse.data.sections || [])
+    const allClasses = classResponse.data.classes || []
+    const allSections = sectionResponse.data.sections || []
     if (user?.role === 'teacher') {
       const assignmentResponse = await apiClient.get('/academic/teacher-assignments', { params: { academicYear: active._id, teacherId: user.id } })
-      setTeacherAssignments(assignmentResponse.data.assignments || [])
+      const assigned = assignmentResponse.data.assignments || []
+      setTeacherAssignments(assigned)
+      const classIds = new Set(assigned.map((item) => idOf(item.class)))
+      const sectionIds = new Set(assigned.map((item) => idOf(item.section)))
+      setClasses(allClasses.filter((item) => classIds.has(item._id)))
+      setSections(allSections.filter((item) => sectionIds.has(item._id)))
     } else {
       setTeacherAssignments([])
+      setClasses(allClasses)
+      setSections(allSections)
     }
   }
 
