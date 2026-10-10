@@ -201,3 +201,40 @@ button, .primary-button, .secondary-button, .teacher-primary-action,
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Role dashboards */
+@media (max-width: 900px) {
+  .principal-dashboard, .student-dashboard, .parent-dashboard, .dashboard-page { width:100%; }
+  .dashboard-main-grid, .dashboard-grid, .student-content-grid, .parent-content-grid,
+  .parent-main-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .dashboard-side-stack { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .student-quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .principal-dashboard .section-heading { flex-wrap: wrap; gap: 10px; }
+  .payment-table { overflow-x:auto; max-width:100%; }
+}
+@media (max-width: 600px) {
+  .principal-dashboard, .student-dashboard, .parent-dashboard, .dashboard-page { padding: 18px 0 32px !important; }
+  .dashboard-main-grid, .dashboard-side-stack, .student-stat-grid, .student-quick-grid,
+  .student-content-grid, .parent-stat-grid, .parent-content-grid, .parent-main-grid,
+  .stats-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .student-hero, .parent-hero, .principal-dashboard .dashboard-hero,
+  .page-heading-row { align-items: flex-start; flex-direction: column; gap: 14px; }
+  .student-hero h1, .parent-hero h1 { font-size: clamp(28px, 8vw, 36px); }
+  .student-stat-card, .parent-stat-card { min-width: 0; }
+  .student-action-card, .parent-panel, .student-panel, .dashboard-section { min-width: 0; }
+  .parent-child-row, .parent-attendance-row, .student-schedule-row,
+  .attendance-detail-row, .attendance-register-row { min-width: 0; }
+  .attendance-page-header { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .attendance-page-header h1 { font-size: clamp(26px, 7vw, 34px); }
+  .attendance-command-card { padding: 14px; }
+  .attendance-summary-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .attendance-detail-row { grid-template-columns: 40px minmax(0, 1fr); gap: 10px; }
+  .attendance-detail-row > :last-child { grid-column: 1 / -1; }
+  .attendance-register-row { grid-template-columns: 36px minmax(0, 1fr); gap: 8px; }
+  .attendance-register-row > :last-child { grid-column: 1 / -1; }
+  .attendance-board-actions { width:100%; display:grid; grid-template-columns: minmax(0, 1fr); }
+  .attendance-board-actions button { width:100%; }
+  .attendance-personal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-notice { overflow-wrap:anywhere; }
+  .payment-table .table-row { min-width: 640px; }
+}
