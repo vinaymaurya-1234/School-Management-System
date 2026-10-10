@@ -104,11 +104,14 @@ router.put("/:id/marks", async (req, res, next) => {
     }
     const exam = await loadExamForMarks(req, res);
     if (!exam) return;
-    const examDay = new Date(exam.scheduledAt);
-    examDay.setHours(0, 0, 0, 0);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (examDay > today) return res.status(400).json({ message: "Marks entry opens on the scheduled exam date" });
+    const examDateKey = new Date(exam.scheduledAt).toISOString().slice(0, 10);
+    const todayDateKey = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    if (examDateKey > todayDateKey) return res.status(400).json({ message: "Marks entry opens on the scheduled exam date" });
 
     const { marks, submit = false } = req.body || {};
     if (!Array.isArray(marks) || !marks.length) {
