@@ -162,7 +162,7 @@ router.put("/:id/marks", async (req, res, next) => {
     }).format(new Date());
     if (examDateKey > todayDateKey) return res.status(400).json({ message: "Marks entry opens on the scheduled exam date" });
 
-    const { marks, submit = false } = req.body || {};
+    const { marks, submit = false, maxMarks: requestedMaxMarks } = req.body || {};
     if (!Array.isArray(marks) || !marks.length) {
       return res.status(400).json({ message: "Enter marks for at least one student" });
     }
@@ -182,7 +182,10 @@ router.put("/:id/marks", async (req, res, next) => {
       status: { $in: ["approved", "published"] },
     }).select("_id status");
     if (lockedMarks) return res.status(409).json({ message: "These marks have already been approved or published and can no longer be edited by the teacher" });
-    const maxMarks = Number(exam.maxMarks || 100);
+    const maxMarks = Number(requestedMaxMarks ?? exam.maxMarks ?? 100);
+    if (!Number.isFinite(maxMarks) || maxMarks < 1 || maxMarks > 1000) {
+      return res.status(400).json({ message: "Maximum marks must be between 1 and 1000" });
+    }
     const seen = new Set();
     for (const item of marks) {
       const studentId = String(item.studentId || "");
@@ -199,6 +202,8 @@ router.put("/:id/marks", async (req, res, next) => {
       return res.status(400).json({ message: "Enter marks for every student before submitting this class" });
     }
 
+    exam.maxMarks = maxMarks;
+    await exam.save();
     const status = submit ? "submitted" : "draft";
     const submittedAt = submit ? new Date() : null;
     await Promise.all(marks.map((item) => StudentMarks.findOneAndUpdate(
