@@ -5,7 +5,7 @@ import './TeacherMarksEntry.css'
 
 function TeacherMarksEntry({ exam, onClose }) {
   const [students, setStudents] = useState([])
-  const [maxMarks, setMaxMarks] = useState(exam?.maxMarks || 100)
+  const [maxMarks, setMaxMarks] = useState('')
   const [summary, setSummary] = useState({ total: 0, entered: 0, submitted: 0 })
   const [locked, setLocked] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -19,7 +19,7 @@ function TeacherMarksEntry({ exam, onClose }) {
       .then(({ data }) => {
         if (!active) return
         setStudents((data.students || []).map((student) => ({ ...student, marksObtained: student.marksObtained === '' ? '' : String(student.marksObtained) })))
-        setMaxMarks(data.exam?.maxMarks || 100)
+        setMaxMarks(data.exam?.maxMarks ? String(data.exam.maxMarks) : '')
         setLocked(Boolean(data.locked))
         setSummary(data.summary || { total: 0, entered: 0, submitted: 0 })
       })
@@ -28,6 +28,8 @@ function TeacherMarksEntry({ exam, onClose }) {
     return () => { active = false }
   }, [exam._id])
 
+  const parsedMaxMarks = Number(maxMarks)
+  const validMaxMarks = Number.isFinite(parsedMaxMarks) && parsedMaxMarks >= 1 && parsedMaxMarks <= 1000
   const enteredCount = useMemo(() => students.filter((student) => student.marksObtained !== '' && student.marksObtained !== null && Number.isFinite(Number(student.marksObtained))).length, [students])
   const updateStudent = (studentId, key, value) => setStudents((current) => current.map((student) => student.studentId === studentId ? { ...student, [key]: value } : student))
 
@@ -39,14 +41,16 @@ function TeacherMarksEntry({ exam, onClose }) {
       marksObtained: Number(student.marksObtained),
       remarks: student.remarks || '',
     }))
+    if (!validMaxMarks) { setError('Set maximum marks between 1 and 1000 before entering or saving marks.'); return }
     if (!rows.length) { setError('Enter marks for at least one student first.'); return }
-    const invalid = rows.find((row) => !Number.isFinite(row.marksObtained) || row.marksObtained < 0 || row.marksObtained > maxMarks)
-    if (invalid) { setError(`Marks must be between 0 and ${maxMarks}.`); return }
+    const invalid = rows.find((row) => !Number.isFinite(row.marksObtained) || row.marksObtained < 0 || row.marksObtained > parsedMaxMarks)
+    if (invalid) { setError(`Marks must be between 0 and ${parsedMaxMarks}.`); return }
     if (submit && rows.length !== students.length) { setError('Fill in marks for every student before submitting.'); return }
     setSaving(true)
     try {
-      const { data } = await apiClient.put(`/exams/${exam._id}/marks`, { marks: rows, submit })
+      const { data } = await apiClient.put(`/exams/${exam._id}/marks`, { marks: rows, submit, maxMarks: parsedMaxMarks })
       setNotice(data.message || (submit ? 'Marks submitted.' : 'Draft saved.'))
+      setMaxMarks(String(parsedMaxMarks))
       setSummary((current) => ({ ...current, entered: rows.length, submitted: submit ? rows.length : 0 }))
       if (submit) setStudents((current) => current.map((student) => ({ ...student, status: 'submitted' })))
     } catch (err) {
@@ -69,19 +73,20 @@ function TeacherMarksEntry({ exam, onClose }) {
         <div className="marks-entry-summary">
           <div><span>Students</span><strong>{loading ? '—' : summary.total}</strong></div>
           <div><span>Marks entered</span><strong>{loading ? '—' : enteredCount}</strong></div>
-          <div><span>Maximum marks</span><strong>{maxMarks}</strong></div>
+          <div><span>Maximum marks</span><strong>{validMaxMarks ? parsedMaxMarks : "—"}</strong></div>
         </div>
         {error && <div className="marks-entry-alert error" role="alert">{error}</div>}
         {notice && <div className="marks-entry-alert success" role="status"><CheckCircle2 size={16} />{notice}</div>}
-        <div className="marks-entry-instructions">{locked ? 'These marks have been approved or published. Editing is locked.' : <>Enter each student's marks out of <strong>{maxMarks}</strong>. Saving as draft does not submit the marks for review.</>}</div>
+        <div className="marks-entry-instructions">{locked ? 'These marks have been approved or published. Editing is locked.' : <>Set the maximum marks below. The same maximum applies to every student. Saving as draft does not submit the marks for review.</>}</div>
+        {!loading && !locked && <label className="marks-entry-max-field">Maximum marks for this exam<input aria-label="Maximum marks for this exam" type="number" min="1" max="1000" step="1" placeholder="e.g. 80 or 100" value={maxMarks} onChange={(event) => setMaxMarks(event.target.value)} disabled={saving} /><span>This value is shared by all students and saved with the exam.</span></label>}
         {loading ? <div className="marks-entry-loading"><Loader2 size={20} className="marks-entry-spin" /> Loading class register…</div> : students.length ? (
           <div className="marks-entry-table-wrap">
             <table className="marks-entry-table">
-              <thead><tr><th>Student</th><th>Admission no.</th><th>Marks / {maxMarks}</th><th>Remarks (optional)</th></tr></thead>
+              <thead><tr><th>Student</th><th>Admission no.</th><th>Marks / {validMaxMarks ? parsedMaxMarks : '—'}</th><th>Remarks (optional)</th></tr></thead>
               <tbody>{students.map((student) => <tr key={student.studentId}>
                 <td><strong>{student.name}</strong><small>{student.status === 'submitted' ? 'Submitted' : student.status === 'draft' ? 'Draft saved' : 'Not entered'}</small></td>
                 <td>{student.admissionNumber || '—'}</td>
-                <td><input aria-label={`Marks for ${student.name}`} type="number" min="0" max={maxMarks} step="0.5" inputMode="decimal" placeholder="—" value={student.marksObtained} onChange={(event) => updateStudent(student.studentId, 'marksObtained', event.target.value)} disabled={saving || locked} /></td>
+                <td><input aria-label={`Marks for ${student.name}`} type="number" min="0" max={validMaxMarks ? parsedMaxMarks : undefined} step="0.5" inputMode="decimal" placeholder="—" value={student.marksObtained} onChange={(event) => updateStudent(student.studentId, 'marksObtained', event.target.value)} disabled={saving || locked} /></td>
                 <td><input aria-label={`Remarks for ${student.name}`} type="text" maxLength="300" placeholder="Optional note" value={student.remarks} onChange={(event) => updateStudent(student.studentId, 'remarks', event.target.value)} disabled={saving || locked} /></td>
               </tr>)}</tbody>
             </table>
@@ -89,7 +94,7 @@ function TeacherMarksEntry({ exam, onClose }) {
         ) : <div className="marks-entry-empty">No active students are enrolled in this class and section for the selected academic year.</div>}
         <footer className="marks-entry-footer">
           <span className="marks-entry-footer-note">Submitted marks are sent to the principal for review.</span>
-          <div><button type="button" className="marks-entry-secondary" onClick={() => save(false)} disabled={loading || saving || locked || !students.length}><Save size={16} />{saving ? 'Saving…' : 'Save draft'}</button><button type="button" className="marks-entry-primary" onClick={() => save(true)} disabled={loading || saving || locked || !students.length}><Send size={16} />{saving ? 'Submitting…' : 'Submit marks'}</button></div>
+          <div><button type="button" className="marks-entry-secondary" onClick={() => save(false)} disabled={loading || saving || locked || !students.length || !validMaxMarks}><Save size={16} />{saving ? 'Saving…' : 'Save draft'}</button><button type="button" className="marks-entry-primary" onClick={() => save(true)} disabled={loading || saving || locked || !students.length}><Send size={16} />{saving ? 'Submitting…' : 'Submit marks'}</button></div>
         </footer>
       </section>
     </div>
