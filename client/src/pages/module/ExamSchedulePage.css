@@ -108,3 +108,9 @@
 .exam-quick-action.is-unavailable .exam-quick-action-icon{background:#f0f0ed;color:#888}
 @media(max-width:850px){.exam-quick-actions{padding:20px}.exam-quick-actions-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.exam-quick-actions{padding:18px 14px}.exam-quick-actions-heading h2{font-size:21px}.exam-quick-actions-grid{grid-template-columns:1fr;gap:9px}.exam-quick-action{min-height:78px;padding:13px}}
+
+/* Teacher marks-entry action: neutral black-and-white school workspace */
+.exam-enter-marks{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:0 12px;border:1px solid #171717;border-radius:10px;background:#171717;color:#fff;font-size:11px;font-weight:800;white-space:nowrap;cursor:pointer}
+.exam-enter-marks:hover{background:#333}
+.exam-row{min-width:0}
+@media(max-width:650px){.exam-enter-marks{width:100%;min-height:42px}.exam-row .exam-delete{align-self:flex-end}}
