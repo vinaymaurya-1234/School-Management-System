@@ -1,0 +1,203 @@
+/* Mobile-first responsive layer for SchoolOS
+   Shared by every role and every page. Keep the existing role-specific visual language. */
+:root {
+  --mobile-page-gutter: clamp(12px, 2.4vw, 36px);
+  --mobile-control-height: 44px;
+}
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 100px; }
+body { min-width: 320px; overflow-x: clip; }
+#root, .premium-app-shell { min-width: 0; max-width: 100%; }
+img, video, canvas, svg { max-width: 100%; }
+button, input, select, textarea { font: inherit; }
+button, [role="button"], a { touch-action: manipulation; }
+button { cursor: pointer; }
+input, select, textarea { max-width: 100%; }
+:where(button, input, select, textarea, a):focus-visible {
+  outline: 2px solid #777;
+  outline-offset: 2px;
+}
+.premium-page-content {
+  width: min(100% - 48px, 1600px);
+  min-width: 0;
+  margin-inline: auto;
+}
+.premium-topbar { min-width: 0; }
+.premium-nav-scroll { min-width: 0; overscroll-behavior-x: contain; }
+.premium-nav { width: max-content; min-width: 100%; }
+.premium-actions, .premium-search, .profile-menu, .profile-trigger { min-width: 0; }
+.module-page, .attendance-redesign, .teacher-dashboard,
+.principal-dashboard, .student-dashboard, .parent-dashboard,
+.accountant-dashboard, .login-page, main, section, article { min-width: 0; }
+.module-page, .attendance-redesign, .teacher-dashboard,
+.principal-dashboard, .student-dashboard, .parent-dashboard,
+.accountant-dashboard { width: 100%; max-width: 100%; }
+.module-heading, .module-title-line, .module-heading-actions,
+.variant-header, .teacher-dashboard-hero, .teacher-focus-card,
+.teacher-focus-side, .teacher-panel-title-row { min-width: 0; }
+.module-heading h1, .module-heading p, .variant-header h2,
+.teacher-dashboard-hero h1, .teacher-dashboard-hero p { overflow-wrap: anywhere; }
+.module-toolbar, .module-search, .toolbar-actions { min-width: 0; }
+.module-search input { width: 100%; min-width: 0; }
+.module-variant-panel, .module-stat, .module-stats,
+.module-variant-shell, .directory-full-panel { min-width: 0; }
+.table-wrap, .fee-table-wrap, .attendance-table-wrap,
+.data-table-wrap, .table-responsive { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+table { max-width: 100%; }
+th, td { overflow-wrap: anywhere; }
+input, select, textarea { min-height: 42px; }
+textarea { min-height: 96px; }
+button, .primary-button, .secondary-button, .teacher-primary-action,
+.teacher-secondary-action, .nav-pill { min-height: 42px; }
+@media (hover: none) {
+  .nav-pill:hover, .nav-dropdown-item:hover, .teacher-primary-action:hover {
+    transform: none;
+  }
+}
+@media (max-width: 1100px) {
+  .premium-page-content { width: calc(100% - 36px); }
+  .module-page { padding-top: 26px; }
+  .module-heading { gap: 14px; }
+  .module-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .premium-topbar { grid-template-columns: minmax(0, 1fr) auto; }
+  .premium-nav-scroll { max-width: 100%; }
+  .premium-search { max-width: none; }
+  .module-toolbar { gap: 12px; }
+  .toolbar-actions { flex-wrap: wrap; }
+}
+@media (max-width: 760px) {
+  html { scroll-padding-top: 84px; }
+  .premium-topbar {
+    position: sticky;
+    top: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 9px 10px;
+    min-height: 0;
+    padding: 9px 12px 10px;
+  }
+  .premium-nav-scroll {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .premium-nav-scroll::-webkit-scrollbar { display: none; }
+  .premium-nav { gap: 4px; }
+  .nav-pill { min-height: 40px; padding-inline: 12px; border-radius: 10px !important; font-size: 13px !important; }
+  .premium-search {
+    grid-column: 1;
+    grid-row: 2;
+    height: 44px;
+    padding-inline: 12px;
+    gap: 8px;
+    border-radius: 11px !important;
+  }
+  .premium-search input { font-size: 14px !important; }
+  .premium-actions { grid-column: 2; grid-row: 2; gap: 7px; }
+  .premium-icon-button { width: 42px; height: 42px; }
+  .profile-menu { height: 44px; }
+  .profile-trigger { height: 42px; min-height: 42px; gap: 5px; padding: 3px 5px; }
+  .profile-avatar, .premium-avatar { width: 34px !important; height: 34px !important; flex-basis: 34px; font-size: 12px !important; }
+  .profile-trigger-copy { display: none; }
+  .premium-page-content { width: calc(100% - 24px); padding-top: 20px; }
+  .module-page { padding-top: 8px; padding-bottom: 28px; }
+  .module-heading { align-items: flex-start; flex-wrap: wrap; }
+  .module-heading-copy { min-width: 0; flex: 1 1 220px; }
+  .module-title-line { align-items: flex-start; gap: 10px; }
+  .module-title-line h1 { font-size: clamp(25px, 6vw, 34px); line-height: 1.12; letter-spacing: -.8px; }
+  .module-title-line p { font-size: 13px; line-height: 1.5; }
+  .module-title-icon { width: 42px; height: 42px; flex: 0 0 42px; }
+  .module-heading-actions { width: 100%; justify-content: flex-end; }
+  .module-stats { gap: 9px; margin-block: 14px; }
+  .module-stat { min-width: 0; padding: 14px; }
+  .module-stat strong { font-size: clamp(20px, 5vw, 27px); overflow-wrap: anywhere; }
+  .module-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); padding: 10px; gap: 9px; }
+  .toolbar-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .toolbar-actions > * { min-width: 0; justify-content: center; }
+  .module-search { width: 100%; }
+  .module-variant-panel, .subjects-class-selector, .subjects-list-panel,
+  .subject-add-panel, .fee-cycle-panel, .fee-ledger-panel,
+  .fee-attention-panel, .teacher-dashboard-panel { border-radius: 15px; }
+  .variant-header { gap: 8px; padding: 16px; }
+  .variant-header h2 { font-size: 20px; line-height: 1.25; }
+  .data-table, .fee-table, .attendance-table, table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .data-table th, .data-table td, .fee-table th, .fee-table td,
+  table th, table td { white-space: normal; min-width: 92px; }
+  .teacher-dashboard { padding: 22px 0 36px; }
+  .teacher-dashboard-hero h1 { font-size: clamp(29px, 7vw, 38px); letter-spacing: -1px; }
+  .teacher-focus-card { padding: 17px; gap: 16px; }
+  .teacher-focus-side { align-items: stretch; flex-direction: column; width: 100%; gap: 9px; }
+  .teacher-focus-side > a { width: 100%; }
+  .teacher-overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .teacher-overview-card { min-width: 0; padding: 13px; gap: 9px; }
+  .teacher-main-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .teacher-dashboard-panel { min-width: 0; padding: 16px; }
+  .teacher-panel-title-row { align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+  .teacher-schedule-item { min-width: 0; }
+  .attendance-redesign { padding: 20px 0 34px; }
+  .attendance-filter-bar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .attendance-filter-bar select, .attendance-filter-bar input { width: 100%; min-width: 0; }
+  .attendance-summary-row, .attendance-summary-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .attendance-board { min-width: 0; }
+  .attendance-board-head { flex-wrap: wrap; gap: 10px; }
+  .attendance-register-title, .attendance-detail-head { gap: 10px; }
+  .attendance-register-card, .attendance-requests-card { min-width: 0; padding: 15px; }
+  .login-page { padding: 16px; }
+}
+@media (max-width: 520px) {
+  .premium-page-content { width: calc(100% - 20px); padding-top: 15px; }
+  .premium-topbar { padding-inline: 9px; }
+  .nav-pill { min-height: 38px; padding-inline: 10px; font-size: 12px !important; }
+  .premium-actions { gap: 5px; }
+  .premium-icon-button { width: 38px; height: 38px; }
+  .profile-trigger { width: 38px; height: 38px; min-height: 38px; justify-content: center; padding: 2px; }
+  .profile-trigger > svg { display: none; }
+  .profile-avatar, .premium-avatar { width: 30px !important; height: 30px !important; flex-basis: 30px; }
+  .profile-dropdown { position: fixed; top: 106px; right: 8px; width: min(300px, calc(100vw - 16px)); }
+  .nav-dropdown { position: fixed; top: 105px; left: 8px; right: 8px; width: auto; max-height: calc(100dvh - 120px); overflow: auto; }
+  .module-heading { gap: 10px; }
+  .module-heading-actions { justify-content: stretch; }
+  .module-heading-actions .module-add { flex: 1; justify-content: center; }
+  .module-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .module-stat { padding: 12px; border-radius: 13px; }
+  .module-stat > span { font-size: 11px; line-height: 1.35; }
+  .module-stat strong { font-size: 22px; }
+  .module-stat small { font-size: 10px; }
+  .toolbar-actions { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .toolbar-actions button { padding-inline: 8px; font-size: 12px; }
+  .subject-cards-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .subject-add-form { grid-template-columns: minmax(0, 1fr) !important; }
+  .subject-add-form .primary-button { grid-column: auto; width: 100%; }
+  .subjects-summary-row { grid-template-columns: minmax(0, 1fr) !important; }
+  .fee-pulse-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .teacher-overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .teacher-overview-card strong { font-size: 22px; }
+  .teacher-class-row { grid-template-columns: 36px minmax(0, 1fr) auto; gap: 9px; }
+  .teacher-schedule-item { grid-template-columns: 28px 52px minmax(0, 1fr); gap: 8px; }
+  .teacher-period-content span { overflow-wrap: anywhere; }
+  .attendance-summary-row, .attendance-summary-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .attendance-register-title h2, .attendance-detail-head h2 { font-size: 20px; }
+  .attendance-student-row { grid-template-columns: minmax(0, 1fr); }
+  .attendance-status-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .attendance-status-actions button { width: 100%; }
+  .login-card, .auth-card, .login-panel { width: 100%; max-width: 100%; padding: 22px 18px; }
+}
+@media (max-width: 360px) {
+  .premium-page-content { width: calc(100% - 16px); }
+  .premium-search { padding-inline: 9px; }
+  .premium-search input { font-size: 12px !important; }
+  .module-stats, .teacher-overview-grid, .fee-pulse-grid { grid-template-columns: minmax(0, 1fr); }
+  .toolbar-actions { grid-template-columns: minmax(0, 1fr); }
+  .teacher-overview-card { padding: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
