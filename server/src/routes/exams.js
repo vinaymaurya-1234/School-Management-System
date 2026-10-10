@@ -129,7 +129,7 @@ router.get("/:id/marks", async (req, res, next) => {
         class: exam.class,
         section: exam.section,
         scheduledAt: exam.scheduledAt,
-        maxMarks: exam.maxMarks || 100,
+        maxMarks: records.length ? (exam.maxMarks || records[0].maxMarks || null) : null,
       },
       students,
       locked: records.some((item) => ["approved", "published"].includes(item.status)),
