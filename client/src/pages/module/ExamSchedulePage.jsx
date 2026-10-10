@@ -210,9 +210,15 @@ function ExamSchedulePage() {
 
       <section className="exam-stats" aria-label="Exam and results overview">
         <article><span>Upcoming exams</span><strong>{loading ? '—' : upcoming.length}</strong><small><Clock3 size={13} /> From the live exam schedule</small></article>
-        <article className="exam-stat-unavailable"><span>Marks pending</span><strong>—</strong><small>Marks workflow not connected</small></article>
-        <article className="exam-stat-unavailable"><span>Results published</span><strong>—</strong><small>No results data source yet</small></article>
-        <article className="exam-stat-unavailable"><span>Pending review</span><strong>—</strong><small>Review status not tracked yet</small></article>
+        {user?.role === 'teacher' ? <>
+          <article><span>Exams open for marks</span><strong>{loading ? '—' : exams.filter(canEnterMarks).length}</strong><small>Assigned subject exams scheduled for today or earlier</small></article>
+          <article><span>Assigned subjects</span><strong>{loading ? '—' : new Set(teacherAssignments.map((item) => idOf(item.subject)).filter(Boolean)).size}</strong><small>From your active teaching assignments</small></article>
+          <article><span>Assigned class sections</span><strong>{loading ? '—' : new Set(teacherAssignments.map((item) => `${idOf(item.class)}:${idOf(item.section)}`)).size}</strong><small>Only your assigned sections</small></article>
+        </> : <>
+          <article className="exam-stat-unavailable"><span>Marks pending</span><strong>—</strong><small>Review totals not yet connected</small></article>
+          <article className="exam-stat-unavailable"><span>Results published</span><strong>—</strong><small>Published results are not yet tracked</small></article>
+          <article className="exam-stat-unavailable"><span>Pending review</span><strong>—</strong><small>Review totals are not yet tracked</small></article>
+        </>}
       </section>
 
       <section className="exam-toolbar"><div className="exam-search"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search subject, class or section..." /></div>{(isPrincipal || user?.role === 'teacher') && <div className="exam-filters"><select value={selectedClass} onChange={(event) => { setSelectedClass(event.target.value); setSelectedSection('') }}><option value="">All classes</option>{classes.map((item) => <option key={item._id} value={item._id}>Class {item.name}</option>)}</select><select value={selectedSection} onChange={(event) => setSelectedSection(event.target.value)}><option value="">All sections</option>{browseSections.map((item) => <option key={item._id} value={item._id}>Section {item.name}</option>)}</select></div>}</section>
