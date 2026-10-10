@@ -8,7 +8,7 @@ import TeacherMarksEntry from './TeacherMarksEntry'
 const idOf = (value) => value?._id || value
 const formatDate = (value) => value ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 const formatTime = (value) => value ? new Date(value).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'
-const emptyExam = () => ({ subjectName: '', examDate: '', startTime: '', endTime: '' })
+const emptyExam = () => ({ subjectName: '', maxMarks: '100', examDate: '', startTime: '', endTime: '' })
 
 function ExamSchedulePage() {
   const { user } = useAuth()
@@ -152,7 +152,7 @@ function ExamSchedulePage() {
       return
     }
 
-    const invalidIndex = form.exams.findIndex((exam) => !exam.subjectName.trim() || !exam.examDate || !exam.startTime || !exam.endTime)
+    const invalidIndex = form.exams.findIndex((exam) => !exam.subjectName.trim() || !exam.examDate || !exam.startTime || !exam.endTime || !Number.isFinite(Number(exam.maxMarks)) || Number(exam.maxMarks) < 1 || Number(exam.maxMarks) > 1000)
     if (invalidIndex >= 0) {
       setError(`Complete all fields for Exam ${invalidIndex + 1}.`)
       return
@@ -160,6 +160,7 @@ function ExamSchedulePage() {
 
     const items = form.exams.map((exam) => ({
       subjectName: exam.subjectName.trim(),
+      maxMarks: Number(exam.maxMarks || 100),
       scheduledAt: `${exam.examDate}T${exam.startTime}`,
       endsAt: `${exam.examDate}T${exam.endTime}`,
     }))
@@ -246,8 +247,8 @@ function ExamSchedulePage() {
           <label><span>Section</span><select value={form.sectionId} onChange={(event) => setForm((current) => ({ ...current, sectionId: event.target.value }))}><option value="">Select section</option>{filteredSections.map((item) => <option key={item._id} value={item._id}>Section {item.name}</option>)}</select></label>
           <div className="exam-bulk-header"><div><strong>Exam plan</strong><span>{form.exams.length} subject{form.exams.length === 1 ? '' : 's'} added</span></div><button type="button" className="exam-add-row-btn" onClick={addExamRow}><Plus size={15} /> Add exam</button></div>
           <div className="exam-bulk-table">
-            <div className="exam-bulk-grid exam-bulk-grid-head"><span>#</span><span>Subject</span><span>Date</span><span>Start</span><span>End</span><span /></div>
-            {form.exams.map((exam, index) => <div className="exam-bulk-grid" key={`exam-row-${index}`}><span className="exam-row-number">{index + 1}</span><input value={exam.subjectName} onChange={(event) => updateExamRow(index, 'subjectName', event.target.value)} placeholder="Mathematics" /><input type="date" value={exam.examDate} onChange={(event) => updateExamRow(index, 'examDate', event.target.value)} /><input type="time" value={exam.startTime} onChange={(event) => updateExamRow(index, 'startTime', event.target.value)} /><input type="time" min={exam.startTime || undefined} value={exam.endTime} onChange={(event) => updateExamRow(index, 'endTime', event.target.value)} /><button type="button" className="exam-row-remove" onClick={() => removeExamRow(index)} disabled={form.exams.length === 1} aria-label="Remove exam"><Trash2 size={15} /></button></div>)}
+            <div className="exam-bulk-grid exam-bulk-grid-head"><span>#</span><span>Subject</span><span>Max marks</span><span>Date</span><span>Start</span><span>End</span><span /></div>
+            {form.exams.map((exam, index) => <div className="exam-bulk-grid" key={`exam-row-${index}`}><span className="exam-row-number">{index + 1}</span><input value={exam.subjectName} onChange={(event) => updateExamRow(index, 'subjectName', event.target.value)} placeholder="English" /><input type="number" min="1" max="1000" value={exam.maxMarks} onChange={(event) => updateExamRow(index, 'maxMarks', event.target.value)} aria-label={`Maximum marks for exam ${index + 1}`} /><input type="date" value={exam.examDate} onChange={(event) => updateExamRow(index, 'examDate', event.target.value)} /><input type="time" value={exam.startTime} onChange={(event) => updateExamRow(index, 'startTime', event.target.value)} /><input type="time" min={exam.startTime || undefined} value={exam.endTime} onChange={(event) => updateExamRow(index, 'endTime', event.target.value)} /><button type="button" className="exam-row-remove" onClick={() => removeExamRow(index)} disabled={form.exams.length === 1} aria-label="Remove exam"><Trash2 size={15} /></button></div>)}
           </div>
         </div>
         <div className="exam-modal-foot"><button className="exam-secondary-btn" type="button" onClick={() => setShowForm(false)} disabled={saving}>Cancel</button><button className="exam-primary-btn" type="button" onClick={createExams} disabled={saving}>{saving ? <Loader2 className="spin" size={16} /> : <Check size={16} />} {saving ? 'Saving exams...' : `Schedule ${form.exams.length} exam${form.exams.length === 1 ? '' : 's'}`}</button></div>
