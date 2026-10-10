@@ -40,3 +40,9 @@
 @keyframes marks-entry-rotate{to{transform:rotate(360deg)}}
 @media(max-width:700px){.marks-entry-backdrop{padding:0;place-items:end center}.marks-entry-modal{width:100%;max-height:94dvh;border-radius:20px 20px 0 0}.marks-entry-head{padding:16px}.marks-entry-heading-copy h2{font-size:21px}.marks-entry-summary{padding:12px 16px;gap:8px}.marks-entry-summary>div{padding:11px}.marks-entry-summary strong{font-size:20px}.marks-entry-instructions{margin-inline:16px}.marks-entry-alert{margin-inline:16px}.marks-entry-table{min-width:760px}.marks-entry-footer{align-items:stretch;flex-direction:column;padding:14px 16px}.marks-entry-footer>div{display:grid;grid-template-columns:1fr 1fr}.marks-entry-footer-note{font-size:11px}}
 @media(max-width:380px){.marks-entry-heading-icon{width:40px;height:40px;flex-basis:40px}.marks-entry-summary{gap:6px;padding-inline:10px}.marks-entry-summary>div{padding:9px}.marks-entry-summary span{font-size:10px}.marks-entry-summary strong{font-size:18px}.marks-entry-footer>div{grid-template-columns:1fr}}
+
+.marks-entry-max-field{display:flex;align-items:flex-start;flex-direction:column;gap:6px;margin:0 24px 14px;color:#333;font-size:12px;font-weight:750}
+.marks-entry-max-field input{width:180px;min-height:40px;padding:8px 10px;border:1px solid #d6d5d1;border-radius:9px;background:#fff;color:#171717;font-size:13px;outline:none}
+.marks-entry-max-field input:focus{border-color:#888;box-shadow:0 0 0 3px rgba(0,0,0,.06)}
+.marks-entry-max-field span{color:#777;font-size:11px;font-weight:450}
+@media(max-width:700px){.marks-entry-max-field{margin-inline:16px}.marks-entry-max-field input{width:100%}}
