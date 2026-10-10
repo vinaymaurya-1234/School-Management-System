@@ -128,6 +128,13 @@ router.put("/:id/marks", async (req, res, next) => {
       status: "active",
     }).select("student");
     const enrolledIds = new Set(enrollments.map((item) => String(item.student)));
+    const lockedMarks = await StudentMarks.findOne({
+      school: req.user.school,
+      exam: exam._id,
+      student: { $in: marks.map((item) => item.studentId).filter(Boolean) },
+      status: { $in: ["approved", "published"] },
+    }).select("_id status");
+    if (lockedMarks) return res.status(409).json({ message: "These marks have already been approved or published and can no longer be edited by the teacher" });
     const maxMarks = Number(exam.maxMarks || 100);
     const seen = new Set();
     for (const item of marks) {
