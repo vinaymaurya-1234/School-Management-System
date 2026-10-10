@@ -120,3 +120,27 @@
   .fee-pulse-grid { grid-template-columns:1fr; }
   .subject-group > div { display:grid; grid-template-columns:1fr 1fr; }
 }
+
+/* Teacher workspace: neutral black-and-white accent, no school-red controls */
+.teacher-module-page .module-title-icon,
+.teacher-module-page .module-heading .eyebrow,
+.teacher-module-page .variant-kicker,
+.teacher-module-page .variant-header .variant-kicker,
+.teacher-module-page .module-stat small,
+.teacher-module-page .card-board .board-card-top > svg,
+.teacher-module-page .subject-card-top .subject-code,
+.teacher-module-page .module-add svg { color:#171717 !important; }
+.teacher-module-page .module-title-icon { background:#f0efed !important; border-color:#e4e2df !important; }
+.teacher-module-page .primary-button,
+.teacher-module-page button[class*="primary"],
+.teacher-module-page .module-add { background:#171717 !important; border-color:#171717 !important; color:#fff !important; box-shadow:none !important; }
+.teacher-module-page .primary-button:hover,
+.teacher-module-page button[class*="primary"]:hover { background:#303030 !important; border-color:#303030 !important; }
+.teacher-module-page .variant-chip,
+.teacher-module-page .module-stat:first-child { background:#f5f4f2 !important; border-color:#e7e5e2 !important; }
+.teacher-module-page .variant-chip { color:#343434 !important; }
+.teacher-module-page .module-search:focus-within,
+.teacher-module-page input:focus { border-color:#a3a3a3 !important; box-shadow:0 0 0 3px rgba(0,0,0,.04) !important; }
+.teacher-record-state { display:grid; gap:8px; min-height:180px; align-content:center; justify-items:start; padding:26px; }
+.teacher-record-state strong { color:#171717; font-size:15px; }
+.teacher-record-state span { color:#777; font-size:13px; line-height:1.5; }
