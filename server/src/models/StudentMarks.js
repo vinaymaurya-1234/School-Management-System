@@ -9,7 +9,7 @@ const studentMarksSchema = new mongoose.Schema(
     marksObtained: { type: Number, required: true, min: 0 },
     maxMarks: { type: Number, required: true, min: 1 },
     remarks: { type: String, trim: true, maxlength: 300, default: "" },
-    status: { type: String, enum: ["draft", "submitted"], default: "draft", index: true },
+    status: { type: String, enum: ["draft", "submitted", "approved", "published"], default: "draft", index: true },
     enteredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     submittedAt: { type: Date, default: null },
   },
