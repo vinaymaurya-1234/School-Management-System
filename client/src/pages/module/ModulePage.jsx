@@ -11,9 +11,10 @@ import {
   SlidersHorizontal,
   Users,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { MODULES } from '../../config/moduleConfig'
+import apiClient from '../../api/client'
 import './ModulePage.css'
 import './ModuleRedesign.css'
 import '../../styles/SchoolUX.css'
@@ -101,7 +102,9 @@ function VariantHeader({ kicker, title, description, chip }) {
 
 function ModulePage({ moduleKey }) {
   const { user } = useAuth()
-  const module = MODULES[moduleKey]
+  const [teacherRows, setTeacherRows] = useState([])
+  const [teacherLoading, setTeacherLoading] = useState(false)
+  const [teacherLoadError, setTeacherLoadError] = useState('')
   const [query, setQuery] = useState('')
   const [selectedCurriculumClass, setSelectedCurriculumClass] = useState('6')
   const [customSubjects, setCustomSubjects] = useState({})
@@ -109,6 +112,79 @@ function ModulePage({ moduleKey }) {
   const [newCode, setNewCode] = useState('')
   const [newType, setNewType] = useState('Elective')
   const [feeFilter, setFeeFilter] = useState('All')
+  const configuredModule = MODULES[moduleKey]
+
+  useEffect(() => {
+    if (user?.role !== 'teacher') {
+      setTeacherRows([])
+      setTeacherLoadError('')
+      return
+    }
+    let mounted = true
+    setTeacherLoading(true)
+    setTeacherLoadError('')
+    ;(async () => {
+      try {
+        const yearResponse = await apiClient.get('/academic/years')
+        const years = yearResponse.data.years || []
+        const year = years.find((item) => item.isActive) || years[0]
+        if (!year) {
+          if (mounted) setTeacherRows([])
+          return
+        }
+        const [assignmentResponse, enrollmentResponse] = await Promise.all([
+          apiClient.get('/academic/teacher-assignments', { params: { academicYear: year._id, teacherId: user.id } }),
+          apiClient.get('/academic/enrollments', { params: { academicYear: year._id } }),
+        ])
+        if (!mounted) return
+        const assignments = assignmentResponse.data.assignments || []
+        const enrollments = enrollmentResponse.data.enrollments || []
+        const sectionIds = new Set(assignments.map((item) => String(item.section?._id || item.section || '')).filter(Boolean))
+        if (['students', 'my-students'].includes(moduleKey)) {
+          setTeacherRows(enrollments
+            .filter((item) => sectionIds.has(String(item.section?._id || item.section || '')))
+            .map((item) => [item.student?.name || 'Student record', item.class?.name ? `Class ${item.class.name}` : '—', item.section?.name || '—', 'Enrolled']))
+        } else if (moduleKey === 'my-classes') {
+          const seen = new Set()
+          setTeacherRows(assignments.filter((item) => {
+            const key = `${item.class?._id || item.class}:${item.section?._id || item.section}`
+            if (seen.has(key)) return false
+            seen.add(key)
+            return true
+          }).map((item) => [
+            item.class?.name ? `Class ${item.class.name}` : 'Class',
+            item.section?.name || '—',
+            assignments.filter((assignment) => String(assignment.class?._id || assignment.class) === String(item.class?._id || item.class) && String(assignment.section?._id || assignment.section) === String(item.section?._id || item.section)).map((assignment) => assignment.subject?.name).filter(Boolean).join(', ') || '—',
+            'Assigned',
+          ]))
+        } else {
+          setTeacherRows([])
+        }
+      } catch (err) {
+        if (mounted) {
+          setTeacherRows([])
+          setTeacherLoadError(err.response?.data?.message || 'Unable to load records assigned to your teacher account.')
+        }
+      } finally {
+        if (mounted) setTeacherLoading(false)
+      }
+    })()
+    return () => { mounted = false }
+  }, [user?.id, user?.role, moduleKey])
+
+  const module = user?.role === 'teacher' && configuredModule
+    ? {
+        ...configuredModule,
+        stats: [],
+        rows: teacherRows,
+        columns: ['students', 'my-students'].includes(moduleKey)
+          ? ['Student', 'Class', 'Section', 'Enrollment']
+          : moduleKey === 'my-classes'
+            ? ['Class', 'Section', 'Assigned subjects', 'Status']
+            : configuredModule.columns,
+        actions: [],
+      }
+    : configuredModule
 
   const filteredRows = useMemo(() => {
     if (!module) return []
@@ -296,6 +372,14 @@ function ModulePage({ moduleKey }) {
   const renderDefault = () => <section className="module-variant-panel"><VariantHeader kicker="LIVE REGISTER" title={`${module.title} overview`} description={`${filteredRows.length} records shown`} /><DataTable columns={module.columns} rows={filteredRows} /></section>
 
   const renderBody = () => {
+    if (user?.role === 'teacher') {
+      if (teacherLoading) return <section className="module-variant-panel teacher-record-state"><strong>Loading your assigned records…</strong><span>Only records connected to your teacher account are shown.</span></section>
+      if (teacherLoadError) return <section className="module-variant-panel teacher-record-state"><strong>Records could not be loaded</strong><span>{teacherLoadError}</span><button type="button" className="secondary-button" onClick={() => setQuery((value) => value)}>Retry after refreshing this page</button></section>
+      if (['students', 'my-students', 'my-classes'].includes(moduleKey)) {
+        return <section className="module-variant-panel directory-full-panel"><VariantHeader kicker="MY TEACHING" title={moduleKey === 'my-classes' ? 'Assigned classes' : 'Students in my assigned sections'} description="This list is limited to classes and sections assigned to your teacher account." chip={`${filteredRows.length} records`} /><DataTable columns={module.columns} rows={filteredRows} /></section>
+      }
+      return <section className="module-variant-panel teacher-record-state"><strong>No live records available here yet</strong><span>Demo records are hidden for teacher accounts. This section will show information once its school workflow is connected.</span></section>
+    }
     if (moduleKey === 'timetable') return renderTimetable()
     if (moduleKey === 'attendance') return renderAttendance()
     if (moduleKey === 'fees') return renderFees()
@@ -312,9 +396,9 @@ function ModulePage({ moduleKey }) {
   }
 
   return (
-    <div className={`module-page module-${moduleKey.replace(/[^a-z0-9]+/gi, '-')}`}>
+    <div className={`module-page ${user?.role === 'teacher' ? 'teacher-module-page' : ''} module-${moduleKey.replace(/[^a-z0-9]+/gi, '-')}`}>
       <div className="module-heading"><div className="module-heading-copy"><div className="eyebrow">{module.eyebrow}</div><div className="module-title-line"><div className="module-title-icon"><Icon size={22} /></div><div><h1>{module.title}</h1><p>{module.description}</p></div></div></div>
-        <div className="module-heading-actions"><button className="icon-button" type="button" aria-label="More options"><MoreHorizontal size={18} /></button>{actions[0] && <button className="primary-button module-add" type="button"><Plus size={16} />{actions[0]}</button>}</div>
+        <div className="module-heading-actions">{user?.role !== 'teacher' && <button className="icon-button" type="button" aria-label="More options"><MoreHorizontal size={18} /></button>}{actions[0] && <button className="primary-button module-add" type="button"><Plus size={16} />{actions[0]}</button>}</div>
       </div>
       <div className="module-stats">{module.stats.map(([label, value, trend]) => <div className="module-stat" key={label}><span>{label}</span><strong>{value}</strong>{trend && <small className={trend.startsWith('-') ? 'negative' : 'positive'}>{trend.startsWith('-') ? <ArrowDownRight size={13} /> : <ArrowUpRight size={13} />}{trend.replace('-', '')}</small>}</div>)}</div>
       {searchable && <div className="module-toolbar"><div className="module-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${module.title.toLowerCase()}...`} /></div><div className="toolbar-actions"><button type="button" className="secondary-button"><SlidersHorizontal size={15} /> Filters</button><button type="button" className="secondary-button">This month</button></div></div>}
