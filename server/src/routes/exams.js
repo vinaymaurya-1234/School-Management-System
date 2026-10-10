@@ -46,9 +46,9 @@ router.get("/results", async (req, res, next) => {
     }
     let studentIds = [];
     if (req.user.role === ROLES.STUDENT) {
-      const profile = await Student.findOne({ user: req.user._id, school: req.user.school }).select("_id name admissionNumber").lean();
+      const profile = await Student.findOne({ user: req.user._id, school: req.user.school }).select("user").lean();
       if (!profile) return res.json({ results: [] });
-      studentIds = [profile._id];
+      studentIds = [profile.user];
     } else {
       const parent = await Parent.findOne({ user: req.user._id, school: req.user.school }).select("children").lean();
       if (!parent?.children?.length) return res.json({ results: [] });
