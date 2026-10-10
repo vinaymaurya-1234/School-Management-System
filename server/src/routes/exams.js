@@ -38,6 +38,52 @@ async function loadExamForMarks(req, res) {
   return exam;
 }
 
+router.get("/results", async (req, res, next) => {
+  try {
+    if (![ROLES.STUDENT, ROLES.PARENT].includes(req.user.role)) {
+      return res.status(403).json({ message: "Published results are available only to students and parents" });
+    }
+    let studentIds = [];
+    if (req.user.role === ROLES.STUDENT) {
+      const profile = await Student.findOne({ user: req.user._id, school: req.user.school }).select("_id name admissionNumber").lean();
+      if (!profile) return res.json({ results: [] });
+      studentIds = [profile._id];
+    } else {
+      const parent = await Parent.findOne({ user: req.user._id, school: req.user.school }).select("children").lean();
+      if (!parent?.children?.length) return res.json({ results: [] });
+      studentIds = parent.children;
+    }
+
+    const records = await StudentMarks.find({
+      school: req.user.school,
+      student: { $in: studentIds },
+      status: "published",
+    }).populate({
+      path: "exam",
+      select: "subjectName class section scheduledAt maxMarks academicYear",
+      populate: [{ path: "class", select: "name" }, { path: "section", select: "name" }],
+    }).populate("student", "name admissionNumber").sort({ createdAt: -1 }).lean();
+
+    const results = records.filter((record) => record.exam && record.student).map((record) => ({
+      id: String(record._id),
+      studentId: String(record.student._id),
+      studentName: record.student.name,
+      admissionNumber: record.student.admissionNumber || "",
+      subjectName: record.exam.subjectName,
+      className: record.exam.class?.name || "",
+      sectionName: record.exam.section?.name || "",
+      examDate: record.exam.scheduledAt,
+      marksObtained: record.marksObtained,
+      maxMarks: record.maxMarks || record.exam.maxMarks || 100,
+      remarks: record.remarks || "",
+      publishedAt: record.updatedAt,
+    }));
+    res.json({ results });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/:id/marks", async (req, res, next) => {
   try {
     if (![ROLES.TEACHER, ROLES.PRINCIPAL].includes(req.user.role)) {
