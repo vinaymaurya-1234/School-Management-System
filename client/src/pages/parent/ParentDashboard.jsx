@@ -290,6 +290,7 @@ function ParentDashboard() {
       <div className="parent-actions" aria-label="Parent academic links">
         <Link to="/module/timetable" className="parent-action"><span className="parent-action-icon"><LayoutGrid size={16} /></span>Timetable</Link>
         <Link to="/module/exams" className="parent-action"><span className="parent-action-icon"><CalendarDays size={16} /></span>Exam timetable</Link>
+        <Link to="/module/results" className="parent-action"><span className="parent-action-icon"><CheckCircle2 size={16} /></span>Published results</Link>
       </div>
     </div>
   )
