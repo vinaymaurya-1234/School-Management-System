@@ -136,8 +136,11 @@ function TeacherDashboard() {
             {networkOk ? <Wifi size={17} /> : <WifiOff size={17} />}
             <span>{networkOk ? 'School network verified' : 'School network check'}</span>
           </div>
-          <Link className="teacher-primary-action" to="/module/attendance">
-            {attendanceMarked ? 'View attendance' : 'Mark attendance'} <ArrowRight size={16} />
+          <Link className="teacher-secondary-action" to="/module/attendance">
+            {attendanceMarked ? 'View my attendance' : 'Mark my attendance'} <ArrowRight size={16} />
+          </Link>
+          <Link className="teacher-primary-action teacher-class-attendance-action" to="/module/class-attendance">
+            Mark class attendance <ArrowRight size={16} />
           </Link>
         </div>
       </section>
