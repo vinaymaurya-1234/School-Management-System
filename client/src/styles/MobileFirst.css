@@ -238,3 +238,16 @@ button, .primary-button, .secondary-button, .teacher-primary-action,
   .dashboard-notice { overflow-wrap:anywhere; }
   .payment-table .table-row { min-width: 640px; }
 }
+
+/* Teacher-facing module pages use the neutral ink palette, not the principal's red accent. */
+.teacher-module-page .module-title-icon { background:#f0efed !important; color:#171717 !important; border-color:#deddda !important; box-shadow:none !important; }
+.teacher-module-page .module-add, .teacher-module-page .primary-button,
+.teacher-module-page button[class*="primary"] { background:#171717 !important; color:#fff !important; border-color:#171717 !important; box-shadow:none !important; }
+.teacher-module-page .module-add:hover, .teacher-module-page .primary-button:hover { background:#333 !important; }
+.teacher-module-page .module-stat:first-child { background:#fff !important; border-color:#e3e2de !important; }
+.teacher-module-page .module-stat:first-child strong { color:#171717 !important; }
+.teacher-module-page .module-toolbar { background:#fbfaf8 !important; }
+.teacher-module-page .variant-kicker { color:#737373 !important; }
+.teacher-module-page .variant-chip { background:#f0efed !important; color:#171717 !important; }
+.teacher-marks-action { background:#171717 !important; color:#fff !important; border-color:#171717 !important; }
+.teacher-marks-action:hover { background:#333 !important; }
