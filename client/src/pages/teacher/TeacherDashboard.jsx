@@ -142,6 +142,9 @@ function TeacherDashboard() {
           <Link className="teacher-primary-action teacher-class-attendance-action" to="/module/class-attendance">
             Mark class attendance <ArrowRight size={16} />
           </Link>
+          <Link className="teacher-primary-action teacher-marks-action" to="/module/exams">
+            Enter exam marks <ArrowRight size={16} />
+          </Link>
         </div>
       </section>
 
