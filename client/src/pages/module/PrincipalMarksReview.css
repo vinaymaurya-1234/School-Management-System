@@ -1,0 +1,33 @@
+.principal-marks-backdrop{position:fixed;inset:0;z-index:1601;display:grid;place-items:center;padding:20px;background:rgba(15,15,15,.58);backdrop-filter:blur(5px)}
+.principal-marks-modal{width:min(1120px,100%);max-height:92dvh;display:flex;flex-direction:column;overflow:hidden;border:1px solid #dededb;border-radius:20px;background:#fbfbfa;color:#171717;box-shadow:0 28px 90px rgba(0,0,0,.28)}
+.principal-marks-head{display:flex;align-items:center;gap:14px;padding:22px 24px;border-bottom:1px solid #e8e7e4;background:#fff}
+.principal-marks-icon{width:46px;height:46px;flex:0 0 46px;display:grid;place-items:center;border:1px solid #e1e0dc;border-radius:13px;background:#f3f2ef;color:#171717}
+.principal-marks-head>div:nth-child(2){flex:1;min-width:0}
+.principal-marks-kicker{display:block;color:#737373;font-size:10px;font-weight:800;letter-spacing:.15em}
+.principal-marks-head h2{margin:5px 0 3px;font-size:24px;letter-spacing:-.7px}
+.principal-marks-head p{margin:0;color:#737373;font-size:13px;line-height:1.5}
+.principal-marks-head>button{width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;border:1px solid #e3e2df;border-radius:11px;background:#fff;color:#171717}
+.principal-marks-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:16px 24px}
+.principal-marks-summary>div{display:flex;flex-direction:column;gap:5px;padding:13px 15px;border:1px solid #e5e4e1;border-radius:12px;background:#fff}
+.principal-marks-summary span{color:#777;font-size:11px;font-weight:650}
+.principal-marks-summary strong{font-size:22px}
+.principal-marks-alert,.principal-marks-notice{display:flex;align-items:center;gap:8px;margin:0 24px 12px;padding:11px 13px;border:1px solid #d8d7d2;border-radius:10px;background:#f4f3f0;color:#252525;font-size:13px}
+.principal-marks-table-wrap{flex:1;min-height:100px;overflow:auto;border-block:1px solid #e6e5e2;background:#fff}
+.principal-marks-table{width:100%;border-collapse:collapse;text-align:left;font-size:13px}
+.principal-marks-table th{position:sticky;top:0;padding:12px 15px;background:#f0efec;color:#686868;font-size:10px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.principal-marks-table td{padding:12px 15px;border-top:1px solid #ededea;vertical-align:middle}
+.principal-marks-table td:first-child{min-width:170px}
+.principal-marks-outof{color:#777}
+.principal-marks-status{display:inline-flex;padding:5px 8px;border:1px solid #e0dfda;border-radius:7px;background:#f3f2ef;color:#555;font-size:10px;font-weight:800;text-transform:capitalize;white-space:nowrap}
+.principal-marks-status.submitted{background:#efeeeb;color:#171717}
+.principal-marks-status.approved{background:#e8e7e2;color:#171717}
+.principal-marks-status.published{background:#171717;color:#fff;border-color:#171717}
+.principal-marks-loading{display:flex;align-items:center;justify-content:center;gap:10px;min-height:160px;color:#777;font-size:13px}
+.principal-marks-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 24px;background:#fff}
+.principal-marks-footer>span{max-width:430px;color:#737373;font-size:11px;line-height:1.5}
+.principal-marks-footer>div{display:flex;align-items:center;gap:9px}
+.principal-marks-secondary,.principal-marks-primary{min-height:42px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 14px;border:1px solid #d9d8d4;border-radius:10px;background:#fff;color:#171717;font-size:12px;font-weight:750;white-space:nowrap}
+.principal-marks-primary{border-color:#171717;background:#171717;color:#fff}
+.principal-marks-primary:hover{background:#333}
+.principal-marks-published{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800}
+@media(max-width:700px){.principal-marks-backdrop{padding:0;place-items:end center}.principal-marks-modal{width:100%;max-height:94dvh;border-radius:20px 20px 0 0}.principal-marks-head{padding:16px}.principal-marks-head h2{font-size:21px}.principal-marks-summary{padding:12px 16px;gap:8px}.principal-marks-summary>div{padding:11px}.principal-marks-summary strong{font-size:20px}.principal-marks-alert,.principal-marks-notice{margin-inline:16px}.principal-marks-table{min-width:720px}.principal-marks-footer{align-items:stretch;flex-direction:column;padding:14px 16px}.principal-marks-footer>div{display:grid;grid-template-columns:1fr 1fr}.principal-marks-footer>span{max-width:none}}
