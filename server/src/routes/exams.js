@@ -86,6 +86,7 @@ router.get("/:id/marks", async (req, res, next) => {
         maxMarks: exam.maxMarks || 100,
       },
       students,
+      locked: records.some((item) => ["approved", "published"].includes(item.status)),
       summary: {
         total: students.length,
         entered: students.filter((item) => item.status !== "not-entered").length,
