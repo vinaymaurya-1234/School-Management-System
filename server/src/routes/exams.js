@@ -276,12 +276,24 @@ router.get("/", async (req, res, next) => {
       if (req.query.sectionId) assignmentFilter.section = req.query.sectionId;
       const assignments = await TeacherAssignment.find(assignmentFilter).populate("subject", "name");
       const assignedExamScopes = assignments.filter((item) => item.subject?.name).map((item) => ({
-        class: item.class,
-        section: item.section,
-        subjectName: item.subject.name,
+        classId: String(item.class),
+        sectionId: String(item.section),
+        subjectName: String(item.subject.name).trim().toLowerCase(),
       }));
       if (!assignedExamScopes.length) return res.json({ exams: [], academicYear: year });
-      filter.$or = assignedExamScopes;
+      filter.$or = [...new Map(assignedExamScopes.map((item) => [`${item.classId}:${item.sectionId}`, { class: item.classId, section: item.sectionId }])).values()];
+      const scheduled = await Exam.find(filter)
+        .populate("class", "name")
+        .populate("section", "name")
+        .sort({ scheduledAt: 1, subjectName: 1 });
+      const allowedSubjects = new Map();
+      for (const item of assignedExamScopes) {
+        const key = `${item.classId}:${item.sectionId}`;
+        if (!allowedSubjects.has(key)) allowedSubjects.set(key, new Set());
+        allowedSubjects.get(key).add(item.subjectName);
+      }
+      const exams = scheduled.filter((exam) => allowedSubjects.get(`${String(exam.class?._id)}:${String(exam.section?._id)}`)?.has(String(exam.subjectName || "").trim().toLowerCase()));
+      return res.json({ exams, academicYear: year });
     }
 
     const exams = await Exam.find(filter)
