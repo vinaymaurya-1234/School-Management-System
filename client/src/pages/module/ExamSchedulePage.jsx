@@ -240,7 +240,7 @@ function ExamSchedulePage() {
         <div className="exam-quick-actions-heading"><span className="exam-eyebrow">QUICK ACTIONS</span><h2>Assessment workspace</h2><p>Start a supported action or see which workflows still need to be connected.</p></div>
         <div className="exam-quick-actions-grid">
           <button type="button" className="exam-quick-action" onClick={openForm}><span className="exam-quick-action-icon"><Plus size={18} /></span><span><strong>Schedule exams</strong><small>Create a class and section timetable</small></span><span className="exam-quick-action-arrow">↗</span></button>
-          <div className="exam-quick-action is-unavailable"><span className="exam-quick-action-icon"><FileText size={18} /></span><span><strong>Marks management</strong><small>Not connected to a marks-entry workflow yet</small></span></div>
+          <div className="exam-quick-action is-unavailable"><span className="exam-quick-action-icon"><FileText size={18} /></span><span><strong>Marks management</strong><small>Teachers can enter marks from their assigned exam schedule</small></span></div>
           <div className="exam-quick-action is-unavailable"><span className="exam-quick-action-icon"><Check size={18} /></span><span><strong>Results & reports</strong><small>Not connected to results records yet</small></span></div>
         </div>
       </section>}
