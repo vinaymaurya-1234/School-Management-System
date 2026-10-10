@@ -31,6 +31,7 @@ const examSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    maxMarks: { type: Number, required: true, min: 1, max: 1000, default: 100 },
     // scheduledAt is the exam start time.
     scheduledAt: {
       type: Date,
