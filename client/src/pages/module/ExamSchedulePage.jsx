@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import apiClient from '../../api/client'
 import './ExamSchedulePage.css'
 import TeacherMarksEntry from './TeacherMarksEntry'
+import PrincipalMarksReview from './PrincipalMarksReview'
 
 const idOf = (value) => value?._id || value
 const formatDate = (value) => value ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
@@ -19,6 +20,7 @@ function ExamSchedulePage() {
   const [exams, setExams] = useState([])
   const [teacherAssignments, setTeacherAssignments] = useState([])
   const [marksExam, setMarksExam] = useState(null)
+  const [reviewExam, setReviewExam] = useState(null)
   const [selectedClass, setSelectedClass] = useState('')
   const [selectedSection, setSelectedSection] = useState('')
   const [query, setQuery] = useState('')
@@ -96,6 +98,13 @@ function ExamSchedulePage() {
     const time = new Date(exam.scheduledAt).getTime()
     return time >= dayStart.getTime() && time < nextDay.getTime()
   }), [exams, dayStart, nextDay])
+  const examDateHasArrived = (exam) => {
+    const scheduledDate = new Date(exam.scheduledAt)
+    const today = new Date()
+    today.setHours(23, 59, 59, 999)
+    return scheduledDate <= today
+  }
+
   const canEnterMarks = (exam) => {
     if (user?.role !== 'teacher') return false
     const examClass = idOf(exam.class)
@@ -106,10 +115,7 @@ function ExamSchedulePage() {
       idOf(item.section) === examSection &&
       String(item.subject?.name || '').trim().toLowerCase() === subjectName
     )
-    const examDay = new Date(exam.scheduledAt)
-    const today = new Date()
-    today.setHours(23, 59, 59, 999)
-    return assigned && examDay <= today
+    return assigned && examDateHasArrived(exam)
   }
 
   const classCount = new Set(exams.map((exam) => idOf(exam.class)).filter(Boolean)).size
@@ -241,18 +247,19 @@ function ExamSchedulePage() {
           </div>
           <span className="exam-register-hint">{loading ? 'Loading records…' : `${visibleExams.length} shown`}</span>
         </div>
-        {loading ? <div className="exam-loading"><Loader2 className="spin" size={20} /> Loading schedule...</div> : visibleExams.length ? <div className="exam-list">{visibleExams.map((exam) => <article className="exam-row" key={exam._id}><div className="exam-date"><strong>{new Date(exam.scheduledAt).toLocaleDateString('en-IN', { day: '2-digit' })}</strong><span>{new Date(exam.scheduledAt).toLocaleDateString('en-IN', { month: 'short' })}</span></div><div className="exam-main"><div className="exam-subject">{exam.subjectName}</div><div className="exam-meta"><span>Class {exam.class?.name}</span><span>Section {exam.section?.name}</span><span>{formatDate(exam.scheduledAt)}</span></div></div><div className="exam-time"><Clock3 size={15} /><strong>{formatTime(exam.scheduledAt)}{exam.endsAt ? ` – ${formatTime(exam.endsAt)}` : ''}</strong></div>{user?.role === 'teacher' && canEnterMarks(exam) && <button className="exam-enter-marks" type="button" onClick={() => setMarksExam(exam)}><FileText size={15} /> Enter marks</button>}{isPrincipal && <button className="exam-delete" type="button" onClick={() => removeExam(exam)} aria-label="Remove exam"><Trash2 size={16} /></button>}</article>)}</div> : <div className="exam-empty"><div><CalendarDays size={22} /></div><h3>{viewFilter === 'completed' ? 'No past exams found' : viewFilter === 'upcoming' ? 'No upcoming exams' : 'No exams scheduled'}</h3><p>{isPrincipal ? 'Create the first exam using the Schedule exams button.' : 'No exam has been scheduled for the classes available to you yet.'}</p></div>}</section>
+        {loading ? <div className="exam-loading"><Loader2 className="spin" size={20} /> Loading schedule...</div> : visibleExams.length ? <div className="exam-list">{visibleExams.map((exam) => <article className="exam-row" key={exam._id}><div className="exam-date"><strong>{new Date(exam.scheduledAt).toLocaleDateString('en-IN', { day: '2-digit' })}</strong><span>{new Date(exam.scheduledAt).toLocaleDateString('en-IN', { month: 'short' })}</span></div><div className="exam-main"><div className="exam-subject">{exam.subjectName}</div><div className="exam-meta"><span>Class {exam.class?.name}</span><span>Section {exam.section?.name}</span><span>{formatDate(exam.scheduledAt)}</span></div></div><div className="exam-time"><Clock3 size={15} /><strong>{formatTime(exam.scheduledAt)}{exam.endsAt ? ` – ${formatTime(exam.endsAt)}` : ''}</strong></div>{user?.role === 'teacher' && canEnterMarks(exam) && <button className="exam-enter-marks" type="button" onClick={() => setMarksExam(exam)}><FileText size={15} /> Enter marks</button>}{isPrincipal && examDateHasArrived(exam) && <button className="exam-enter-marks" type="button" onClick={() => setReviewExam(exam)}><Check size={15} /> Review marks</button>}{isPrincipal && <button className="exam-delete" type="button" onClick={() => removeExam(exam)} aria-label="Remove exam"><Trash2 size={16} /></button>}</article>)}</div> : <div className="exam-empty"><div><CalendarDays size={22} /></div><h3>{viewFilter === 'completed' ? 'No past exams found' : viewFilter === 'upcoming' ? 'No upcoming exams' : 'No exams scheduled'}</h3><p>{isPrincipal ? 'Create the first exam using the Schedule exams button.' : 'No exam has been scheduled for the classes available to you yet.'}</p></div>}</section>
 
       {isPrincipal && <section className="exam-quick-actions" aria-label="Assessment quick actions">
         <div className="exam-quick-actions-heading"><span className="exam-eyebrow">QUICK ACTIONS</span><h2>Assessment workspace</h2><p>Start a supported action or see which workflows still need to be connected.</p></div>
         <div className="exam-quick-actions-grid">
           <button type="button" className="exam-quick-action" onClick={openForm}><span className="exam-quick-action-icon"><Plus size={18} /></span><span><strong>Schedule exams</strong><small>Create a class and section timetable</small></span><span className="exam-quick-action-arrow">↗</span></button>
-          <div className="exam-quick-action is-unavailable"><span className="exam-quick-action-icon"><FileText size={18} /></span><span><strong>Marks management</strong><small>Teachers can enter marks from their assigned exam schedule</small></span></div>
+          <div className="exam-quick-action is-unavailable"><span className="exam-quick-action-icon"><FileText size={18} /></span><span><strong>Marks management</strong><small>Review submitted marks from each completed exam row</small></span></div>
           <div className="exam-quick-action is-unavailable"><span className="exam-quick-action-icon"><Check size={18} /></span><span><strong>Results & reports</strong><small>Not connected to results records yet</small></span></div>
         </div>
       </section>}
 
       {marksExam && <TeacherMarksEntry exam={marksExam} onClose={() => setMarksExam(null)} />}
+      {reviewExam && <PrincipalMarksReview exam={reviewExam} onClose={() => setReviewExam(null)} />}
 
       {isPrincipal && showForm && <div className="exam-modal-backdrop"><div className="exam-modal exam-bulk-modal"><div className="exam-modal-head"><div><span className="exam-eyebrow">BULK ASSESSMENT SETUP</span><h2>Schedule class exams</h2><p>Select one class and section, then add all subjects with their individual dates and time windows.</p></div><button className="exam-close" onClick={() => setShowForm(false)}><X size={17} /></button></div>
         <div className="exam-form exam-bulk-form">
