@@ -266,6 +266,25 @@ router.get("/", async (req, res, next) => {
       filter.section = req.query.sectionId;
     }
 
+    if (req.user.role === ROLES.TEACHER) {
+      const assignmentFilter = {
+        school: req.user.school,
+        academicYear: year._id,
+        teacher: req.user._id,
+        status: "active",
+      };
+      if (req.query.classId) assignmentFilter.class = req.query.classId;
+      if (req.query.sectionId) assignmentFilter.section = req.query.sectionId;
+      const assignments = await TeacherAssignment.find(assignmentFilter).populate("subject", "name");
+      const assignedExamScopes = assignments.filter((item) => item.subject?.name).map((item) => ({
+        class: item.class,
+        section: item.section,
+        subjectName: item.subject.name,
+      }));
+      if (!assignedExamScopes.length) return res.json({ exams: [], academicYear: year });
+      filter.$or = assignedExamScopes;
+    }
+
     const exams = await Exam.find(filter)
       .populate("class", "name")
       .populate("section", "name")
