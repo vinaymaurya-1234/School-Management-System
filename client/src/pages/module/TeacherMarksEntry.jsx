@@ -7,6 +7,7 @@ function TeacherMarksEntry({ exam, onClose }) {
   const [students, setStudents] = useState([])
   const [maxMarks, setMaxMarks] = useState(exam?.maxMarks || 100)
   const [summary, setSummary] = useState({ total: 0, entered: 0, submitted: 0 })
+  const [locked, setLocked] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -19,6 +20,7 @@ function TeacherMarksEntry({ exam, onClose }) {
         if (!active) return
         setStudents((data.students || []).map((student) => ({ ...student, marksObtained: student.marksObtained === '' ? '' : String(student.marksObtained) })))
         setMaxMarks(data.exam?.maxMarks || 100)
+        setLocked(Boolean(data.locked))
         setSummary(data.summary || { total: 0, entered: 0, submitted: 0 })
       })
       .catch((err) => { if (active) setError(err.response?.data?.message || 'Could not load the student register.') })
@@ -71,7 +73,7 @@ function TeacherMarksEntry({ exam, onClose }) {
         </div>
         {error && <div className="marks-entry-alert error" role="alert">{error}</div>}
         {notice && <div className="marks-entry-alert success" role="status"><CheckCircle2 size={16} />{notice}</div>}
-        <div className="marks-entry-instructions">Enter each student's marks out of <strong>{maxMarks}</strong>. Saving as draft does not submit the marks for review.</div>
+        <div className="marks-entry-instructions">{locked ? 'These marks have been approved or published. Editing is locked.' : <>Enter each student's marks out of <strong>{maxMarks}</strong>. Saving as draft does not submit the marks for review.</>}</div>
         {loading ? <div className="marks-entry-loading"><Loader2 size={20} className="marks-entry-spin" /> Loading class register…</div> : students.length ? (
           <div className="marks-entry-table-wrap">
             <table className="marks-entry-table">
@@ -79,15 +81,15 @@ function TeacherMarksEntry({ exam, onClose }) {
               <tbody>{students.map((student) => <tr key={student.studentId}>
                 <td><strong>{student.name}</strong><small>{student.status === 'submitted' ? 'Submitted' : student.status === 'draft' ? 'Draft saved' : 'Not entered'}</small></td>
                 <td>{student.admissionNumber || '—'}</td>
-                <td><input aria-label={`Marks for ${student.name}`} type="number" min="0" max={maxMarks} step="0.5" inputMode="decimal" placeholder="—" value={student.marksObtained} onChange={(event) => updateStudent(student.studentId, 'marksObtained', event.target.value)} disabled={saving} /></td>
-                <td><input aria-label={`Remarks for ${student.name}`} type="text" maxLength="300" placeholder="Optional note" value={student.remarks} onChange={(event) => updateStudent(student.studentId, 'remarks', event.target.value)} disabled={saving} /></td>
+                <td><input aria-label={`Marks for ${student.name}`} type="number" min="0" max={maxMarks} step="0.5" inputMode="decimal" placeholder="—" value={student.marksObtained} onChange={(event) => updateStudent(student.studentId, 'marksObtained', event.target.value)} disabled={saving || locked} /></td>
+                <td><input aria-label={`Remarks for ${student.name}`} type="text" maxLength="300" placeholder="Optional note" value={student.remarks} onChange={(event) => updateStudent(student.studentId, 'remarks', event.target.value)} disabled={saving || locked} /></td>
               </tr>)}</tbody>
             </table>
           </div>
         ) : <div className="marks-entry-empty">No active students are enrolled in this class and section for the selected academic year.</div>}
         <footer className="marks-entry-footer">
           <span className="marks-entry-footer-note">Submitted marks are sent to the principal for review.</span>
-          <div><button type="button" className="marks-entry-secondary" onClick={() => save(false)} disabled={loading || saving || !students.length}><Save size={16} />{saving ? 'Saving…' : 'Save draft'}</button><button type="button" className="marks-entry-primary" onClick={() => save(true)} disabled={loading || saving || !students.length}><Send size={16} />{saving ? 'Submitting…' : 'Submit marks'}</button></div>
+          <div><button type="button" className="marks-entry-secondary" onClick={() => save(false)} disabled={loading || saving || locked || !students.length}><Save size={16} />{saving ? 'Saving…' : 'Save draft'}</button><button type="button" className="marks-entry-primary" onClick={() => save(true)} disabled={loading || saving || locked || !students.length}><Send size={16} />{saving ? 'Submitting…' : 'Submit marks'}</button></div>
         </footer>
       </section>
     </div>
