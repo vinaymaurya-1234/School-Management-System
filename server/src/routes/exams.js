@@ -90,6 +90,8 @@ router.get("/:id/marks", async (req, res, next) => {
         total: students.length,
         entered: students.filter((item) => item.status !== "not-entered").length,
         submitted: students.filter((item) => item.status === "submitted").length,
+        approved: students.filter((item) => item.status === "approved").length,
+        published: students.filter((item) => item.status === "published").length,
       },
     });
   } catch (error) {
