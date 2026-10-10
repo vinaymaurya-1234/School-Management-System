@@ -365,6 +365,43 @@ router.post("/", async (req, res, next) => {
   }
 });
 
+router.put("/:id/marks/review", async (req, res, next) => {
+  try {
+    if (req.user.role !== ROLES.PRINCIPAL) return res.status(403).json({ message: "Only the principal can review or publish marks" });
+    const exam = await Exam.findOne({ _id: req.params.id, school: req.user.school });
+    if (!exam) return res.status(404).json({ message: "Exam not found" });
+    const action = req.body?.action;
+    if (!["approve", "publish"].includes(action)) return res.status(400).json({ message: "Choose approve or publish" });
+
+    const enrollments = await StudentEnrollment.find({
+      school: req.user.school,
+      academicYear: exam.academicYear,
+      class: exam.class,
+      section: exam.section,
+      status: "active",
+    }).select("student");
+    const studentIds = enrollments.map((item) => item.student);
+    const records = await StudentMarks.find({ school: req.user.school, exam: exam._id, student: { $in: studentIds } });
+    if (!studentIds.length || records.length !== studentIds.length) {
+      return res.status(400).json({ message: "Every active student must have marks entered before review" });
+    }
+    if (action === "approve") {
+      if (records.some((item) => !["submitted", "approved"].includes(item.status))) {
+        return res.status(400).json({ message: "All marks must be submitted by the teacher before approval" });
+      }
+      await StudentMarks.updateMany({ school: req.user.school, exam: exam._id, student: { $in: studentIds }, status: "submitted" }, { $set: { status: "approved" } });
+      return res.json({ message: "Marks approved. You can now publish the results.", status: "approved" });
+    }
+    if (records.some((item) => item.status !== "approved" && item.status !== "published")) {
+      return res.status(400).json({ message: "Approve all submitted marks before publishing results" });
+    }
+    await StudentMarks.updateMany({ school: req.user.school, exam: exam._id, student: { $in: studentIds }, status: "approved" }, { $set: { status: "published" } });
+    res.json({ message: "Results published for students in this class and section", status: "published" });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.delete("/:id", async (req, res, next) => {
   try {
     if (req.user.role !== ROLES.PRINCIPAL) {
