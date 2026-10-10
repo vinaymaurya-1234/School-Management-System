@@ -211,6 +211,10 @@ router.put("/:id/marks", async (req, res, next) => {
 
     exam.maxMarks = maxMarks;
     await exam.save();
+    await StudentMarks.updateMany(
+      { school: req.user.school, exam: exam._id, status: { $in: ["draft", "submitted"] } },
+      { $set: { maxMarks } },
+    );
     const status = submit ? "submitted" : "draft";
     const submittedAt = submit ? new Date() : null;
     await Promise.all(marks.map((item) => StudentMarks.findOneAndUpdate(
