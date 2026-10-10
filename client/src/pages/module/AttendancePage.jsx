@@ -81,7 +81,7 @@ function AttendancePage() {
         setChildren(nextChildren)
         if (!selectedChild && nextChildren[0]) setSelectedChild(nextChildren[0]._id)
       }
-      if (!selectedClass && results[0].data.classes?.[0]) setSelectedClass(results[0].data.classes[0]._id)
+      if (!isTeacher && !selectedClass && results[0].data.classes?.[0]) setSelectedClass(results[0].data.classes[0]._id)
     } catch (err) { setError(err.response?.data?.message || 'Unable to load attendance setup.') }
   }
 
