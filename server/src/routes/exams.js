@@ -336,13 +336,13 @@ router.post("/", async (req, res, next) => {
       return res.status(403).json({ message: "Only the principal can create exams" });
     }
 
-    const { academicYear, classId, sectionId, subjectName, scheduledAt, endsAt } = req.body || {};
+    const { academicYear, classId, sectionId, subjectName, maxMarks, scheduledAt, endsAt } = req.body || {};
     const result = await validateExamItems({
       school: req.user.school,
       academicYear,
       classId,
       sectionId,
-      items: [{ subjectName, scheduledAt, endsAt }],
+      items: [{ subjectName, maxMarks, scheduledAt, endsAt }],
     });
     if (result.error) return res.status(result.error[0]).json({ message: result.error[1] });
 
