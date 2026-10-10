@@ -42,7 +42,11 @@ function ExamSchedulePage() {
     setYear(active || null)
     if (!active) return
     if (user?.role === 'teacher') {
-      const assignmentResponse = await apiClient.get('/academic/teacher-assignments', { params: { academicYear: active._id } })
+      const [assignmentResponse, classResponse, sectionResponse] = await Promise.all([
+        apiClient.get('/academic/teacher-assignments', { params: { academicYear: active._id } }),
+        apiClient.get('/academic/classes', { params: { academicYear: active._id } }),
+        apiClient.get('/academic/sections', { params: { academicYear: active._id } }),
+      ])
       const assigned = assignmentResponse.data.assignments || []
       setTeacherAssignments(assigned)
       const classMap = new Map()
@@ -51,8 +55,10 @@ function ExamSchedulePage() {
         if (item.class?._id) classMap.set(item.class._id, item.class)
         if (item.section?._id) sectionMap.set(item.section._id, item.section)
       })
-      setClasses([...classMap.values()])
-      setSections([...sectionMap.values()])
+      // Keep assignments as the source of truth, but use class/section lists as a fallback
+      // for legacy assignment responses where populated references are missing.
+      setClasses(classMap.size ? [...classMap.values()] : (classResponse.data.classes || []).filter((item) => assigned.some((assignment) => idOf(assignment.class) === item._id)))
+      setSections(sectionMap.size ? [...sectionMap.values()] : (sectionResponse.data.sections || []).filter((item) => assigned.some((assignment) => idOf(assignment.section) === item._id)))
     } else {
       const [classResponse, sectionResponse] = await Promise.all([
         apiClient.get('/academic/classes', { params: { academicYear: active._id } }),
@@ -79,7 +85,7 @@ function ExamSchedulePage() {
     ;(async () => {
       setLoading(true)
       setError('')
-      try { await loadSetup() } catch (err) { if (!cancelled) setError(err.response?.data?.message || 'Unable to load exam setup.') }
+      try { await loadSetup() } catch (err) { if (!cancelled) setError(err.response?.data?.message || `Unable to load exam setup (HTTP ${err.response?.status || 'network error'}). Check that the backend is running and VITE_API_URL points to it.`) }
       finally { if (!cancelled) setLoading(false) }
     })()
     return () => { cancelled = true }
