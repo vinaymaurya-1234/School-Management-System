@@ -235,7 +235,8 @@ router.get("/teacher-assignments", async (req, res, next) => {
   try {
     const filter = { school: req.user.school, status: "active" };
     if (req.query.academicYear) filter.academicYear = req.query.academicYear;
-    if (req.query.teacherId) filter.teacher = req.query.teacherId;
+    if (req.user.role === ROLES.TEACHER) filter.teacher = req.user._id;
+    else if (req.query.teacherId) filter.teacher = req.query.teacherId;
     if (req.query.classId) filter.class = req.query.classId;
     if (req.query.sectionId) filter.section = req.query.sectionId;
     const assignments = await TeacherAssignment.find(filter).populate("teacher", "name email").populate("class", "name order").populate("section", "name").populate("subject", "name code").sort({ createdAt: 1 });
