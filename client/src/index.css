@@ -389,3 +389,13 @@ input:focus, select:focus, textarea:focus {
 .premium-topbar .nav-pill.active, .premium-topbar .nav-dropdown-item.active { color:#171717 !important; background:#f1f0ed !important; }
 .premium-topbar .nav-dropdown-icon { color:#171717 !important; background:#f1f0ed !important; }
 .premium-topbar .notification-dot { background:#171717 !important; }
+
+/* Teacher role chrome uses the same black accent as the redesigned workspace */
+.sidebar-teacher .brand-mark,
+.sidebar-teacher .school-status,
+.sidebar-teacher .nav-item.active .nav-icon,
+.sidebar-teacher .nav-item[aria-current="page"] .nav-icon { color:#171717 !important; }
+.sidebar-teacher .nav-item.active,
+.sidebar-teacher .nav-item[aria-current="page"] { background:#f1f0ed !important; color:#171717 !important; }
+.teacher-dashboard a:focus-visible,
+.teacher-module-page button:focus-visible { outline:2px solid #737373; outline-offset:2px; }
