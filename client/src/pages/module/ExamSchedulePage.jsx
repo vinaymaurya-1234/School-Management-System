@@ -41,24 +41,26 @@ function ExamSchedulePage() {
     const active = years.find((item) => item.isActive) || years[0]
     setYear(active || null)
     if (!active) return
-    const [classResponse, sectionResponse] = await Promise.all([
-      apiClient.get('/academic/classes', { params: { academicYear: active._id } }),
-      apiClient.get('/academic/sections', { params: { academicYear: active._id } }),
-    ])
-    const allClasses = classResponse.data.classes || []
-    const allSections = sectionResponse.data.sections || []
     if (user?.role === 'teacher') {
-      const assignmentResponse = await apiClient.get('/academic/teacher-assignments', { params: { academicYear: active._id, teacherId: user.id } })
+      const assignmentResponse = await apiClient.get('/academic/teacher-assignments', { params: { academicYear: active._id } })
       const assigned = assignmentResponse.data.assignments || []
       setTeacherAssignments(assigned)
-      const classIds = new Set(assigned.map((item) => idOf(item.class)))
-      const sectionIds = new Set(assigned.map((item) => idOf(item.section)))
-      setClasses(allClasses.filter((item) => classIds.has(item._id)))
-      setSections(allSections.filter((item) => sectionIds.has(item._id)))
+      const classMap = new Map()
+      const sectionMap = new Map()
+      assigned.forEach((item) => {
+        if (item.class?._id) classMap.set(item.class._id, item.class)
+        if (item.section?._id) sectionMap.set(item.section._id, item.section)
+      })
+      setClasses([...classMap.values()])
+      setSections([...sectionMap.values()])
     } else {
+      const [classResponse, sectionResponse] = await Promise.all([
+        apiClient.get('/academic/classes', { params: { academicYear: active._id } }),
+        apiClient.get('/academic/sections', { params: { academicYear: active._id } }),
+      ])
       setTeacherAssignments([])
-      setClasses(allClasses)
-      setSections(allSections)
+      setClasses(classResponse.data.classes || [])
+      setSections(sectionResponse.data.sections || [])
     }
   }
 
