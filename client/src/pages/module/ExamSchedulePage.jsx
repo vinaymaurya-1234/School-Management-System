@@ -42,21 +42,28 @@ function ExamSchedulePage() {
     setYear(active || null)
     if (!active) return
     if (user?.role === 'teacher') {
-      const [assignmentResponse, classResponse, sectionResponse] = await Promise.all([
-        apiClient.get('/academic/teacher-assignments', { params: { academicYear: active._id } }),
+      const [classResponse, sectionResponse] = await Promise.all([
         apiClient.get('/academic/classes', { params: { academicYear: active._id } }),
         apiClient.get('/academic/sections', { params: { academicYear: active._id } }),
       ])
-      const assigned = assignmentResponse.data.assignments || []
+      let assigned = []
+      try {
+        const assignmentResponse = await apiClient.get('/academic/teacher-assignments', { params: { academicYear: active._id } })
+        assigned = assignmentResponse.data.assignments || []
+      } catch (assignmentError) {
+        // Do not block the entire exam schedule because the assignment-list request failed.
+        // The exams API independently enforces teacher assignment scope.
+        console.error('Unable to load teacher assignments:', assignmentError.response?.data || assignmentError.message)
+      }
       setTeacherAssignments(assigned)
       const classMap = new Map()
       const sectionMap = new Map()
       assigned.forEach((item) => {
-        if (item.class?._id) classMap.set(item.class._id, item.class)
-        if (item.section?._id) sectionMap.set(item.section._id, item.section)
+        const classItem = item.class && typeof item.class === 'object' ? item.class : null
+        const sectionItem = item.section && typeof item.section === 'object' ? item.section : null
+        if (classItem?._id) classMap.set(classItem._id, classItem)
+        if (sectionItem?._id) sectionMap.set(sectionItem._id, sectionItem)
       })
-      // Keep assignments as the source of truth, but use class/section lists as a fallback
-      // for legacy assignment responses where populated references are missing.
       setClasses(classMap.size ? [...classMap.values()] : (classResponse.data.classes || []).filter((item) => assigned.some((assignment) => idOf(assignment.class) === item._id)))
       setSections(sectionMap.size ? [...sectionMap.values()] : (sectionResponse.data.sections || []).filter((item) => assigned.some((assignment) => idOf(assignment.section) === item._id)))
     } else {
