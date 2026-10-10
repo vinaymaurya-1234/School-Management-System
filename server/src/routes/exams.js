@@ -1,10 +1,9 @@
 import { Router } from "express";
 import Exam from "../models/Exam.js";
 import StudentMarks from "../models/StudentMarks.js";
-import { TeacherAssignment } from "../models/Academic.js";
 import Parent from "../models/Parent.js";
 import Student from "../models/Student.js";
-import { AcademicYear, SchoolClass, Section, StudentEnrollment } from "../models/Academic.js";
+import { AcademicYear, SchoolClass, Section, StudentEnrollment, TeacherAssignment } from "../models/Academic.js";
 import { requireAuth } from "../middleware/auth.js";
 import { ROLES } from "../config/permissions.js";
 
