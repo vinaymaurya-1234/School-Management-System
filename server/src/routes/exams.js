@@ -104,6 +104,11 @@ router.put("/:id/marks", async (req, res, next) => {
     }
     const exam = await loadExamForMarks(req, res);
     if (!exam) return;
+    const examDay = new Date(exam.scheduledAt);
+    examDay.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (examDay > today) return res.status(400).json({ message: "Marks entry opens on the scheduled exam date" });
 
     const { marks, submit = false } = req.body || {};
     if (!Array.isArray(marks) || !marks.length) {
@@ -212,7 +217,7 @@ async function validateExamItems({ school, academicYear, classId, sectionId, ite
       return { error: [400, `Exam ${index + 1}: subject, start time and end time are required`] };
     }
 
-    const maxMarks = Number(item.maxMarks || 100);
+    const maxMarks = Number(item.maxMarks ?? 100);
     if (!Number.isFinite(maxMarks) || maxMarks < 1 || maxMarks > 1000) return { error: [400, `Exam ${index + 1}: maximum marks must be between 1 and 1000`] };
     const start = new Date(item.scheduledAt);
     const end = new Date(item.endsAt);
