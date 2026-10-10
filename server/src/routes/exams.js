@@ -52,7 +52,8 @@ router.get("/results", async (req, res, next) => {
     } else {
       const parent = await Parent.findOne({ user: req.user._id, school: req.user.school }).select("children").lean();
       if (!parent?.children?.length) return res.json({ results: [] });
-      studentIds = parent.children;
+      const childProfiles = await Student.find({ _id: { $in: parent.children }, school: req.user.school }).select("user").lean();
+      studentIds = childProfiles.map((child) => child.user).filter(Boolean);
     }
 
     const records = await StudentMarks.find({
@@ -63,13 +64,15 @@ router.get("/results", async (req, res, next) => {
       path: "exam",
       select: "subjectName class section scheduledAt maxMarks academicYear",
       populate: [{ path: "class", select: "name" }, { path: "section", select: "name" }],
-    }).populate("student", "name admissionNumber").sort({ createdAt: -1 }).lean();
+    }).populate("student", "name").sort({ createdAt: -1 }).lean();
+    const profiles = await Student.find({ school: req.user.school, user: { $in: studentIds } }).select("user admissionNumber").lean();
+    const admissionByUser = new Map(profiles.map((profile) => [String(profile.user), profile.admissionNumber || ""]));
 
     const results = records.filter((record) => record.exam && record.student).map((record) => ({
       id: String(record._id),
       studentId: String(record.student._id),
       studentName: record.student.name,
-      admissionNumber: record.student.admissionNumber || "",
+      admissionNumber: admissionByUser.get(String(record.student._id)) || "",
       subjectName: record.exam.subjectName,
       className: record.exam.class?.name || "",
       sectionName: record.exam.section?.name || "",
