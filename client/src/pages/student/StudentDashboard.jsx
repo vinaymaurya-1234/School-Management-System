@@ -222,7 +222,7 @@ function StudentDashboard() {
               <div><span>Attendance status</span><strong>{attendancePercentage >= 75 ? 'On track' : 'Needs attention'}</strong></div>
             </div>
           </div>
-          <Link className="student-outline-button" to="/module/attendance">View attendance <ArrowRight size={16} /></Link>
+          <div className="student-dashboard-links"><Link className="student-outline-button" to="/module/attendance">View attendance <ArrowRight size={16} /></Link><Link className="student-outline-button" to="/module/results">View published results <ArrowRight size={16} /></Link></div>
         </div>
       </section>
     </div>
