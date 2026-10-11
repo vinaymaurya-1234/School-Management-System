@@ -121,7 +121,7 @@ export const MODULES = {
   },
   results: {
     title: 'Results', eyebrow: 'ACADEMIC PERFORMANCE', description: 'Review published results, grades and student performance trends.', icon: BarChart3,
-    permissionByRole: { student: 'results.view.own', parent: 'results.view.children' },
+    permissionByRole: { principal: 'results.manage', student: 'results.view.own', parent: 'results.view.children' },
     stats: [['Overall average', '78.6%', '+3.1%'], ['Subjects cleared', '6/6', ''], ['Highest grade', 'A1', ''], ['Improvement', '+4.2%', '+4.2%']],
     columns: ['Subject', 'Assessment', 'Marks', 'Grade', 'Trend'],
     rows: [['Mathematics', 'Mid-term', '86/100', 'A1', 'Up'], ['Science', 'Mid-term', '79/100', 'A2', 'Up'], ['English', 'Mid-term', '82/100', 'A1', 'Stable'], ['Computer', 'Unit Test', '91/100', 'A1', 'Up'], ['Social Science', 'Mid-term', '74/100', 'B1', 'Up']],
