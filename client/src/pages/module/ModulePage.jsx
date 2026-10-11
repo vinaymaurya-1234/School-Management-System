@@ -375,8 +375,41 @@ function ModulePage({ moduleKey }) {
     if (user?.role === 'teacher') {
       if (teacherLoading) return <section className="module-variant-panel teacher-record-state"><strong>Loading your assigned records…</strong><span>Only records connected to your teacher account are shown.</span></section>
       if (teacherLoadError) return <section className="module-variant-panel teacher-record-state"><strong>Records could not be loaded</strong><span>{teacherLoadError}</span><button type="button" className="secondary-button" onClick={() => setQuery((value) => value)}>Retry after refreshing this page</button></section>
-      if (['students', 'my-students', 'my-classes'].includes(moduleKey)) {
-        return <section className="module-variant-panel directory-full-panel"><VariantHeader kicker="MY TEACHING" title={moduleKey === 'my-classes' ? 'Assigned classes' : 'Students in my assigned sections'} description="This list is limited to classes and sections assigned to your teacher account." chip={`${filteredRows.length} records`} /><DataTable columns={module.columns} rows={filteredRows} /></section>
+      if (moduleKey === 'my-classes') {
+        return (
+          <section className="teacher-classes-workspace">
+            <div className="teacher-classes-heading">
+              <div><span className="teacher-classes-eyebrow">YOUR TEACHING LOAD</span><h2>Classes you teach</h2><p>Only classes and sections assigned to your account are shown here.</p></div>
+              <span className="teacher-classes-count">{filteredRows.length} {filteredRows.length === 1 ? 'class' : 'classes'}</span>
+            </div>
+            {filteredRows.length ? (
+              <div className="teacher-classes-grid">
+                {filteredRows.map((row, index) => {
+                  const subjects = String(row[2] || '').split(',').map((subject) => subject.trim()).filter(Boolean)
+                  return (
+                    <article className="teacher-class-card" key={`${row[0]}-${row[1]}-${index}`}>
+                      <div className="teacher-class-card-top">
+                        <span className="teacher-class-symbol"><BookOpen size={21} /></span>
+                        <span className="teacher-class-status">{row[3] || 'Assigned'}</span>
+                      </div>
+                      <div className="teacher-class-name"><span>CLASS</span><h3>{row[0]}</h3><p>Section {row[1]}</p></div>
+                      <div className="teacher-class-subjects">
+                        <span>ASSIGNED SUBJECTS</span>
+                        <div>{subjects.length ? subjects.map((subject) => <span className="teacher-subject-chip" key={subject}>{subject}</span>) : <span className="teacher-class-empty">No subject listed</span>}</div>
+                      </div>
+                      <div className="teacher-class-card-footer"><span><Users size={15} /> Your assigned section</span><ChevronRight size={18} /></div>
+                    </article>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="teacher-classes-empty"><BookOpen size={26} /><strong>No classes assigned yet</strong><p>Your principal can assign classes, sections and subjects to your account.</p></div>
+            )}
+          </section>
+        )
+      }
+      if (['students', 'my-students'].includes(moduleKey)) {
+        return <section className="module-variant-panel directory-full-panel"><VariantHeader kicker="MY TEACHING" title="Students in my assigned sections" description="This list is limited to classes and sections assigned to your teacher account." chip={`${filteredRows.length} records`} /><DataTable columns={module.columns} rows={filteredRows} /></section>
       }
       return <section className="module-variant-panel teacher-record-state"><strong>No live records available here yet</strong><span>Demo records are hidden for teacher accounts. This section will show information once its school workflow is connected.</span></section>
     }
