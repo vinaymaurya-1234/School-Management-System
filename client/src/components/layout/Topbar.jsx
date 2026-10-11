@@ -27,7 +27,7 @@ const teacherTeachingItems = [
   { label: 'Class Attendance', href: '/module/class-attendance', hint: 'Mark daily student attendance' },
   { label: 'Timetable', href: '/module/timetable', hint: 'Your teaching schedule' },
   { label: 'Homework & Assignments', href: '/module/assignments', hint: 'Create and review classwork' },
-  { label: 'My Subjects', href: '/module/my-classes', hint: 'Subjects assigned to you' },
+  { label: 'My Students', href: '/module/my-students', hint: 'Students in your assigned classes' },
 ]
 const teacherWorkItems = [
   { label: 'Exam Schedule', href: '/module/exam-schedule', hint: 'Exams for your assigned classes' },
