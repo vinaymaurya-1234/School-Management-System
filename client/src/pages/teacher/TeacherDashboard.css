@@ -104,3 +104,14 @@
  .teacher-overview-card strong{font-size:23px}
  .teacher-overview-card span{font-size:10px}
 }
+
+/* Keep only the compact date card from the removed dashboard header. */
+.teacher-date-only{display:flex;justify-content:flex-end;margin:0 0 18px}
+.teacher-date-only .teacher-date-card{min-width:245px;box-shadow:none}
+@media(max-width:760px){
+ .teacher-date-only{margin-bottom:14px}
+ .teacher-date-only .teacher-date-card{width:auto;min-width:0;max-width:100%}
+}
+@media(max-width:440px){
+ .teacher-date-only .teacher-date-card{width:100%}
+}
