@@ -8,3 +8,31 @@
 .teacher-performance-name{display:grid;gap:3px;min-width:0;flex:1}.teacher-performance-name strong{font-size:11px;color:#222}.teacher-performance-name small{font-size:10px;color:#888}
 .teacher-performance-score{font-size:11px;font-weight:750;color:#333;white-space:nowrap}
 @media(max-width:720px){.teacher-performance-students{margin-left:0;width:100%}.teacher-performance-heading{flex-direction:column}.teacher-performance-student{gap:7px;flex-wrap:wrap}.teacher-performance-name{flex-basis:calc(100% - 42px)}.teacher-performance-score{margin-left:36px}}
+
+
+/* Cleaner assignment composer: clear hierarchy, compact fields, responsive layout. */
+.teacher-workspace:has(.teacher-message-form) .teacher-workspace-hero{padding-bottom:20px}
+.teacher-message-form{position:relative;gap:16px;margin-top:18px;padding:24px;overflow:visible;background:linear-gradient(180deg,#fff 0%,#fdfdfc 100%);box-shadow:0 10px 28px rgba(0,0,0,.035)}
+.teacher-message-form h2{margin:0 0 2px;font-size:22px;letter-spacing:-.65px}
+.teacher-message-form h2:after{content:"Add the details students need to complete the task.";display:block;margin-top:7px;color:#777;font-size:12px;font-weight:400;letter-spacing:0;line-height:1.5}
+.teacher-message-form label{gap:8px;color:#333;font-size:12px;font-weight:750}
+.teacher-message-form input,.teacher-message-form textarea{display:block;min-height:46px;padding:13px 14px;border:1px solid #dedede;border-radius:11px;background:#fbfbfa;color:#171717;font-family:inherit;font-size:13px;font-weight:450;line-height:1.5;transition:border-color .15s,box-shadow .15s,background .15s}
+.teacher-message-form input::placeholder,.teacher-message-form textarea::placeholder{color:#9a9a9a}
+.teacher-message-form input:focus,.teacher-message-form textarea:focus{border-color:#888;background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,.045)}
+.teacher-message-form textarea{min-height:125px;resize:vertical}
+.teacher-message-form button{min-width:150px;min-height:44px;margin-top:1px}
+.teacher-message-form button:disabled{opacity:.6;cursor:wait}
+@media(min-width:760px){
+  .teacher-message-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.72fr);align-items:start;column-gap:16px;row-gap:15px}
+  .teacher-message-form h2{grid-column:1/-1;padding-bottom:2px}
+  .teacher-message-form label:first-of-type{grid-column:1}
+  .teacher-message-form label:nth-of-type(2){grid-column:2;grid-row:2}
+  .teacher-message-form label:nth-of-type(3){grid-column:1/-1}
+  .teacher-message-form button{grid-column:1/-1;justify-self:start}
+}
+@media(max-width:759px){
+  .teacher-message-form{padding:17px;gap:14px}
+  .teacher-message-form h2{font-size:19px}
+  .teacher-message-form input,.teacher-message-form textarea{font-size:14px}
+  .teacher-message-form button{width:100%}
+}
