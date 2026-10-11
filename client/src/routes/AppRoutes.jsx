@@ -37,6 +37,7 @@ function ModuleRoute() {
     if (moduleKey === 'marks-review') return <TeacherWorkspacePage mode="review" />
     if (moduleKey === 'student-performance') return <TeacherWorkspacePage mode="performance" />
     if (moduleKey === 'parent-communication') return <TeacherWorkspacePage mode="communication" />
+    if (moduleKey === 'assignments') return <TeacherWorkspacePage mode="homework" />
     if (moduleKey === 'notices') return <TeacherWorkspacePage mode="notices" />
     if (moduleKey === 'events') return <TeacherWorkspacePage mode="events" />
   }
