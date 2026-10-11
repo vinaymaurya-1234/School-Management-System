@@ -103,6 +103,11 @@ function VariantHeader({ kicker, title, description, chip }) {
 function ModulePage({ moduleKey }) {
   const { user } = useAuth()
   const [teacherRows, setTeacherRows] = useState([])
+  const [teacherAssignments, setTeacherAssignments] = useState([])
+  const [teacherEnrollments, setTeacherEnrollments] = useState([])
+  const [selectedStudentClass, setSelectedStudentClass] = useState('all')
+  const [selectedStudentSection, setSelectedStudentSection] = useState('all')
+  const [studentTab, setStudentTab] = useState('all')
   const [teacherLoading, setTeacherLoading] = useState(false)
   const [teacherLoadError, setTeacherLoadError] = useState('')
   const [query, setQuery] = useState('')
@@ -117,6 +122,8 @@ function ModulePage({ moduleKey }) {
   useEffect(() => {
     if (user?.role !== 'teacher') {
       setTeacherRows([])
+      setTeacherAssignments([])
+      setTeacherEnrollments([])
       setTeacherLoadError('')
       return
     }
@@ -129,7 +136,7 @@ function ModulePage({ moduleKey }) {
         const years = yearResponse.data.years || []
         const year = years.find((item) => item.isActive) || years[0]
         if (!year) {
-          if (mounted) setTeacherRows([])
+          if (mounted) { setTeacherRows([]); setTeacherAssignments([]); setTeacherEnrollments([]) }
           return
         }
         const [assignmentResponse, enrollmentResponse] = await Promise.all([
@@ -139,6 +146,8 @@ function ModulePage({ moduleKey }) {
         if (!mounted) return
         const assignments = assignmentResponse.data.assignments || []
         const enrollments = enrollmentResponse.data.enrollments || []
+        setTeacherAssignments(assignments)
+        setTeacherEnrollments(enrollments)
         const sectionIds = new Set(assignments.map((item) => String(item.section?._id || item.section || '')).filter(Boolean))
         if (['students', 'my-students'].includes(moduleKey)) {
           setTeacherRows(enrollments
@@ -163,6 +172,8 @@ function ModulePage({ moduleKey }) {
       } catch (err) {
         if (mounted) {
           setTeacherRows([])
+          setTeacherAssignments([])
+          setTeacherEnrollments([])
           setTeacherLoadError(err.response?.data?.message || 'Unable to load records assigned to your teacher account.')
         }
       } finally {
@@ -405,6 +416,71 @@ function ModulePage({ moduleKey }) {
             ) : (
               <div className="teacher-classes-empty"><BookOpen size={26} /><strong>No classes assigned yet</strong><p>Your principal can assign classes, sections and subjects to your account.</p></div>
             )}
+          </section>
+        )
+      }
+      if (moduleKey === 'my-students' && user?.role === 'teacher') {
+        const sectionKey = (item) => String(item.section?._id || item.section || '')
+        const classKey = (item) => String(item.class?._id || item.class || '')
+        const assignedPairs = new Map()
+        teacherAssignments.forEach((assignment) => {
+          const classId = classKey(assignment)
+          const sectionId = sectionKey(assignment)
+          if (!classId || !sectionId) return
+          const key = `${classId}::${sectionId}`
+          if (!assignedPairs.has(key)) assignedPairs.set(key, {
+            key, classId, sectionId,
+            className: assignment.class?.name ? `Class ${assignment.class.name}` : 'Assigned class',
+            sectionName: assignment.section?.name || 'Section',
+          })
+        })
+        const assignedSections = [...assignedPairs.values()]
+        const assignedClassOptions = [...new Map(assignedSections.map((item) => [item.classId, { id: item.classId, label: item.className }])).values()]
+        const availableSections = assignedSections.filter((item) => selectedStudentClass === 'all' || item.classId === selectedStudentClass)
+        const visibleSections = availableSections.filter((item) => selectedStudentSection === 'all' || item.sectionId === selectedStudentSection)
+        const eligibleEnrollments = teacherEnrollments.filter((enrollment) => assignedPairs.has(`${classKey(enrollment)}::${sectionKey(enrollment)}`))
+        const studentRecords = eligibleEnrollments.map((enrollment) => {
+          const pair = assignedPairs.get(`${classKey(enrollment)}::${sectionKey(enrollment)}`)
+          const student = enrollment.student || {}
+          return {
+            id: String(enrollment._id || student._id || `${student.name}-${pair?.key}`),
+            name: student.name || student.fullName || 'Student record',
+            roll: enrollment.rollNumber || enrollment.rollNo || student.rollNumber || student.rollNo || '—',
+            classId: pair?.classId || classKey(enrollment),
+            className: pair?.className || 'Assigned class',
+            sectionId: pair?.sectionId || sectionKey(enrollment),
+            sectionName: pair?.sectionName || 'Section',
+            status: enrollment.status || 'Enrolled',
+          }
+        }).filter((student) => {
+          const matchesClass = selectedStudentClass === 'all' || student.classId === selectedStudentClass
+          const matchesSection = selectedStudentSection === 'all' || student.sectionId === selectedStudentSection
+          const matchesTab = studentTab === 'all' || `${student.classId}::${student.sectionId}` === studentTab
+          const matchesQuery = !query.trim() || [student.name, student.roll, student.className, student.sectionName].some((value) => String(value).toLowerCase().includes(query.trim().toLowerCase()))
+          return matchesClass && matchesSection && matchesTab && matchesQuery
+        })
+        const selectedClassLabel = assignedClassOptions.find((item) => item.id === selectedStudentClass)?.label
+        return (
+          <section className="my-students-workspace">
+            <div className="my-students-metrics">
+              <article><span className="my-students-metric-icon"><BookOpen size={20} /></span><div><strong>{assignedClassOptions.length}</strong><span>Assigned classes</span></div></article>
+              <article><span className="my-students-metric-icon"><Users size={20} /></span><div><strong>{assignedSections.length}</strong><span>Assigned sections</span></div></article>
+              <article><span className="my-students-metric-icon"><Users size={20} /></span><div><strong>{studentRecords.length}</strong><span>Students in assigned sections</span></div></article>
+              <article><span className="my-students-metric-icon"><BookOpen size={20} /></span><div><strong>{visibleSections.length}</strong><span>Available sections</span></div></article>
+            </div>
+            <div className="my-students-filters">
+              <label className="my-students-search"><Search size={19} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search student name or roll number..." /></label>
+              <label><span>CLASS</span><select value={selectedStudentClass} onChange={(event) => { setSelectedStudentClass(event.target.value); setSelectedStudentSection('all'); setStudentTab('all') }}><option value="all">All assigned classes</option>{assignedClassOptions.map((item) => <option value={item.id} key={item.id}>{item.label}</option>)}</select></label>
+              <label><span>SECTION</span><select value={selectedStudentSection} onChange={(event) => { setSelectedStudentSection(event.target.value); setStudentTab('all') }}><option value="all">All assigned sections</option>{availableSections.map((item) => <option value={item.sectionId} key={item.sectionId}>{item.sectionName}</option>)}</select></label>
+            </div>
+            <div className="my-students-register">
+              <header className="my-students-register-head"><div><span className="my-students-eyebrow">STUDENT LIST</span><h2>{selectedClassLabel ? `${selectedClassLabel} students` : 'Students in my assigned sections'}</h2><p>Choose a class and section to view only the students assigned to your teaching load.</p></div><span className="my-students-record-count">{studentRecords.length} {studentRecords.length === 1 ? 'record' : 'records'}</span></header>
+              <nav className="my-students-tabs" aria-label="Student section filters"><button type="button" className={studentTab === 'all' ? 'active' : ''} onClick={() => setStudentTab('all')}>All students</button>{visibleSections.map((item) => { const key = `${item.classId}::${item.sectionId}`; return <button type="button" key={key} className={studentTab === key ? 'active' : ''} onClick={() => { setSelectedStudentClass(item.classId); setSelectedStudentSection(item.sectionId); setStudentTab(key) }}>{item.className} · {item.sectionName}</button> })}</nav>
+              {teacherLoading ? <div className="my-students-empty">Loading your assigned students…</div> : teacherLoadError ? <div className="my-students-empty">{teacherLoadError}</div> : studentRecords.length ? (
+                <div className="my-students-table-wrap"><table className="my-students-table"><thead><tr><th>ROLL NO.</th><th>STUDENT NAME</th><th>CLASS</th><th>SECTION</th><th>ENROLLMENT</th></tr></thead><tbody>{studentRecords.map((student) => <tr key={student.id}><td>{student.roll}</td><td><strong>{student.name}</strong></td><td>{student.className}</td><td>{student.sectionName}</td><td><span className="my-students-status">{student.status}</span></td></tr>)}</tbody></table></div>
+              ) : <div className="my-students-empty"><Users size={27} /><strong>No students found</strong><p>There are no enrolled students in this assigned class and section, or your search has no matches.</p></div>}
+              <footer className="my-students-register-foot">Showing {studentRecords.length} {studentRecords.length === 1 ? 'student' : 'students'} from your assigned class sections.</footer>
+            </div>
           </section>
         )
       }
