@@ -39,7 +39,7 @@ export default function TeacherWorkspacePage({ mode }) {
       } else if (mode === 'events') {
         const r = await apiClient.get('/events?year=' + new Date().getFullYear())
         setRecords(r.data.records || [])
-      } else if (mode === 'communication' || mode === 'homework' || mode === 'notice-admin') {
+      } else if (mode === 'communication' || mode === 'homework') {
         const r = await apiClient.get('/operations/' + (mode === 'homework' ? 'assignments' : mode === 'notice-admin' ? 'notices' : mode))
         setRecords(r.data.records || [])
       } else {
@@ -73,7 +73,7 @@ export default function TeacherWorkspacePage({ mode }) {
     if (!title.trim() || !body.trim()) { setError('Enter a subject and message.'); return }
     setSaving(true); setError(''); setMessage('')
     try {
-      const r = await apiClient.post('/operations/' + (mode === 'homework' ? 'assignments' : mode), { title: title.trim(), data: { message: body.trim(), className: className.trim(), audience: mode === 'homework' ? 'Students' : mode === 'notice-admin' ? 'Entire school' : 'Parents', senderName: user?.name || 'Teacher' } })
+      const r = await apiClient.post('/operations/' + (mode === 'homework' ? 'assignments' : mode === 'notice-admin' ? 'notices' : mode), { title: title.trim(), data: { message: body.trim(), className: className.trim(), audience: mode === 'homework' ? 'Students' : mode === 'notice-admin' ? 'Entire school' : 'Parents', senderName: user?.name || 'Teacher' } })
       setRecords((old) => [r.data.record, ...old]); setTitle(''); setBody(''); setClassName(''); setFormOpen(false)
       setMessage(mode === 'homework' ? 'Assignment saved to the classwork register.' : mode === 'notice-admin' ? 'Notice published to the school register.' : 'Message saved to the school communication register.')
     } catch (e) { setError(e.response?.data?.message || 'Message could not be saved. Please try again.') }
@@ -83,7 +83,7 @@ export default function TeacherWorkspacePage({ mode }) {
   const sum = (key) => records.reduce((n, r) => n + (r.summary?.[key] || 0), 0)
   return <main className="teacher-workspace">
     <header className="teacher-workspace-hero"><div><span className="teacher-workspace-eyebrow">{meta[0]}</span><div className="teacher-workspace-title"><span className="teacher-workspace-title-icon"><Icon size={23} /></span><div><h1>{meta[1]}</h1><p>{meta[2]}</p></div></div></div>
-      {(mode === 'communication' || mode === 'homework') && <button className="teacher-workspace-primary" onClick={() => setFormOpen(!formOpen)}><Send size={16} /> {mode === 'homework' ? 'New assignment' : mode === 'notice-admin' ? 'Create notice' : 'New message'}</button>}
+      {(mode === 'communication' || mode === 'homework' || mode === 'notice-admin') && <button className="teacher-workspace-primary" onClick={() => setFormOpen(!formOpen)}><Send size={16} /> {mode === 'homework' ? 'New assignment' : mode === 'notice-admin' ? 'Create notice' : 'New message'}</button>}
     </header>
     {error && <div className="teacher-workspace-alert">{error}<button onClick={() => setError('')}>Dismiss</button></div>}
     {message && <div className="teacher-workspace-alert success"><CheckCircle2 size={16} />{message}<button onClick={() => setMessage('')}>Dismiss</button></div>}
