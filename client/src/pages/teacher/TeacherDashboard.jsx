@@ -42,7 +42,7 @@ function TeacherDashboard() {
         const year = years.find((item) => item.isActive) || years[0]
         if (!year) return
 
-        const [assignmentRes, enrollmentRes, timetableRes, attendanceRes] = await Promise.all([
+        const [assignmentRes, enrollmentRes, timetableRes] = await Promise.all([
           apiClient.get('/academic/teacher-assignments', { params: { academicYear: year._id, teacherId: user.id } }),
           apiClient.get('/academic/enrollments', { params: { academicYear: year._id } }),
           apiClient.get('/timetable', { params: { academicYear: year._id } }),
