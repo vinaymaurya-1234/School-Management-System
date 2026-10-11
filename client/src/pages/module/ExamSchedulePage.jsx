@@ -147,7 +147,7 @@ function ExamSchedulePage({ mode = "all" }) {
           : true
       return matchesQuery && matchesView && matchesMode
     })
-  }, [exams, query, viewFilter, dayStart])
+  }, [exams, query, viewFilter, dayStart, mode, teacherAssignments])
 
   const openForm = () => {
     setForm({ classId: selectedClass || classes[0]?._id || '', sectionId: selectedSection || '', exams: [emptyExam()] })
