@@ -29,6 +29,8 @@ export default function TeacherWorkspacePage({ mode }) {
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [className, setClassName] = useState('')
+  const [audienceKey, setAudienceKey] = useState('all')
+  const noticeCategories = ['General Notice', 'Holiday', 'Examination', 'Event', 'Meeting', 'Fee Update', 'Urgent Notice']
   const [classOptions, setClassOptions] = useState([])
   const [classId, setClassId] = useState('')
   const [sectionId, setSectionId] = useState('')
@@ -93,11 +95,7 @@ export default function TeacherWorkspacePage({ mode }) {
       : mode === 'events' ? [r.title, r.type, r.description, r.location] : [r.title, data.message, data.className, data.sectionName, data.audience, data.description]
     const match = !query.trim() || parts.some((x) => String(x || '').toLowerCase().includes(query.trim().toLowerCase()))
     if (!match) return false
-    if (mode === 'notices' || mode === 'notice-admin') {
-      const audience = String(data.audience || 'Entire school').toLowerCase()
-      return ['entire school', 'teachers', 'all', 'staff'].includes(audience) || !audience
-    }
-    return true
+    // Notice audience visibility is filtered securely by the backend for the signed-in role.\n    return true
   }), [records, query, mode])
 
   const sendMessage = async (e) => {
@@ -109,9 +107,10 @@ export default function TeacherWorkspacePage({ mode }) {
       const selectedSection = availableSections.find((item) => item.sectionId === sectionId)
       const yearsResponse = mode === 'homework' ? await apiClient.get('/academic/years') : null
       const year = yearsResponse ? (yearsResponse.data.years || []).find((item) => item.isActive) || yearsResponse.data.years?.[0] : null
-      const r = await apiClient.post('/operations/' + (mode === 'homework' ? 'assignments' : mode === 'notice-admin' ? 'notices' : mode), { title: title.trim(), academicYear: year?._id, data: mode === 'homework' ? { message: body.trim(), classId, sectionId, className: selectedClass?.className || '', sectionName: selectedSection?.sectionName || '', subject: title.trim(), dueDate: dueDate || null, audience: 'Students', senderName: user?.name || 'Teacher' } : { message: body.trim(), audience: mode === 'notice-admin' ? 'Entire school' : 'Parents', senderName: user?.name || 'Teacher' } })
-      setRecords((old) => [r.data.record, ...old]); setTitle(''); setBody(''); setClassName(''); setClassId(''); setSectionId(''); setDueDate(''); setFormOpen(false)
-      setMessage(mode === 'homework' ? 'Assignment saved to the classwork register.' : mode === 'notice-admin' ? 'Notice published to the school register.' : 'Message saved to the school communication register.')
+      const isNotice = mode === 'notice-admin'
+      const r = await apiClient.post('/operations/' + (mode === 'homework' ? 'assignments' : isNotice ? 'notices' : mode), { title: title.trim(), academicYear: year?._id, data: mode === 'homework' ? { message: body.trim(), classId, sectionId, className: selectedClass?.className || '', sectionName: selectedSection?.sectionName || '', subject: title.trim(), dueDate: dueDate || null, audience: 'Students', senderName: user?.name || 'Teacher' } : isNotice ? { message: body.trim(), category: title.trim(), audienceKey, senderName: user?.name || user?.fullName || 'Principal' } : { message: body.trim(), audience: 'Parents', senderName: user?.name || 'Teacher' } })
+      setRecords((old) => [r.data.record, ...old]); setTitle(''); setBody(''); setClassName(''); setClassId(''); setSectionId(''); setDueDate(''); setAudienceKey('all'); setFormOpen(false)
+      setMessage(mode === 'homework' ? 'Assignment saved to the classwork register.' : mode === 'notice-admin' ? 'Notice published to ' + ({ teachers: 'teachers', students: 'students', parents: 'parents', all: 'everyone' }[audienceKey]) + '.' : 'Message saved to the school communication register.')
     } catch (e) { setError(e.response?.data?.message || 'Message could not be saved. Please try again.') }
     finally { setSaving(false) }
   }
@@ -131,13 +130,13 @@ export default function TeacherWorkspacePage({ mode }) {
     </section>}
     {(mode === 'communication' || mode === 'homework' || mode === 'notice-admin') && formOpen && <form className="teacher-message-form" onSubmit={sendMessage}>
       <h2>{mode === 'homework' ? 'Create homework' : mode === 'notice-admin' ? 'Publish school notice' : 'Write to parents'}</h2>
-      <label>Subject<input value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={120} placeholder={mode === 'homework' ? 'e.g. English chapter 4 questions' : mode === 'notice-admin' ? 'e.g. School assembly update' : 'e.g. English homework update'} /></label>
+      {mode === 'notice-admin' ? <label>Notice subject<select value={title} onChange={(e) => setTitle(e.target.value)} required><option value="">Choose notice subject</option>{noticeCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label> : <label>Subject<input value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={120} placeholder={mode === 'homework' ? 'e.g. English chapter 4 questions' : 'e.g. English homework update'} /></label>}
       {mode === 'homework' && <>
         <label>Class<select value={classId} onChange={(e) => { setClassId(e.target.value); setSectionId('') }} required><option value="">Select your class</option>{classOptions.map((item) => <option value={item.classId} key={item.classId}>Class {item.className}</option>)}</select></label>
         <label>Section<select value={sectionId} onChange={(e) => setSectionId(e.target.value)} required disabled={!classId}><option value="">Select section</option>{availableSections.map((item) => <option value={item.sectionId} key={item.sectionId}>{item.sectionName}</option>)}</select></label>
         <label>Due date (optional)<input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} min={new Date().toISOString().slice(0, 10)} /></label>
       </>}
-      {mode !== 'homework' && <label>Class / section<input value={className} onChange={(e) => setClassName(e.target.value)} placeholder="e.g. Class 10 · A" /></label>}
+      {mode === 'notice-admin' ? <label>Send notice to<select value={audienceKey} onChange={(e) => setAudienceKey(e.target.value)} required><option value="teachers">Teachers only</option><option value="students">Students only</option><option value="parents">Parents only</option><option value="all">Everyone (all roles)</option></select><span className="teacher-notice-audience-help">Only the selected audience will see this notice.</span></label> : mode !== 'homework' && <label>Class / section<input value={className} onChange={(e) => setClassName(e.target.value)} placeholder="e.g. Class 10 · A" /></label>}
       <label>{mode === 'homework' ? 'Instructions' : 'Message'}<textarea value={body} onChange={(e) => setBody(e.target.value)} required rows={4} maxLength={4000} placeholder={mode === 'homework' ? 'Describe the homework or assignment…' : mode === 'notice-admin' ? 'Enter the notice details…' : 'Write the information parents need to know…'} /></label>
       <button className="teacher-workspace-primary" disabled={saving}>{saving ? 'Saving…' : mode === 'homework' ? 'Save assignment' : mode === 'notice-admin' ? 'Publish notice' : 'Save message'}</button>
     </form>}
@@ -152,7 +151,7 @@ export default function TeacherWorkspacePage({ mode }) {
           }
           if (mode === 'events') return <article className="teacher-workspace-record" key={r._id || i}><span className="teacher-workspace-record-icon"><CalendarDays size={18} /></span><div className="teacher-workspace-record-copy"><strong>{r.title || r.name || 'School event'}</strong><span>{dateLabel(r.date)} · {r.type || 'School event'}{r.location ? ' · ' + r.location : ''}</span><small>{r.description || r.audience || 'School calendar entry'}</small></div><span className="teacher-workspace-status">{r.audience || 'School calendar'}</span></article>
           const d = r.data || {}
-          return <article className="teacher-workspace-record" key={r._id || i}><span className="teacher-workspace-record-icon">{mode === 'communication' ? <MessageCircle size={18} /> : <BellRing size={18} />}</span><div className="teacher-workspace-record-copy"><strong>{r.title || 'School update'}</strong><span>{d.className ? d.className + ' · ' : ''}{d.audience || 'School'} · {dateLabel(r.createdAt)}</span><small>{d.message || d.description || 'No message text was added.'}</small></div><span className="teacher-workspace-status">{mode === 'communication' ? 'Recorded' : mode === 'homework' ? 'Assigned' : 'Published'}</span></article>
+          return <article className="teacher-workspace-record" key={r._id || i}><span className="teacher-workspace-record-icon">{mode === 'communication' ? <MessageCircle size={18} /> : <BellRing size={18} />}</span><div className="teacher-workspace-record-copy"><strong>{r.title || 'School update'}</strong><span>{d.className ? d.className + ' · ' : ''}{d.audience || 'School'}{d.category && d.category !== r.title ? ' · ' + d.category : ''} · {dateLabel(r.createdAt)}</span><small>{d.message || d.description || 'No message text was added.'}</small></div><span className="teacher-workspace-status">{mode === 'communication' ? 'Recorded' : mode === 'homework' ? 'Assigned' : 'Published'}</span></article>
         })}
       </section>}
   </main>
