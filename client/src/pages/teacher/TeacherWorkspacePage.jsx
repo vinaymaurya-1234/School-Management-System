@@ -29,6 +29,12 @@ export default function TeacherWorkspacePage({ mode }) {
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [className, setClassName] = useState('')
+  const [classOptions, setClassOptions] = useState([])
+  const [classId, setClassId] = useState('')
+  const [sectionId, setSectionId] = useState('')
+  const [dueDate, setDueDate] = useState('')
+  const selectedClass = classOptions.find((item) => item.classId === classId)
+  const availableSections = selectedClass?.sections || []
 
   const load = async () => {
     setLoading(true); setError('')
@@ -52,13 +58,39 @@ export default function TeacherWorkspacePage({ mode }) {
     } catch (e) { setError(e.response?.data?.message || 'Could not load records. Check your connection and retry.'); setRecords([]) }
     finally { setLoading(false) }
   }
-  useEffect(() => { load() }, [mode])
+  useEffect(() => {
+    let cancelled = false
+    async function loadAssignedSections() {
+      if (mode !== 'homework') return
+      try {
+        const yearsResponse = await apiClient.get('/academic/years')
+        const years = yearsResponse.data.years || []
+        const year = years.find((item) => item.isActive) || years[0]
+        if (!year) return
+        const response = await apiClient.get('/academic/teacher-assignments', { params: { academicYear: year._id } })
+        const grouped = new Map()
+        ;(response.data.assignments || []).forEach((assignment) => {
+          const cls = assignment.class, section = assignment.section
+          if (!cls?._id || !section?._id) return
+          if (!grouped.has(cls._id)) grouped.set(cls._id, { classId: cls._id, className: cls.name, sections: [] })
+          const item = grouped.get(cls._id)
+          if (!item.sections.some((entry) => entry.sectionId === section._id)) item.sections.push({ sectionId: section._id, sectionName: section.name })
+        })
+        if (!cancelled) setClassOptions([...grouped.values()])
+      } catch (e) {
+        if (!cancelled) setError(e.response?.data?.message || 'Could not load your assigned classes and sections.')
+      }
+    }
+    load()
+    loadAssignedSections()
+    return () => { cancelled = true }
+  }, [mode])
 
   const visible = useMemo(() => records.filter((r) => {
     const exam = r.exam || {}, data = r.data || {}
     const parts = (mode === 'review' || mode === 'performance')
       ? [exam.subjectName, exam.class?.name, exam.section?.name]
-      : mode === 'events' ? [r.title, r.type, r.description, r.location] : [r.title, data.message, data.className, data.audience, data.description]
+      : mode === 'events' ? [r.title, r.type, r.description, r.location] : [r.title, data.message, data.className, data.sectionName, data.audience, data.description]
     const match = !query.trim() || parts.some((x) => String(x || '').toLowerCase().includes(query.trim().toLowerCase()))
     if (!match) return false
     if (mode === 'notices' || mode === 'notice-admin') {
@@ -70,11 +102,15 @@ export default function TeacherWorkspacePage({ mode }) {
 
   const sendMessage = async (e) => {
     e.preventDefault()
-    if (!title.trim() || !body.trim()) { setError('Enter a subject and message.'); return }
+    if (!title.trim() || !body.trim()) { setError('Enter a subject and assignment instructions.'); return }
+    if (mode === 'homework' && (!classId || !sectionId)) { setError('Choose a class and section assigned to you.'); return }
     setSaving(true); setError(''); setMessage('')
     try {
-      const r = await apiClient.post('/operations/' + (mode === 'homework' ? 'assignments' : mode === 'notice-admin' ? 'notices' : mode), { title: title.trim(), data: { message: body.trim(), className: className.trim(), audience: mode === 'homework' ? 'Students' : mode === 'notice-admin' ? 'Entire school' : 'Parents', senderName: user?.name || 'Teacher' } })
-      setRecords((old) => [r.data.record, ...old]); setTitle(''); setBody(''); setClassName(''); setFormOpen(false)
+      const selectedSection = availableSections.find((item) => item.sectionId === sectionId)
+      const yearsResponse = mode === 'homework' ? await apiClient.get('/academic/years') : null
+      const year = yearsResponse ? (yearsResponse.data.years || []).find((item) => item.isActive) || yearsResponse.data.years?.[0] : null
+      const r = await apiClient.post('/operations/' + (mode === 'homework' ? 'assignments' : mode === 'notice-admin' ? 'notices' : mode), { title: title.trim(), academicYear: year?._id, data: mode === 'homework' ? { message: body.trim(), classId, sectionId, className: selectedClass?.className || '', sectionName: selectedSection?.sectionName || '', subject: title.trim(), dueDate: dueDate || null, audience: 'Students', senderName: user?.name || 'Teacher' } : { message: body.trim(), audience: mode === 'notice-admin' ? 'Entire school' : 'Parents', senderName: user?.name || 'Teacher' } })
+      setRecords((old) => [r.data.record, ...old]); setTitle(''); setBody(''); setClassName(''); setClassId(''); setSectionId(''); setDueDate(''); setFormOpen(false)
       setMessage(mode === 'homework' ? 'Assignment saved to the classwork register.' : mode === 'notice-admin' ? 'Notice published to the school register.' : 'Message saved to the school communication register.')
     } catch (e) { setError(e.response?.data?.message || 'Message could not be saved. Please try again.') }
     finally { setSaving(false) }
@@ -96,8 +132,13 @@ export default function TeacherWorkspacePage({ mode }) {
     {(mode === 'communication' || mode === 'homework' || mode === 'notice-admin') && formOpen && <form className="teacher-message-form" onSubmit={sendMessage}>
       <h2>{mode === 'homework' ? 'Create homework' : mode === 'notice-admin' ? 'Publish school notice' : 'Write to parents'}</h2>
       <label>Subject<input value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={120} placeholder={mode === 'homework' ? 'e.g. English chapter 4 questions' : mode === 'notice-admin' ? 'e.g. School assembly update' : 'e.g. English homework update'} /></label>
-      <label>Class / section<input value={className} onChange={(e) => setClassName(e.target.value)} placeholder="e.g. Class 10 · A" /></label>
-      <label>Message<textarea value={body} onChange={(e) => setBody(e.target.value)} required rows={4} maxLength={4000} placeholder={mode === 'homework' ? 'Describe the task and due date…' : mode === 'notice-admin' ? 'Enter the notice details…' : 'Write the information parents need to know…'} /></label>
+      {mode === 'homework' && <>
+        <label>Class<select value={classId} onChange={(e) => { setClassId(e.target.value); setSectionId('') }} required><option value="">Select your class</option>{classOptions.map((item) => <option value={item.classId} key={item.classId}>Class {item.className}</option>)}</select></label>
+        <label>Section<select value={sectionId} onChange={(e) => setSectionId(e.target.value)} required disabled={!classId}><option value="">Select section</option>{availableSections.map((item) => <option value={item.sectionId} key={item.sectionId}>{item.sectionName}</option>)}</select></label>
+        <label>Due date (optional)<input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} min={new Date().toISOString().slice(0, 10)} /></label>
+      </>}
+      {mode !== 'homework' && <label>Class / section<input value={className} onChange={(e) => setClassName(e.target.value)} placeholder="e.g. Class 10 · A" /></label>}
+      <label>{mode === 'homework' ? 'Instructions' : 'Message'}<textarea value={body} onChange={(e) => setBody(e.target.value)} required rows={4} maxLength={4000} placeholder={mode === 'homework' ? 'Describe the homework or assignment…' : mode === 'notice-admin' ? 'Enter the notice details…' : 'Write the information parents need to know…'} /></label>
       <button className="teacher-workspace-primary" disabled={saving}>{saving ? 'Saving…' : mode === 'homework' ? 'Save assignment' : mode === 'notice-admin' ? 'Publish notice' : 'Save message'}</button>
     </form>}
     <section className="teacher-workspace-toolbar"><label><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search title, class or subject…" /></label><span>{loading ? 'Loading…' : visible.length + ' records'}</span></section>
