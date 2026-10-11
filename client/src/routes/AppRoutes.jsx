@@ -15,6 +15,7 @@ import EventCalendarPage from '../pages/module/EventCalendarPage'
 import TeacherDashboard from '../pages/teacher/TeacherDashboard'
 import TeacherWorkspacePage from '../pages/teacher/TeacherWorkspacePage'
 import StudentDashboard from '../pages/student/StudentDashboard'
+import StudentAssignmentsPage from '../pages/student/StudentAssignmentsPage'
 import ParentDashboard from '../pages/parent/ParentDashboard'
 import AccountantDashboard from '../pages/accountant/AccountantDashboard'
 import ModulePage from '../pages/module/ModulePage'
@@ -32,6 +33,7 @@ function PermissionRoute({ permission, children }) { const { user } = useAuth();
 function ModuleRoute() {
   const { user } = useAuth(); const { moduleKey } = useParams(); const homeRoute = ROLE_HOME_ROUTES[user?.role] || '/login'
   if (user?.role === 'principal' && moduleKey === 'notices') return <TeacherWorkspacePage mode="notice-admin" />
+  if (user?.role === 'student' && moduleKey === 'assignments') return <StudentAssignmentsPage />
   if (user?.role === 'teacher') {
     if (moduleKey === 'exam-schedule') return <ExamSchedulePage mode="schedule" />
     if (moduleKey === 'enter-marks') return <ExamSchedulePage mode="marks" />
