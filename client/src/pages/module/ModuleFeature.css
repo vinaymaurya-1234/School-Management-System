@@ -228,3 +228,16 @@
   .feature-stat-grid { grid-template-columns: 1fr 1fr; }
   .feature-stat-grid article strong { font-size: 20px; }
 }
+
+/* Neutral school dashboard styling for timetable and other feature workspaces. */
+.feature-page{color:#111!important}
+.feature-eyebrow,.feature-heading-meta,.feature-date-badge{color:#777!important}
+.feature-title-line h1{color:#111!important;font-size:clamp(28px,3vw,40px);letter-spacing:-1.5px}
+.feature-title-line p{color:#707070!important;font-size:13px}
+.feature-title-icon{background:#f1f1f1!important;border-color:#e3e3e3!important;color:#111!important}
+.feature-controls-card,.feature-stat,.feature-panel,.timetable-controls-card,.viewer-child-picker,.timetable-grid,.timetable-period-card{border-color:#e3e3e3!important;background:#fff!important;box-shadow:0 8px 26px rgba(0,0,0,.025)!important}
+.feature-stat strong,.feature-panel h2,.feature-heading-copy h1{color:#111!important}
+.feature-stat span,.feature-panel p,.feature-muted{color:#777!important}
+.feature-alert{border-radius:12px!important}
+.feature-primary,.primary-button{background:#171717!important;border-color:#171717!important;color:#fff!important;box-shadow:none!important}
+.feature-secondary,.secondary-button{background:#fff!important;border-color:#ddd!important;color:#222!important}
