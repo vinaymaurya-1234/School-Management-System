@@ -158,51 +158,52 @@
 }
 
 
-/* App-like mobile attendance screen; desktop styles remain unchanged */
+
+/* Refined mobile attendance layout — keep the existing monochrome school theme */
 @media(max-width:600px){
-  .attendance-redesign{width:100%;padding:0 0 calc(92px + env(safe-area-inset-bottom));background:#f5f1ff;color:#191523}
-  .attendance-page-header{position:relative;margin:0;padding:24px 18px 22px;min-height:112px;justify-content:flex-end;flex-direction:column;align-items:flex-start;gap:8px;background:linear-gradient(135deg,#6541ce 0%,#7650df 100%);border:0;color:#fff}
-  .attendance-page-header .attendance-kicker{color:rgba(255,255,255,.78)!important}
+  .attendance-redesign{width:100%;padding:0 0 calc(92px + env(safe-area-inset-bottom));background:#f7f7f5;color:#171717}
+  .attendance-page-header{position:relative;margin:0;padding:24px 18px 22px;min-height:112px;justify-content:flex-end;flex-direction:column;align-items:flex-start;gap:8px;background:#171717;border:0;color:#fff}
+  .attendance-page-header .attendance-kicker{color:#bcbcb7!important}
   .attendance-page-header h1{margin:0;color:#fff!important;font-size:29px!important;letter-spacing:-.8px!important;line-height:1.12}
-  .attendance-page-header p{color:rgba(255,255,255,.88);font-size:12px}
-  .attendance-date-control{margin:12px 12px 0;width:calc(100% - 24px);min-width:0;background:#fff;border-color:#ebe5fa;border-radius:13px}
+  .attendance-page-header p{color:#d2d2ce;font-size:12px}
+  .attendance-date-control{margin:12px 12px 0;width:calc(100% - 24px);min-width:0;background:#fff;border-color:#e5e5e1;border-radius:13px}
   .attendance-workspace{gap:12px;padding:12px}
-  .attendance-filter-bar{background:#fff;border-color:#ebe5fa;border-radius:16px;padding:14px;box-shadow:0 3px 10px rgba(43,24,88,.04)}
-  .attendance-filter-title>svg{background:#f0eaff;color:#6541ce}
+  .attendance-filter-bar{background:#fff;border-color:#e5e5e1;border-radius:16px;padding:14px;box-shadow:0 3px 10px rgba(0,0,0,.035)}
+  .attendance-filter-title>svg{background:#f1f1ef;color:#171717}
   .attendance-filter-title strong{font-size:14px}
   .attendance-filter-title span{font-size:11px;line-height:1.4}
-  .attendance-filter-bar select{background:#faf9ff;border-color:#e7e1f3;border-radius:12px}
+  .attendance-filter-bar select{background:#fafaf9;border-color:#e5e5e1;border-radius:12px}
   .attendance-board{border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible}
   .attendance-board-head{display:block;padding:5px 2px 14px;border:0}
-  .attendance-board-head h2{font-size:23px;letter-spacing:-.6px;color:#211936}
-  .attendance-board-head h2 em{color:#9278d8}
-  .attendance-board-head p{margin-top:5px;color:#716a80;font-size:12px}
+  .attendance-board-head h2{font-size:23px;letter-spacing:-.6px;color:#171717}
+  .attendance-board-head h2 em{color:#777}
+  .attendance-board-head p{margin-top:5px;color:#70706b;font-size:12px}
   .attendance-board-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
-  .attendance-board-actions .attendance-search{grid-column:1/-1;height:43px;background:#fff;border:0;border-radius:24px;box-shadow:0 2px 8px rgba(43,24,88,.05)}
-  .attendance-board-actions .attendance-secondary-action{height:42px;border-radius:12px;border-color:#ded4f6;background:#fff;color:#5031ad;font-size:12px}
-  .attendance-board-actions .attendance-save{height:42px;border-radius:12px;background:#6541ce;border-color:#6541ce;font-size:12px}
-  .attendance-board .student-counts{grid-template-columns:repeat(4,minmax(0,1fr));margin:0 0 12px;border:1px solid #ebe5f7;border-radius:14px;background:#fff;box-shadow:0 2px 8px rgba(43,24,88,.035);overflow:hidden}
-  .attendance-board .student-counts>div{min-height:0;padding:11px 8px;border-right:1px solid #eee9f6!important;border-bottom:0!important;text-align:center}
+  .attendance-board-actions .attendance-search{grid-column:1/-1;height:43px;background:#fff;border:1px solid #e5e5e1;border-radius:24px;box-shadow:0 2px 8px rgba(0,0,0,.035)}
+  .attendance-board-actions .attendance-secondary-action{height:42px;border-radius:12px;border-color:#deded9;background:#fff;color:#222;font-size:12px}
+  .attendance-board-actions .attendance-save{height:42px;border-radius:12px;background:#171717;border-color:#171717;font-size:12px}
+  .attendance-board .student-counts{grid-template-columns:repeat(4,minmax(0,1fr));margin:0 0 12px;border:1px solid #e5e5e1;border-radius:14px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.025);overflow:hidden}
+  .attendance-board .student-counts>div{min-height:0;padding:11px 8px;border-right:1px solid #eee!important;border-bottom:0!important;text-align:center}
   .attendance-board .student-counts>div:last-child{border-right:0!important}
-  .attendance-board .student-counts>div span{font-size:8px;letter-spacing:.55px;color:#7b718f}
-  .attendance-board .student-counts>div strong{margin:5px 0 2px;font-size:22px;letter-spacing:-.5px;color:#211936}
-  .attendance-board .student-counts>div small{font-size:9px;line-height:1.2;color:#877f96}
+  .attendance-board .student-counts>div span{font-size:8px;letter-spacing:.55px;color:#777}
+  .attendance-board .student-counts>div strong{margin:5px 0 2px;font-size:22px;letter-spacing:-.5px;color:#171717}
+  .attendance-board .student-counts>div small{font-size:9px;line-height:1.2;color:#858580}
   .attendance-board .attendance-register-head.student{display:none}
   .attendance-board .attendance-register-list{display:grid;gap:9px;padding:0;background:transparent;overflow:visible}
-  .attendance-board .attendance-register-row.student{display:grid;grid-template-columns:minmax(0,1fr) auto;min-width:0;gap:10px 8px;padding:12px;border:1px solid #ece6f5;border-radius:15px;background:#fff;box-shadow:0 2px 5px rgba(39,24,72,.06)}
+  .attendance-board .attendance-register-row.student{display:grid;grid-template-columns:minmax(0,1fr) auto;min-width:0;gap:10px 8px;padding:12px;border:1px solid #e5e5e1;border-radius:15px;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.04)}
   .attendance-board .attendance-person{min-width:0;gap:10px}
-  .attendance-board .attendance-avatar{width:43px;height:43px;flex-basis:43px;border:0;background:#e9e0ff;color:#5834b6;font-size:11px}
-  .attendance-board .attendance-person strong{font-size:14px;line-height:1.25;color:#211936;white-space:normal}
-  .attendance-board .attendance-person small{font-size:10px;color:#8a8297}
+  .attendance-board .attendance-avatar{width:43px;height:43px;flex-basis:43px;border:0;background:#f0f0ee;color:#252525;font-size:11px}
+  .attendance-board .attendance-person strong{font-size:14px;line-height:1.25;color:#171717;white-space:normal}
+  .attendance-board .attendance-person small{font-size:10px;color:#858580}
   .attendance-board .attendance-register-row.student>.attendance-meta{display:none}
   .attendance-board .attendance-status-group{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%}
-  .attendance-board .attendance-status-button{width:100%;min-width:0;min-height:36px;height:36px;padding:0 3px;border:1px solid #e8e2f1;border-radius:10px;background:#faf9fd;color:#756d82;font-size:11px;font-weight:700;white-space:nowrap}
-  .attendance-board .attendance-status-button.is-selected{background:#6541ce;border-color:#6541ce;color:#fff;box-shadow:none}
-  .attendance-board .attendance-status-button.is-selected.absent{background:#fae3e4;border-color:#f3cfd2;color:#b4232e}
-  .attendance-board .attendance-status-button.is-selected.half_day{background:#eee7ff;border-color:#d8c9ff;color:#5834b6}
-  .attendance-board .attendance-empty{min-height:150px;padding:20px;border:1px dashed #d8ccef;border-radius:14px;background:#fff}
-  .attendance-board .attendance-empty strong{color:#211936}
-  .attendance-requests-card{border-color:#ece6f5;border-radius:15px}
+  .attendance-board .attendance-status-button{width:100%;min-width:0;min-height:36px;height:36px;padding:0 3px;border:1px solid #e5e5e1;border-radius:10px;background:#fafaf9;color:#555;font-size:11px;font-weight:700;white-space:nowrap}
+  .attendance-board .attendance-status-button.is-selected{background:#171717;border-color:#171717;color:#fff;box-shadow:none}
+  .attendance-board .attendance-status-button.is-selected.absent{background:#f9e7e7;border-color:#efcaca;color:#a52525}
+  .attendance-board .attendance-status-button.is-selected.half_day{background:#ececea;border-color:#d4d4d0;color:#222}
+  .attendance-board .attendance-empty{min-height:150px;padding:20px;border:1px dashed #d7d7d2;border-radius:14px;background:#fff}
+  .attendance-board .attendance-empty strong{color:#171717}
+  .attendance-requests-card{border-color:#e5e5e1;border-radius:15px}
   .attendance-register-title{padding:15px}
   .attendance-register-title h2{font-size:18px}
 }
