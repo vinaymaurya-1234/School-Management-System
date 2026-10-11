@@ -29,6 +29,7 @@ function TeacherDashboard() {
   const [timetable, setTimetable] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const firstName = user?.name?.trim()?.split(/\\s+/)[0] || 'Teacher'
 
   useEffect(() => {
     let mounted = true
@@ -83,12 +84,17 @@ function TeacherDashboard() {
 
   return (
     <main className="teacher-dashboard">
-      <div className="teacher-date-only">
+      <section className="teacher-home-intro">
+        <div className="teacher-home-copy">
+          <span className="teacher-dashboard-kicker">TEACHER HOME</span>
+          <h1>Welcome back, {firstName}.</h1>
+          <p>Your classes, daily schedule and teaching tasks in one place.</p>
+        </div>
         <div className="teacher-date-card">
           <CalendarDays size={18} />
           <div><span>Today</span><strong>{formatDate()}</strong></div>
         </div>
-      </div>
+      </section>
 
       {error && <div className="teacher-dashboard-alert">{error}</div>}
 
