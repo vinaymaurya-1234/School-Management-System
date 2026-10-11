@@ -159,6 +159,11 @@ function ExamSchedulePage({ mode = "all" }) {
     return examDateHasArrived(exam) ? 'Marks pending' : 'Scheduled'
   }
   const statusClass = (status) => status.toLowerCase().replaceAll(' ', '-')
+  const principalCounts = {
+    pending: exams.filter((exam) => ['Marks pending', 'Marks in progress', 'Pending review'].includes(examStatus(exam))).length,
+    published: exams.filter((exam) => examStatus(exam) === 'Published').length,
+    review: exams.filter((exam) => examStatus(exam) === 'Pending review').length,
+  }
   const canDeleteExam = (exam) => {
     const summary = examProgress[exam._id]
     return isPrincipal && summary && summary.entered === 0 && summary.published === 0
@@ -275,9 +280,9 @@ function ExamSchedulePage({ mode = "all" }) {
           <article><span>Assigned subjects</span><strong>{loading ? '—' : new Set(teacherAssignments.map((item) => idOf(item.subject)).filter(Boolean)).size}</strong><small>From your active teaching assignments</small></article>
           <article><span>Assigned class sections</span><strong>{loading ? '—' : new Set(teacherAssignments.map((item) => `${idOf(item.class)}:${idOf(item.section)}`)).size}</strong><small>Only your assigned sections</small></article>
         </> : <>
-          <article className="exam-stat-unavailable"><span>Marks pending</span><strong>—</strong><small>Review totals not yet connected</small></article>
-          <article className="exam-stat-unavailable"><span>Results published</span><strong>—</strong><small>Published results are not yet tracked</small></article>
-          <article className="exam-stat-unavailable"><span>Pending review</span><strong>—</strong><small>Review totals are not yet tracked</small></article>
+          <article><span>Marks pending</span><strong>{loading ? '—' : principalCounts.pending}</strong><small>Exams not yet published</small></article>
+          <article><span>Results published</span><strong>{loading ? '—' : principalCounts.published}</strong><small>Results released to families</small></article>
+          <article><span>Pending review</span><strong>{loading ? '—' : principalCounts.review}</strong><small>Teacher submissions awaiting approval</small></article>
         </>}
       </section>
 
