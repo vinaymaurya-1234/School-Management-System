@@ -166,9 +166,11 @@ router.get("/summary", async (req, res, next) => {
       if (record.status === "late") late += 1;
       if (record.status === "half_day") halfDay += 1;
     }
+    // Half-day and legacy late records are present-equivalent for attendance totals.
     const total = present + absent + late + halfDay;
-    const percentage = total ? Math.round(((present + late + halfDay * 0.5) / total) * 1000) / 10 : 0;
-    res.json({ total, present, absent, late, halfDay, percentage });
+    const presentEquivalent = present + late + halfDay;
+    const percentage = total ? Math.round((presentEquivalent / total) * 1000) / 10 : 0;
+    res.json({ total, present: presentEquivalent, absent, late, halfDay, percentage });
   } catch (error) { next(error); }
 });
 
