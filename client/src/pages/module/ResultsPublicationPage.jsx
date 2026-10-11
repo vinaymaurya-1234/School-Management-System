@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BarChart3, CheckCircle2, ClipboardCheck, Eye, Loader2, Search } from 'lucide-react'
+import { BarChart3, ClipboardCheck, Eye, Loader2, Search } from 'lucide-react'
 import apiClient from '../../api/client'
 import PrincipalMarksReview from './PrincipalMarksReview'
 import './ResultsPublicationPage.css'
 
-const idOf = (value) => value?._id || value
 const dateLabel = (value) => value ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
 function progressLabel(summary, scheduledAt) {
