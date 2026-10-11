@@ -13,6 +13,7 @@ import PrincipalSubjectsPage from '../pages/module/PrincipalSubjectsPage'
 import TeacherAssignmentsPage from '../pages/module/TeacherAssignmentsPage'
 import EventCalendarPage from '../pages/module/EventCalendarPage'
 import TeacherDashboard from '../pages/teacher/TeacherDashboard'
+import TeacherWorkspacePage from '../pages/teacher/TeacherWorkspacePage'
 import StudentDashboard from '../pages/student/StudentDashboard'
 import ParentDashboard from '../pages/parent/ParentDashboard'
 import AccountantDashboard from '../pages/accountant/AccountantDashboard'
@@ -29,7 +30,17 @@ function ProtectedRoute() { const { isAuthenticated } = useAuth(); return isAuth
 function RoleRoute({ role, children }) { const { user } = useAuth(); const homeRoute = ROLE_HOME_ROUTES[user?.role] || ROLE_HOME_ROUTES[ROLES.PRINCIPAL]; if (!user || user.role !== role) return <Navigate to={homeRoute} replace />; return children }
 function PermissionRoute({ permission, children }) { const { user } = useAuth(); if (!hasPermission(user?.role, permission)) { const homeRoute = ROLE_HOME_ROUTES[user?.role] || '/login'; return <Navigate to={homeRoute} replace /> } return children }
 function ModuleRoute() {
-  const { user } = useAuth(); const { moduleKey } = useParams(); const module = MODULES[moduleKey]; const permission = module?.permissionByRole?.[user?.role]; const homeRoute = ROLE_HOME_ROUTES[user?.role] || '/login'
+  const { user } = useAuth(); const { moduleKey } = useParams(); const homeRoute = ROLE_HOME_ROUTES[user?.role] || '/login'
+  if (user?.role === 'teacher') {
+    if (moduleKey === 'exam-schedule') return <ExamSchedulePage mode="schedule" />
+    if (moduleKey === 'enter-marks') return <ExamSchedulePage mode="marks" />
+    if (moduleKey === 'marks-review') return <TeacherWorkspacePage mode="review" />
+    if (moduleKey === 'student-performance') return <TeacherWorkspacePage mode="performance" />
+    if (moduleKey === 'parent-communication') return <TeacherWorkspacePage mode="communication" />
+    if (moduleKey === 'notices') return <TeacherWorkspacePage mode="notices" />
+    if (moduleKey === 'events') return <TeacherWorkspacePage mode="events" />
+  }
+  const module = MODULES[moduleKey]; const permission = module?.permissionByRole?.[user?.role]
   if (!module || !permission || !hasPermission(user?.role, permission)) return <Navigate to={homeRoute} replace />
   if (moduleKey === 'timetable') return <TimetablePage />
   if (moduleKey === 'exams') return <ExamSchedulePage />
