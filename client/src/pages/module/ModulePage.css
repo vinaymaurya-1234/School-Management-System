@@ -268,3 +268,24 @@
   .module-stat span { font-size:9px; }
   .module-stat strong { font-size:19px; }
 }
+
+/* Teacher pages share the dashboard's neutral, responsive visual language. */
+.teacher-module-page{color:#111!important}
+.teacher-module-page .module-title-icon{background:#f1f1f1!important;border-color:#e3e3e3!important;color:#111!important}
+.teacher-module-page .eyebrow{color:#777!important}
+.teacher-module-page .module-heading{border-color:#e5e5e5}
+.teacher-module-page .module-title-line h1{color:#111!important;font-size:clamp(28px,3vw,40px);letter-spacing:-1.5px}
+.teacher-module-page .module-title-line p{color:#707070!important;font-size:13px;line-height:1.55}
+.teacher-module-page .module-stat,.teacher-module-page .module-toolbar,.teacher-module-page .module-variant-panel,.teacher-module-page .section-card{border:1px solid #e3e3e3!important;border-radius:16px!important;background:#fff!important;box-shadow:0 8px 26px rgba(0,0,0,.025)!important}
+.teacher-module-page .module-stat span,.teacher-module-page .module-variant-panel p{color:#777!important}
+.teacher-module-page .module-stat strong,.teacher-module-page .module-variant-panel h2,.teacher-module-page .module-table td{color:#111!important}
+.teacher-module-page .module-search{background:#fafafa!important;border-color:#e2e2e2!important;border-radius:11px!important}
+.teacher-module-page .module-search input{color:#111!important}
+.teacher-module-page .status-pill{background:#f1f1f1!important;color:#333!important}
+.teacher-module-page .module-table th{background:#f4f4f4!important;color:#777!important}
+.teacher-module-page .module-table td{border-color:#eee!important}
+.teacher-module-page .communication-icon{background:#f2f2f2!important;color:#111!important;border-color:#e4e4e4!important}
+.teacher-module-page .communication-item{border-color:#eee!important}
+.teacher-module-page .primary-button,.teacher-module-page .module-add{background:#171717!important;border-color:#171717!important;color:#fff!important;box-shadow:none!important}
+.teacher-module-page .secondary-button{background:#fff!important;border-color:#ddd!important;color:#222!important}
+@media(max-width:700px){.teacher-module-page .module-title-line h1{font-size:27px}.teacher-module-page .module-heading{padding-bottom:18px}.teacher-module-page .module-variant-panel{padding:15px!important}}
