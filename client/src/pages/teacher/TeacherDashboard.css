@@ -57,3 +57,50 @@
 @media(max-width:1100px){.teacher-quick-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.teacher-dashboard{padding:24px 14px 40px}.teacher-dashboard-hero{gap:16px}.teacher-dashboard-hero h1{font-size:31px;line-height:1.08}.teacher-date-card{width:100%;padding:13px}.teacher-focus-card{padding:17px}.teacher-overview-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.teacher-overview-card{min-height:94px;padding:14px;gap:10px}.teacher-overview-card strong{font-size:24px}.teacher-overview-card span{font-size:11px}.teacher-quick-actions{padding:16px}.teacher-quick-action-grid{grid-template-columns:1fr 1fr;gap:8px}.teacher-quick-action{align-items:flex-start;flex-wrap:wrap;padding:12px 10px;gap:8px}.teacher-quick-action-icon{width:32px;height:32px;flex-basis:32px}.teacher-quick-action>svg{display:none}.teacher-quick-action strong{font-size:11px}.teacher-quick-action small{font-size:10px}.teacher-dashboard-panel{padding:16px}.teacher-panel-title-row{align-items:flex-start;gap:12px}.teacher-text-action{font-size:11px;white-space:nowrap}}
 @media(max-width:380px){.teacher-overview-grid{grid-template-columns:1fr 1fr}.teacher-quick-action-grid{grid-template-columns:1fr}.teacher-quick-action{align-items:center;flex-wrap:nowrap}.teacher-quick-action>svg{display:block}}
+
+/* Clean teacher home: fewer actions, no duplicate CTAs, consistent spacing. */
+.teacher-dashboard{padding-top:26px;padding-bottom:42px}
+.teacher-dashboard-hero{padding-bottom:20px}
+.teacher-dashboard-hero h1{font-size:clamp(29px,2.6vw,38px);letter-spacing:-1.2px}
+.teacher-date-card{min-width:245px;padding:13px 15px}
+.teacher-focus-card{margin-top:18px;padding:18px 20px;gap:18px;background:#fff}
+.teacher-focus-side{gap:10px;flex-wrap:nowrap}
+.teacher-network{display:none}
+.teacher-secondary-action{padding:11px 14px}
+.teacher-overview-grid{gap:12px;margin-top:12px}
+.teacher-overview-card{min-height:88px;padding:16px 18px}
+.teacher-quick-actions{margin-top:12px;padding:19px}
+.teacher-quick-actions .teacher-panel-title-row{margin-bottom:13px}
+.teacher-quick-actions h2{font-size:19px}
+.teacher-quick-action-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.teacher-quick-action{padding:13px 14px}
+.teacher-main-grid{margin-top:12px;gap:12px}
+.teacher-dashboard-panel{padding:19px}
+.teacher-schedule-item{padding:12px 0}
+.teacher-dashboard-footer-card{display:none}
+@media(max-width:1100px){.teacher-quick-action-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){
+ .teacher-dashboard{padding:22px 14px 34px}
+ .teacher-dashboard-hero h1{font-size:30px}
+ .teacher-focus-card{gap:14px;padding:16px}
+ .teacher-focus-side{width:100%;flex-direction:row;align-items:center}
+ .teacher-overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .teacher-quick-actions{padding:15px}
+ .teacher-quick-action-grid{grid-template-columns:1fr;gap:8px}
+ .teacher-quick-action{align-items:center;flex-wrap:nowrap;padding:11px 12px}
+ .teacher-quick-action>svg{display:block}
+ .teacher-quick-action strong{font-size:12px}
+ .teacher-quick-action small{font-size:10px}
+ .teacher-dashboard-panel{padding:15px}
+}
+@media(max-width:440px){
+ .teacher-dashboard-hero h1{font-size:27px}
+ .teacher-focus-main{gap:11px}
+ .teacher-focus-main p{font-size:12px;line-height:1.5}
+ .teacher-focus-side{align-items:stretch;flex-direction:column}
+ .teacher-secondary-action{width:100%}
+ .teacher-overview-card{padding:12px;gap:9px}
+ .teacher-overview-icon{width:35px;height:35px}
+ .teacher-overview-card strong{font-size:23px}
+ .teacher-overview-card span{font-size:10px}
+}
