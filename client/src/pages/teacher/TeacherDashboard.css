@@ -115,3 +115,16 @@
 @media(max-width:440px){
  .teacher-date-only .teacher-date-card{width:100%}
 }
+
+/* Compact home intro balances the layout without bringing back the oversized hero. */
+.teacher-home-intro{display:flex;align-items:center;justify-content:space-between;gap:24px;margin:0 0 20px;padding:4px 0 22px;border-bottom:1px solid #e7e7e7}
+.teacher-home-copy{min-width:0}
+.teacher-home-copy h1{margin:9px 0 6px;color:#111;font-size:clamp(25px,2.4vw,34px);line-height:1.12;letter-spacing:-1.1px;font-weight:800}
+.teacher-home-copy p{margin:0;color:#737373;font-size:14px;line-height:1.5}
+.teacher-home-intro .teacher-date-card{flex:0 0 auto;box-shadow:none;border-color:#e5e5e5}
+@media(max-width:700px){
+ .teacher-home-intro{align-items:flex-start;flex-direction:column;gap:16px;padding-bottom:18px}
+ .teacher-home-intro .teacher-date-card{width:100%;min-width:0}
+ .teacher-home-copy h1{font-size:27px;letter-spacing:-.7px}
+ .teacher-home-copy p{font-size:13px}
+}
