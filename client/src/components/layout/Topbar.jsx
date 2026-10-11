@@ -30,15 +30,15 @@ const teacherTeachingItems = [
   { label: 'My Subjects', href: '/module/my-classes', hint: 'Subjects assigned to you' },
 ]
 const teacherWorkItems = [
-  { label: 'Exam Schedule', href: '/module/exams', hint: 'Exams for your assigned classes' },
-  { label: 'Enter Marks', href: '/module/exams', hint: 'Save and submit student marks' },
-  { label: 'Marks Review Status', href: '/module/exams', hint: 'Track principal review and publishing' },
-  { label: 'Student Performance', href: '/module/reports', hint: 'Progress for your assigned students' },
+  { label: 'Exam Schedule', href: '/module/exam-schedule', hint: 'Exams for your assigned classes' },
+  { label: 'Enter Marks', href: '/module/enter-marks', hint: 'Save and submit student marks' },
+  { label: 'Marks Review Status', href: '/module/marks-review', hint: 'Track principal review and publishing' },
+  { label: 'Student Performance', href: '/module/student-performance', hint: 'Progress for your assigned students' },
 ]
 const teacherCommunicationItems = [
   { label: 'Notices', href: '/module/notices', hint: 'School announcements' },
   { label: 'Events', href: '/module/events', hint: 'School calendar and events' },
-  { label: 'Parent Communication', href: '/module/communication', hint: 'Permitted parent conversations' },
+  { label: 'Parent Communication', href: '/module/parent-communication', hint: 'Permitted parent conversations' },
 ]
 
 const exploreItems = [
