@@ -144,7 +144,7 @@ export default function TeacherWorkspacePage({ mode }) {
     </form>}
     {mode === 'events' && <>
       <section className="teacher-event-summary">
-        <article><span>Upcoming events</span><strong>{loading ? '—' : records.filter((r) => !r.isSystemHoliday && r.date && r.date >= new Date().toISOString().slice(0, 10)).length}</strong><small>School activities and meetings</small></article>
+        <article><span>Upcoming events</span><strong>{loading ? '—' : records.filter((r) => r.type !== 'Holiday' && r.date && r.date >= new Date().toISOString().slice(0, 10)).length}</strong><small>School activities and meetings</small></article>
         <article><span>Holidays</span><strong>{loading ? '—' : records.filter((r) => r.type === 'Holiday').length}</strong><small>National and festival holidays</small></article>
         <article><span>Academic activities</span><strong>{loading ? '—' : records.filter((r) => ['PTM', 'Exam', 'Meeting', 'Activity'].includes(r.type)).length}</strong><small>Learning and school events</small></article>
       </section>
