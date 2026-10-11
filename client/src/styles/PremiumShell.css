@@ -8,7 +8,7 @@
   .premium-page-content { width: min(100% - 32px, 1100px); }
   .premium-topbar { gap: 14px; }
 }
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   html, body, #root { min-height: 100%; }
   body { overscroll-behavior-y: contain; }
   .premium-topbar {
