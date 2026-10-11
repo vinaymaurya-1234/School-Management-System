@@ -25,6 +25,20 @@ router.get("/:module", async (req, res, next) => {
     const filter = { school: req.user.school, module, active: true };
     if (req.query.academicYear) filter.academicYear = req.query.academicYear;
 
+    if (module === "notices") {
+      // Audience is enforced server-side so users cannot see notices for another role.
+      const roleAudience = {
+        [ROLES.TEACHER]: ["teachers", "all"],
+        [ROLES.STUDENT]: ["students", "all"],
+        [ROLES.PARENT]: ["parents", "all"],
+      };
+      if (roleAudience[req.user.role]) {
+        filter["data.audienceKey"] = { $in: roleAudience[req.user.role] };
+      } else if (!canManage(req)) {
+        return res.status(403).json({ message: "You cannot view school notices" });
+      }
+    }
+
     if (module === "assignments" && req.user.role === ROLES.TEACHER) {
       // Teachers only see assignments they authored.
       filter.createdBy = req.user._id;
@@ -60,6 +74,9 @@ router.post("/:module", async (req, res, next) => {
   try {
     const { module } = req.params;
     if (!MODULES.has(module)) return res.status(400).json({ message: "Invalid operation module" });
+    if (module === "notices" && !canManage(req)) {
+      return res.status(403).json({ message: "Only the principal can publish school notices" });
+    }
     if (!canManage(req) && !(req.user.role === ROLES.TEACHER && ["communication", "assignments"].includes(module))) {
       return res.status(403).json({ message: "You cannot create records in this module" });
     }
@@ -70,6 +87,21 @@ router.post("/:module", async (req, res, next) => {
     }
 
     let resolvedYear = academicYear || null;
+    if (module === "notices") {
+      const audienceKey = String(data.audienceKey || "").toLowerCase();
+      const allowedAudiences = new Set(["teachers", "students", "parents", "all"]);
+      const noticeCategories = new Set(["General Notice", "Holiday", "Examination", "Event", "Meeting", "Fee Update", "Urgent Notice"]);
+      if (!allowedAudiences.has(audienceKey)) {
+        return res.status(400).json({ message: "Choose who should receive this notice" });
+      }
+      if (!noticeCategories.has(String(data.category || ""))) {
+        return res.status(400).json({ message: "Choose a valid notice subject" });
+      }
+      data.audienceKey = audienceKey;
+      data.audience = ({ teachers: "Teachers", students: "Students", parents: "Parents", all: "All" })[audienceKey];
+      data.category = String(data.category);
+    }
+
     if (module === "assignments" && req.user.role === ROLES.TEACHER) {
       const { classId, sectionId, message, dueDate, subject } = data;
       if (!classId || !sectionId || !String(message || "").trim()) {
