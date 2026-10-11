@@ -139,7 +139,7 @@ function ExamSchedulePage({ mode = "all" }) {
     return exams.filter((exam) => {
       const matchesQuery = !value || [exam.subjectName, exam.class?.name, exam.section?.name].some((item) => String(item || '').toLowerCase().includes(value))
       const time = new Date(exam.scheduledAt).getTime()
-      const matchesMode = mode === 'schedule' ? time >= dayStart.getTime() : mode === 'marks' ? canEnterMarks(exam) : true
+      const matchesMode = mode === 'marks' ? canEnterMarks(exam) : true
       const matchesView = viewFilter === 'upcoming'
         ? time >= Date.now()
         : viewFilter === 'completed'
