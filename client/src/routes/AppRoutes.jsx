@@ -31,6 +31,7 @@ function RoleRoute({ role, children }) { const { user } = useAuth(); const homeR
 function PermissionRoute({ permission, children }) { const { user } = useAuth(); if (!hasPermission(user?.role, permission)) { const homeRoute = ROLE_HOME_ROUTES[user?.role] || '/login'; return <Navigate to={homeRoute} replace /> } return children }
 function ModuleRoute() {
   const { user } = useAuth(); const { moduleKey } = useParams(); const homeRoute = ROLE_HOME_ROUTES[user?.role] || '/login'
+  if (user?.role === 'principal' && moduleKey === 'notices') return <TeacherWorkspacePage mode="notice-admin" />
   if (user?.role === 'teacher') {
     if (moduleKey === 'exam-schedule') return <ExamSchedulePage mode="schedule" />
     if (moduleKey === 'enter-marks') return <ExamSchedulePage mode="marks" />
