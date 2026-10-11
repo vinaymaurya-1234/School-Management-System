@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   ClipboardList,
   FileText,
-  PlusCircle,
   Clock3,
   GraduationCap,
   ShieldCheck,
