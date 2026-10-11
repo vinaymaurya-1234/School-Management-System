@@ -45,3 +45,61 @@
 .attendance-redesign .secondary-button{background:#fff!important;border-color:#ddd!important;color:#222!important}
 .attendance-redesign .attendance-kpi strong,.attendance-redesign h2,.attendance-redesign h3{color:#111!important}
 @media(max-width:720px){.attendance-redesign{padding:0 0 30px}.attendance-page-header{align-items:flex-start!important;flex-direction:column!important}.attendance-date-control{width:100%}}
+
+
+/* Class attendance: calmer, compact daily register */
+.attendance-board{overflow:hidden;border:1px solid #e5e5e2;border-radius:18px;background:#fff;box-shadow:0 5px 20px rgba(0,0,0,.025)}
+.attendance-board-head{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:22px 24px;border-bottom:1px solid #ececea}
+.attendance-board-head h2{margin:5px 0 4px;font-size:24px;line-height:1.2;letter-spacing:-.7px}
+.attendance-board-head p{margin:0;color:#777;font-size:13px}
+.attendance-board-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.attendance-board-actions .attendance-search{min-width:190px;width:210px;height:42px;border-radius:10px;background:#fafaf9}
+.attendance-secondary-action,.attendance-save{height:42px;padding:0 14px;border-radius:10px;font-size:12px;font-weight:750;white-space:nowrap}
+.attendance-secondary-action{border:1px solid #dededb;background:#fff;color:#222}
+.attendance-save{border:1px solid #171717;background:#171717;color:#fff}
+.attendance-secondary-action:disabled,.attendance-save:disabled{opacity:.45;cursor:not-allowed}
+.attendance-board .student-counts{grid-template-columns:repeat(6,minmax(0,1fr));border:0;border-radius:0;box-shadow:none;border-bottom:1px solid #ececea}
+.attendance-board .student-counts>div{min-width:0;min-height:94px;padding:16px 18px;border-right:1px solid #ececea}
+.attendance-board .student-counts>div span{font-size:9px;letter-spacing:1px}
+.attendance-board .student-counts>div strong{margin:7px 0 3px;font-size:27px;letter-spacing:-1px}
+.attendance-board .student-counts>div small{font-size:11px;line-height:1.3}
+.attendance-board .attendance-register-head.student,.attendance-board .attendance-register-row.student{grid-template-columns:minmax(210px,1.3fr) minmax(110px,.65fr) minmax(55px,.35fr) minmax(300px,1.5fr);gap:14px}
+.attendance-board .attendance-register-head.student{padding:11px 22px;font-size:9px}
+.attendance-board .attendance-register-row.student{min-height:74px;padding:12px 22px}
+.attendance-board .attendance-person{gap:10px}
+.attendance-board .attendance-avatar{width:36px;height:36px;flex-basis:36px}
+.attendance-board .attendance-person strong{font-size:13px}
+.attendance-board .attendance-person small{font-size:11px}
+.attendance-board .attendance-status-group{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.attendance-board .attendance-status-button{min-height:36px;padding:0 11px;border:1px solid #e1e1de;border-radius:10px;background:#fff;color:#555;font-size:11px;font-weight:650;white-space:nowrap}
+.attendance-board .attendance-status-button:hover{border-color:#aaa;color:#111}
+.attendance-board .attendance-status-button.is-selected{border-color:#171717;background:#171717;color:#fff;box-shadow:none}
+.attendance-board .attendance-register-row.student:hover{background:#fbfbfa}
+@media(max-width:1100px){
+ .attendance-board-head{align-items:flex-start;flex-direction:column}
+ .attendance-board-actions{width:100%;justify-content:flex-start}
+ .attendance-board-actions .attendance-search{flex:1;min-width:180px}
+ .attendance-board .student-counts{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .attendance-board .student-counts>div:nth-child(3){border-right:0}
+ .attendance-board .student-counts>div:nth-child(-n+3){border-bottom:1px solid #ececea}
+ .attendance-board .attendance-register-head.student,.attendance-board .attendance-register-row.student{grid-template-columns:minmax(190px,1fr) minmax(90px,.55fr) minmax(50px,.3fr) minmax(270px,1.4fr);gap:10px}
+ .attendance-board .attendance-register-head.student,.attendance-board .attendance-register-row.student{min-width:760px}
+ .attendance-board .attendance-register-list,.attendance-board .attendance-register-head.student{overflow-x:auto}
+}
+@media(max-width:600px){
+ .attendance-board{border-radius:15px}
+ .attendance-board-head{padding:18px 16px;gap:14px}
+ .attendance-board-head h2{font-size:21px}
+ .attendance-board-head p{font-size:12px;line-height:1.5}
+ .attendance-board-actions{display:grid;grid-template-columns:1fr 1fr}
+ .attendance-board-actions .attendance-search{grid-column:1/-1;width:100%;min-width:0}
+ .attendance-secondary-action,.attendance-save{width:100%;padding:0 9px;font-size:11px}
+ .attendance-board .student-counts{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .attendance-board .student-counts>div{min-height:82px;padding:13px 15px;border-bottom:1px solid #ececea}
+ .attendance-board .student-counts>div:nth-child(odd){border-right:1px solid #ececea}
+ .attendance-board .student-counts>div:nth-child(even){border-right:0}
+ .attendance-board .student-counts>div strong{font-size:25px}
+ .attendance-board .student-counts>div small{font-size:10px}
+ .attendance-board .attendance-register-head.student,.attendance-board .attendance-register-row.student{min-width:730px;padding-right:15px;padding-left:15px}
+ .attendance-board .attendance-status-group{justify-content:flex-start}
+}
