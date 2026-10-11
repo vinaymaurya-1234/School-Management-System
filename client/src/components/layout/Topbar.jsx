@@ -101,6 +101,7 @@ function Topbar() {
   }
 
   return (
+    <>
     <header className="premium-topbar" ref={rootRef}>
       <div className="premium-nav-scroll">
         <nav className="premium-nav" aria-label="Primary navigation">
@@ -163,6 +164,7 @@ function Topbar() {
         return items.map(({ label, href, Icon }) => <NavLink key={label} to={href} className={({ isActive }) => `mobile-app-nav-item ${isActive ? 'active' : ''}`}><Icon size={20} strokeWidth={1.9} /><span>{label}</span></NavLink>)
       })()}
     </nav>
+    </>
   )
 }
 
