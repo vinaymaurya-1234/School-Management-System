@@ -5,7 +5,7 @@ import { ROLES } from "../config/permissions.js";
 
 const router = Router();
 const MANAGEABLE = new Set([ROLES.PRINCIPAL]);
-const MODULES = new Set(["subjects", "timetable", "attendance", "fees", "exams", "notices", "events", "payroll"]);
+const MODULES = new Set(["subjects", "timetable", "attendance", "fees", "exams", "notices", "events", "payroll", "communication"]);
 
 router.use(requireAuth);
 
@@ -31,7 +31,7 @@ router.get("/:module", async (req, res, next) => {
 
 router.post("/:module", async (req, res, next) => {
   try {
-    if (!canManage(req)) return res.status(403).json({ message: "Only the principal can manage this module" });
+    if (!canManage(req) && !(req.user.role === ROLES.TEACHER && req.params.module === "communication")) return res.status(403).json({ message: "You cannot create records in this module" });
     const { module } = req.params;
     if (!MODULES.has(module)) return res.status(400).json({ message: "Invalid operation module" });
     const { title, data = {}, academicYear } = req.body || {};
