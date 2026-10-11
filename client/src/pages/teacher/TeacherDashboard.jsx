@@ -8,10 +8,7 @@ import {
   FileText,
   Clock3,
   GraduationCap,
-  ShieldCheck,
   Users,
-  Wifi,
-  WifiOff,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
@@ -104,7 +101,6 @@ function TeacherDashboard() {
   )
 
   const attendanceMarked = Boolean(attendance?.record?.checkIn)
-  const networkOk = attendance?.network?.allowed
   const attendanceStatus = attendance?.record?.status === 'late' ? 'Late' : attendanceMarked ? 'Present' : 'Not marked'
   const firstName = user?.name?.split(' ')[0] || 'Teacher'
 
@@ -134,18 +130,8 @@ function TeacherDashboard() {
           </div>
         </div>
         <div className="teacher-focus-side">
-          <div className={`teacher-network ${networkOk ? 'verified' : 'waiting'}`}>
-            {networkOk ? <Wifi size={17} /> : <WifiOff size={17} />}
-            <span>{networkOk ? 'School network verified' : 'School network check'}</span>
-          </div>
           <Link className="teacher-secondary-action" to="/module/attendance">
             {attendanceMarked ? 'View my attendance' : 'Mark my attendance'} <ArrowRight size={16} />
-          </Link>
-          <Link className="teacher-primary-action teacher-class-attendance-action" to="/module/class-attendance">
-            Mark class attendance <ArrowRight size={16} />
-          </Link>
-          <Link className="teacher-primary-action teacher-marks-action" to="/module/exams">
-            Enter exam marks <ArrowRight size={16} />
           </Link>
         </div>
       </section>
@@ -170,11 +156,6 @@ function TeacherDashboard() {
           <Link className="teacher-quick-action" to="/module/exams">
             <span className="teacher-quick-action-icon"><FileText size={19} /></span>
             <span><strong>Enter exam marks</strong><small>Save marks for your assigned subjects</small></span>
-            <ArrowRight size={17} />
-          </Link>
-          <Link className="teacher-quick-action" to="/module/timetable">
-            <span className="teacher-quick-action-icon"><CalendarDays size={19} /></span>
-            <span><strong>View timetable</strong><small>Check your periods and schedule</small></span>
             <ArrowRight size={17} />
           </Link>
           <Link className="teacher-quick-action" to="/module/assignments">
@@ -216,7 +197,6 @@ function TeacherDashboard() {
         </article>
       </section>
 
-      <section className="teacher-dashboard-footer-card"><div className="teacher-footer-icon"><ShieldCheck size={21} /></div><div><strong>Attendance is verified by the school network</strong><span>Attendance is checked on the server. The attendance window is currently open all day; production school Wi-Fi rules can be configured later.</span></div></section>
     </main>
   )
 }
