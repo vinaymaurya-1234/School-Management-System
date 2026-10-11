@@ -479,8 +479,13 @@ router.delete("/:id", async (req, res, next) => {
     if (req.user.role !== ROLES.PRINCIPAL) {
       return res.status(403).json({ message: "Only the principal can remove exams" });
     }
-    const exam = await Exam.findOneAndDelete({ _id: req.params.id, school: req.user.school });
+    const exam = await Exam.findOne({ _id: req.params.id, school: req.user.school });
     if (!exam) return res.status(404).json({ message: "Exam not found" });
+    const existingMarks = await StudentMarks.findOne({ school: req.user.school, exam: exam._id }).select("_id status").lean();
+    if (existingMarks) {
+      return res.status(409).json({ message: "This exam already has marks records. Keep it in the exam schedule and manage its review or published results from Results & Publication." });
+    }
+    await exam.deleteOne();
     res.json({ message: "Exam removed successfully" });
   } catch (error) {
     next(error);
