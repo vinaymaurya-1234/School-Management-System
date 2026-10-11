@@ -15,7 +15,8 @@ const academicItems = [
 const operationsItems = [
   { label: 'Attendance', href: '/module/attendance', hint: 'Daily attendance' },
   { label: 'Fees & Payments', href: '/module/fees', hint: 'Collections & dues' },
-  { label: 'Exams & Results', href: '/module/exams', hint: 'Assessments & marks' },
+  { label: 'Exams & Schedule', href: '/module/exams', hint: 'Create and manage exam dates' },
+  { label: 'Results & Publication', href: '/module/results', hint: 'Review marks and publish results' },
   { label: 'Reports', href: '/module/reports', hint: 'School analytics' },
   { label: 'Notices', href: '/module/notices', hint: 'Announcements' },
   { label: 'Events', href: '/module/events', hint: 'School events' },
