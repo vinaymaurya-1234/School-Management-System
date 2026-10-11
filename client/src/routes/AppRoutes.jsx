@@ -22,6 +22,7 @@ import ModulePage from '../pages/module/ModulePage'
 import TimetablePage from '../pages/module/TimetablePage'
 import ExamSchedulePage from '../pages/module/ExamSchedulePage'
 import ResultsPage from '../pages/module/ResultsPage'
+import ResultsPublicationPage from '../pages/module/ResultsPublicationPage'
 import AttendancePage from '../pages/module/AttendancePage'
 import TeacherAttendancePage from '../pages/module/TeacherAttendancePage'
 import '../pages/module/ModuleFeature.css'
@@ -50,6 +51,7 @@ function ModuleRoute() {
   if (moduleKey === 'timetable') return <TimetablePage />
   if (moduleKey === 'exams') return <ExamSchedulePage />
   if (moduleKey === 'results' && ['student', 'parent'].includes(user?.role)) return <ResultsPage />
+  if (moduleKey === 'results' && user?.role === 'principal') return <ResultsPublicationPage />
   if (moduleKey === 'attendance') return user?.role === ROLES.TEACHER ? <TeacherAttendancePage /> : <AttendancePage />
   if (moduleKey === 'class-attendance') return <AttendancePage />
   if (user?.role === 'principal' && moduleKey === 'events') return <EventCalendarPage />
