@@ -323,7 +323,7 @@ function ExamSchedulePage({ mode = "all" }) {
       </section>}
 
       {marksExam && <TeacherMarksEntry exam={marksExam} onClose={() => setMarksExam(null)} />}
-      {reviewExam && <PrincipalMarksReview exam={reviewExam} onClose={() => setReviewExam(null)} />}
+      {reviewExam && <PrincipalMarksReview exam={reviewExam} onClose={() => { setReviewExam(null); loadExams().catch((err) => setError(err.response?.data?.message || 'Unable to refresh exam status.')) }} />}
 
       {isPrincipal && showForm && <div className="exam-modal-backdrop"><div className="exam-modal exam-bulk-modal"><div className="exam-modal-head"><div><span className="exam-eyebrow">BULK ASSESSMENT SETUP</span><h2>Schedule class exams</h2><p>Select one class and section, then add all subjects with their individual dates and time windows.</p></div><button className="exam-close" onClick={() => setShowForm(false)}><X size={17} /></button></div>
         <div className="exam-form exam-bulk-form">
