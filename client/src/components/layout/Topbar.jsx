@@ -22,6 +22,25 @@ const operationsItems = [
   { label: 'Payroll', href: '/module/payroll', hint: 'Staff payroll' },
 ]
 
+const teacherTeachingItems = [
+  { label: 'My Classes', href: '/module/my-classes', hint: 'Your assigned classes and students' },
+  { label: 'Class Attendance', href: '/module/class-attendance', hint: 'Mark daily student attendance' },
+  { label: 'Timetable', href: '/module/timetable', hint: 'Your teaching schedule' },
+  { label: 'Homework & Assignments', href: '/module/assignments', hint: 'Create and review classwork' },
+  { label: 'My Subjects', href: '/module/my-classes', hint: 'Subjects assigned to you' },
+]
+const teacherWorkItems = [
+  { label: 'Exam Schedule', href: '/module/exams', hint: 'Exams for your assigned classes' },
+  { label: 'Enter Marks', href: '/module/exams', hint: 'Save and submit student marks' },
+  { label: 'Marks Review Status', href: '/module/exams', hint: 'Track principal review and publishing' },
+  { label: 'Student Performance', href: '/module/reports', hint: 'Progress for your assigned students' },
+]
+const teacherCommunicationItems = [
+  { label: 'Notices', href: '/module/notices', hint: 'School announcements' },
+  { label: 'Events', href: '/module/events', hint: 'School calendar and events' },
+  { label: 'Parent Communication', href: '/module/communication', hint: 'Permitted parent conversations' },
+]
+
 const exploreItems = [
   { label: 'Subjects', href: '/module/subjects', hint: 'Curriculum mapping' },
   { label: 'Admissions', href: '/module/admissions', hint: 'Admission workflow' },
@@ -85,16 +104,26 @@ function Topbar() {
     <header className="premium-topbar" ref={rootRef}>
       <div className="premium-nav-scroll">
         <nav className="premium-nav" aria-label="Primary navigation">
-          <NavLink to="/dashboard/principal" className={({ isActive }) => `nav-pill ${isActive ? 'active' : ''}`}>Home</NavLink>
-          <Menu label="Academic" items={academicItems} open={openMenu === 'academic'} onToggle={() => setOpenMenu(openMenu === 'academic' ? null : 'academic')} onClose={() => setOpenMenu(null)} />
-          <Menu label="Operations" items={operationsItems} wide open={openMenu === 'operations'} onToggle={() => setOpenMenu(openMenu === 'operations' ? null : 'operations')} onClose={() => setOpenMenu(null)} />
-          <Menu label="Explore" items={exploreItems} wide open={openMenu === 'explore'} onToggle={() => setOpenMenu(openMenu === 'explore' ? null : 'explore')} onClose={() => setOpenMenu(null)} />
+          <NavLink to={user?.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/principal'} className={({ isActive }) => `nav-pill ${isActive ? 'active' : ''}`}>Home</NavLink>
+          {user?.role === 'teacher' ? (
+            <>
+              <Menu label="Teaching" items={teacherTeachingItems} wide open={openMenu === 'teaching'} onToggle={() => setOpenMenu(openMenu === 'teaching' ? null : 'teaching')} onClose={() => setOpenMenu(null)} />
+              <Menu label="My Work" items={teacherWorkItems} wide open={openMenu === 'my-work'} onToggle={() => setOpenMenu(openMenu === 'my-work' ? null : 'my-work')} onClose={() => setOpenMenu(null)} />
+              <Menu label="Communication" items={teacherCommunicationItems} wide open={openMenu === 'communication'} onToggle={() => setOpenMenu(openMenu === 'communication' ? null : 'communication')} onClose={() => setOpenMenu(null)} />
+            </>
+          ) : (
+            <>
+              <Menu label="Academic" items={academicItems} open={openMenu === 'academic'} onToggle={() => setOpenMenu(openMenu === 'academic' ? null : 'academic')} onClose={() => setOpenMenu(null)} />
+              <Menu label="Operations" items={operationsItems} wide open={openMenu === 'operations'} onToggle={() => setOpenMenu(openMenu === 'operations' ? null : 'operations')} onClose={() => setOpenMenu(null)} />
+              <Menu label="Explore" items={exploreItems} wide open={openMenu === 'explore'} onToggle={() => setOpenMenu(openMenu === 'explore' ? null : 'explore')} onClose={() => setOpenMenu(null)} />
+            </>
+          )}
         </nav>
       </div>
 
       <div className="premium-search">
         <Search size={17} />
-        <input type="search" placeholder="Search by student, teacher, class..." aria-label="Search" />
+        <input type="search" placeholder={user?.role === 'teacher' ? 'Search my classes, subjects...' : 'Search by student, teacher, class...'} aria-label="Search" />
       </div>
 
       <div className="premium-actions">
