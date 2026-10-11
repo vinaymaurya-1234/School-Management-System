@@ -214,3 +214,42 @@
   .attendance-board .attendance-register-row.student{padding:10px}
   .attendance-board .attendance-status-button{font-size:10px}
 }
+
+
+/* Compact tablet/mobile attendance: retain date, simplify the register and status controls */
+.attendance-mobile-status{display:none}
+@media(max-width:900px){
+  .attendance-redesign{width:100%;padding:12px 0 88px;margin:0;background:#f7f7f5}
+  .attendance-page-header{display:flex;justify-content:flex-end;align-items:center;min-height:0;margin:0 12px 12px;padding:0 0 12px;border:0;background:transparent;color:#171717}
+  .attendance-page-header>div:first-child{display:none}
+  .attendance-date-control{margin:0;min-width:0;width:auto;padding:10px 13px;background:#fff;border:1px solid #e3e3df;border-radius:12px}
+  .attendance-date-control input{max-width:145px}
+  .attendance-workspace{padding:0 12px;gap:12px}
+  .attendance-board-head{padding:0 0 12px;border:0}
+  .attendance-board-head>div:first-child{display:none}
+  .attendance-board-actions{margin-top:0}
+  .attendance-board-actions .attendance-search{grid-column:1/-1}
+}
+@media(max-width:600px){
+  .attendance-redesign{background:#f7f7f5}
+  .attendance-date-control{width:100%;justify-content:flex-start}
+  .attendance-date-control input{max-width:none;width:100%}
+  .attendance-board-head{padding:0 0 10px}
+  .attendance-board-actions{grid-template-columns:1fr 1fr}
+  .attendance-board-actions .attendance-search{grid-column:1/-1}
+  .attendance-board .attendance-register-row.student{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 10px;padding:13px;border:1px solid #e5e5e1;border-radius:14px;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.035)}
+  .attendance-board .attendance-person{grid-column:1;min-width:0}
+  .attendance-board .attendance-person strong{font-size:14px}
+  .attendance-board .attendance-person small{display:none}
+  .attendance-board .attendance-avatar{width:40px;height:40px;flex-basis:40px}
+  .attendance-board .attendance-register-row.student>.attendance-meta{display:none}
+  .attendance-board .attendance-status-group{display:none}
+  .attendance-mobile-status{grid-column:2;display:flex;align-items:center;gap:5px}
+  .attendance-mobile-status>span{display:none}
+  .attendance-mobile-status select{width:108px;max-width:34vw;height:36px;padding:0 7px;border:1px solid #dcdcd7;border-radius:9px;background:#fff;color:#171717;font-size:11px;font-weight:650}
+  .attendance-mobile-status select:focus{outline:2px solid #a7a7a0;outline-offset:1px}
+  .attendance-board .student-counts{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .attendance-board .student-counts>div{padding:10px 4px}
+  .attendance-board .student-counts>div span{font-size:8px;letter-spacing:.3px}
+  .attendance-board .student-counts>div strong{font-size:20px}
+}
