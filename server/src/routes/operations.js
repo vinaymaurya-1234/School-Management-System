@@ -33,7 +33,11 @@ router.get("/:module", async (req, res, next) => {
         [ROLES.PARENT]: ["parents", "all"],
       };
       if (roleAudience[req.user.role]) {
-        filter["data.audienceKey"] = { $in: roleAudience[req.user.role] };
+        filter.$or = [
+          { "data.audienceKey": { $in: roleAudience[req.user.role] } },
+          // Keep previously published school-wide notices visible after this update.
+          { "data.audience": { $in: ["All", "Entire school", "School"] }, "data.audienceKey": { $exists: false } },
+        ];
       } else if (!canManage(req)) {
         return res.status(403).json({ message: "You cannot view school notices" });
       }
