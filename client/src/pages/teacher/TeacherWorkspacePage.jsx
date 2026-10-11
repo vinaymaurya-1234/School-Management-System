@@ -5,6 +5,7 @@ import apiClient from '../../api/client'
 import './TeacherWorkspacePage.css'
 
 const views = {
+  'notice-admin': ['SCHOOL COMMUNICATION', 'Notices & Announcements', 'Create and publish school announcements for teachers and families.', BellRing],
   notices: ['SCHOOL COMMUNICATION', 'Notices & Announcements', 'School updates relevant to your teaching role.', BellRing],
   events: ['SCHOOL CALENDAR', 'Events & Calendar', 'Upcoming school events, holidays and meetings.', CalendarDays],
   homework: ['CLASSWORK & HOMEWORK', 'Homework & Assignments', 'Create classwork and keep a record of tasks shared with students.', FileText],
@@ -32,14 +33,14 @@ export default function TeacherWorkspacePage({ mode }) {
   const load = async () => {
     setLoading(true); setError('')
     try {
-      if (mode === 'notices') {
+      if (mode === 'notices' || mode === 'notice-admin') {
         const r = await apiClient.get('/operations/notices')
         setRecords(r.data.records || [])
       } else if (mode === 'events') {
         const r = await apiClient.get('/events?year=' + new Date().getFullYear())
         setRecords(r.data.records || [])
-      } else if (mode === 'communication' || mode === 'homework') {
-        const r = await apiClient.get('/operations/' + (mode === 'homework' ? 'assignments' : mode))
+      } else if (mode === 'communication' || mode === 'homework' || mode === 'notice-admin') {
+        const r = await apiClient.get('/operations/' + (mode === 'homework' ? 'assignments' : mode === 'notice-admin' ? 'notices' : mode))
         setRecords(r.data.records || [])
       } else {
         const r = await apiClient.get('/exams')
@@ -60,7 +61,7 @@ export default function TeacherWorkspacePage({ mode }) {
       : mode === 'events' ? [r.title, r.type, r.description, r.location] : [r.title, data.message, data.className, data.audience, data.description]
     const match = !query.trim() || parts.some((x) => String(x || '').toLowerCase().includes(query.trim().toLowerCase()))
     if (!match) return false
-    if (mode === 'notices') {
+    if (mode === 'notices' || mode === 'notice-admin') {
       const audience = String(data.audience || 'Entire school').toLowerCase()
       return ['entire school', 'teachers', 'all', 'staff'].includes(audience) || !audience
     }
@@ -72,9 +73,9 @@ export default function TeacherWorkspacePage({ mode }) {
     if (!title.trim() || !body.trim()) { setError('Enter a subject and message.'); return }
     setSaving(true); setError(''); setMessage('')
     try {
-      const r = await apiClient.post('/operations/' + (mode === 'homework' ? 'assignments' : mode), { title: title.trim(), data: { message: body.trim(), className: className.trim(), audience: mode === 'homework' ? 'Students' : 'Parents', senderName: user?.name || 'Teacher' } })
+      const r = await apiClient.post('/operations/' + (mode === 'homework' ? 'assignments' : mode), { title: title.trim(), data: { message: body.trim(), className: className.trim(), audience: mode === 'homework' ? 'Students' : mode === 'notice-admin' ? 'Entire school' : 'Parents', senderName: user?.name || 'Teacher' } })
       setRecords((old) => [r.data.record, ...old]); setTitle(''); setBody(''); setClassName(''); setFormOpen(false)
-      setMessage(mode === 'homework' ? 'Assignment saved to the classwork register.' : 'Message saved to the school communication register.')
+      setMessage(mode === 'homework' ? 'Assignment saved to the classwork register.' : mode === 'notice-admin' ? 'Notice published to the school register.' : 'Message saved to the school communication register.')
     } catch (e) { setError(e.response?.data?.message || 'Message could not be saved. Please try again.') }
     finally { setSaving(false) }
   }
@@ -82,7 +83,7 @@ export default function TeacherWorkspacePage({ mode }) {
   const sum = (key) => records.reduce((n, r) => n + (r.summary?.[key] || 0), 0)
   return <main className="teacher-workspace">
     <header className="teacher-workspace-hero"><div><span className="teacher-workspace-eyebrow">{meta[0]}</span><div className="teacher-workspace-title"><span className="teacher-workspace-title-icon"><Icon size={23} /></span><div><h1>{meta[1]}</h1><p>{meta[2]}</p></div></div></div>
-      {(mode === 'communication' || mode === 'homework') && <button className="teacher-workspace-primary" onClick={() => setFormOpen(!formOpen)}><Send size={16} /> {mode === 'homework' ? 'New assignment' : 'New message'}</button>}
+      {(mode === 'communication' || mode === 'homework') && <button className="teacher-workspace-primary" onClick={() => setFormOpen(!formOpen)}><Send size={16} /> {mode === 'homework' ? 'New assignment' : mode === 'notice-admin' ? 'Create notice' : 'New message'}</button>}
     </header>
     {error && <div className="teacher-workspace-alert">{error}<button onClick={() => setError('')}>Dismiss</button></div>}
     {message && <div className="teacher-workspace-alert success"><CheckCircle2 size={16} />{message}<button onClick={() => setMessage('')}>Dismiss</button></div>}
@@ -92,12 +93,12 @@ export default function TeacherWorkspacePage({ mode }) {
       <article><span>Marks entered</span><strong>{loading ? '—' : sum('entered')}</strong></article>
       <article><span>Marks published</span><strong>{loading ? '—' : sum('published')}</strong></article>
     </section>}
-    {(mode === 'communication' || mode === 'homework') && formOpen && <form className="teacher-message-form" onSubmit={sendMessage}>
-      <h2>{mode === 'homework' ? 'Create homework' : 'Write to parents'}</h2>
-      <label>Subject<input value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={120} placeholder={mode === 'homework' ? 'e.g. English chapter 4 questions' : 'e.g. English homework update'} /></label>
+    {(mode === 'communication' || mode === 'homework' || mode === 'notice-admin') && formOpen && <form className="teacher-message-form" onSubmit={sendMessage}>
+      <h2>{mode === 'homework' ? 'Create homework' : mode === 'notice-admin' ? 'Publish school notice' : 'Write to parents'}</h2>
+      <label>Subject<input value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={120} placeholder={mode === 'homework' ? 'e.g. English chapter 4 questions' : mode === 'notice-admin' ? 'e.g. School assembly update' : 'e.g. English homework update'} /></label>
       <label>Class / section<input value={className} onChange={(e) => setClassName(e.target.value)} placeholder="e.g. Class 10 · A" /></label>
-      <label>Message<textarea value={body} onChange={(e) => setBody(e.target.value)} required rows={4} maxLength={4000} placeholder={mode === 'homework' ? 'Describe the task and due date…' : 'Write the information parents need to know…'} /></label>
-      <button className="teacher-workspace-primary" disabled={saving}>{saving ? 'Saving…' : mode === 'homework' ? 'Save assignment' : 'Save message'}</button>
+      <label>Message<textarea value={body} onChange={(e) => setBody(e.target.value)} required rows={4} maxLength={4000} placeholder={mode === 'homework' ? 'Describe the task and due date…' : mode === 'notice-admin' ? 'Enter the notice details…' : 'Write the information parents need to know…'} /></label>
+      <button className="teacher-workspace-primary" disabled={saving}>{saving ? 'Saving…' : mode === 'homework' ? 'Save assignment' : mode === 'notice-admin' ? 'Publish notice' : 'Save message'}</button>
     </form>}
     <section className="teacher-workspace-toolbar"><label><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search title, class or subject…" /></label><span>{loading ? 'Loading…' : visible.length + ' records'}</span></section>
     {loading ? <section className="teacher-workspace-empty"><Loader2 size={23} /><strong>Loading {meta[1].toLowerCase()}…</strong></section> : !visible.length ? <section className="teacher-workspace-empty"><span className="teacher-workspace-title-icon"><Icon size={22} /></span><strong>{error ? 'Records could not be loaded' : mode === 'review' ? 'No marks submitted for review yet' : mode === 'performance' ? 'No student performance data yet' : mode === 'events' ? 'No school events available' : mode === 'communication' ? 'No parent messages yet' : mode === 'homework' ? 'No assignments recorded yet' : mode === 'homework' ? 'No assignments recorded yet' : 'No notices available'}</strong><p>{mode === 'communication' ? 'Create a message to begin the recorded communication history.' : mode === 'homework' ? 'Create an assignment to save it in the classwork register.' : 'Only saved school records are shown here. No demo records are fabricated.'}</p>{error && <button className="teacher-workspace-secondary" onClick={load}>Retry</button>}</section> :
