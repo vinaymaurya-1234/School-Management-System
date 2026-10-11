@@ -4,6 +4,9 @@ import {
   BookOpen,
   CalendarDays,
   CheckCircle2,
+  ClipboardList,
+  FileText,
+  PlusCircle,
   Clock3,
   GraduationCap,
   ShieldCheck,
@@ -153,6 +156,34 @@ function TeacherDashboard() {
         <article className="teacher-overview-card"><div className="teacher-overview-icon blue"><Users size={20} /></div><div><strong>{loading ? '—' : studentCount}</strong><span>Students in my sections</span></div></article>
         <article className="teacher-overview-card"><div className="teacher-overview-icon orange"><Clock3 size={20} /></div><div><strong>{loading ? '—' : todaySchedule.length}</strong><span>Periods today</span></div></article>
         <article className="teacher-overview-card"><div className="teacher-overview-icon green"><GraduationCap size={20} /></div><div><strong>{loading ? '—' : subjectCount}</strong><span>Assigned subjects</span></div></article>
+      </section>
+
+      <section className="teacher-quick-actions">
+        <div className="teacher-panel-title-row">
+          <div><span className="teacher-section-label">QUICK ACTIONS</span><h2>What would you like to do?</h2></div>
+        </div>
+        <div className="teacher-quick-action-grid">
+          <Link className="teacher-quick-action primary" to="/module/class-attendance">
+            <span className="teacher-quick-action-icon"><Users size={19} /></span>
+            <span><strong>Mark class attendance</strong><small>Record today's student attendance</small></span>
+            <ArrowRight size={17} />
+          </Link>
+          <Link className="teacher-quick-action" to="/module/exams">
+            <span className="teacher-quick-action-icon"><FileText size={19} /></span>
+            <span><strong>Enter exam marks</strong><small>Save marks for your assigned subjects</small></span>
+            <ArrowRight size={17} />
+          </Link>
+          <Link className="teacher-quick-action" to="/module/timetable">
+            <span className="teacher-quick-action-icon"><CalendarDays size={19} /></span>
+            <span><strong>View timetable</strong><small>Check your periods and schedule</small></span>
+            <ArrowRight size={17} />
+          </Link>
+          <Link className="teacher-quick-action" to="/module/assignments">
+            <span className="teacher-quick-action-icon"><ClipboardList size={19} /></span>
+            <span><strong>Homework & assignments</strong><small>Create or review classwork</small></span>
+            <ArrowRight size={17} />
+          </Link>
+        </div>
       </section>
 
       <section className="teacher-main-grid">
