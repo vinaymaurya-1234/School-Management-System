@@ -3,10 +3,8 @@ import {
   ArrowRight,
   BookOpen,
   CalendarDays,
-  CheckCircle2,
   ClipboardList,
   FileText,
-  Clock3,
   GraduationCap,
   Users,
 } from 'lucide-react'
@@ -14,11 +12,6 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import apiClient from '../../api/client'
 import './TeacherDashboard.css'
-
-function formatTime(value) {
-  if (!value) return '—'
-  return new Date(value).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-}
 
 function formatDate() {
   return new Date().toLocaleDateString('en-IN', {
@@ -34,7 +27,6 @@ function TeacherDashboard() {
   const [assignments, setAssignments] = useState([])
   const [enrollments, setEnrollments] = useState([])
   const [timetable, setTimetable] = useState([])
-  const [attendance, setAttendance] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -54,14 +46,12 @@ function TeacherDashboard() {
           apiClient.get('/academic/teacher-assignments', { params: { academicYear: year._id, teacherId: user.id } }),
           apiClient.get('/academic/enrollments', { params: { academicYear: year._id } }),
           apiClient.get('/timetable', { params: { academicYear: year._id } }),
-          apiClient.get('/teacher-attendance/me'),
         ])
 
         if (!mounted) return
         setAssignments(assignmentRes.data.assignments || [])
         setEnrollments(enrollmentRes.data.enrollments || [])
         setTimetable(timetableRes.data.entries || [])
-        setAttendance(attendanceRes.data || null)
       } catch (err) {
         if (mounted) setError(err.response?.data?.message || 'Unable to load your teacher workspace.')
       } finally {
@@ -82,16 +72,6 @@ function TeacherDashboard() {
     })
   }, [assignments])
 
-  const studentCount = useMemo(() => {
-    const ids = new Set(assignedSections.map((item) => item.section?._id || item.section))
-    return enrollments.filter((item) => ids.has(item.section?._id || item.section)).length
-  }, [assignedSections, enrollments])
-
-  const subjectCount = useMemo(
-    () => new Set(assignments.map((item) => item.subject?._id || item.subject).filter(Boolean)).size,
-    [assignments],
-  )
-
   const todayKey = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
   const todaySchedule = useMemo(
     () => timetable
@@ -100,48 +80,17 @@ function TeacherDashboard() {
     [timetable, todayKey, user?.id],
   )
 
-  const attendanceMarked = Boolean(attendance?.record?.checkIn)
-  const attendanceStatus = attendance?.record?.status === 'late' ? 'Late' : attendanceMarked ? 'Present' : 'Not marked'
-  const firstName = user?.name?.split(' ')[0] || 'Teacher'
 
   return (
     <main className="teacher-dashboard">
-      <section className="teacher-dashboard-hero">
-        <div>
-          <span className="teacher-dashboard-kicker">TEACHER WORKSPACE</span>
-          <h1>Everything you need for today.</h1>
-          <p>Welcome back, {firstName}. Keep your attendance, classes and teaching schedule in one place.</p>
-        </div>
+      <div className="teacher-date-only">
         <div className="teacher-date-card">
           <CalendarDays size={18} />
           <div><span>Today</span><strong>{formatDate()}</strong></div>
         </div>
-      </section>
+      </div>
 
       {error && <div className="teacher-dashboard-alert">{error}</div>}
-
-      <section className="teacher-focus-card">
-        <div className="teacher-focus-main">
-          <div className={`teacher-attendance-icon ${attendanceMarked ? 'is-present' : ''}`}><CheckCircle2 size={27} /></div>
-          <div>
-            <span className="teacher-section-label">YOUR ATTENDANCE</span>
-            <h2>{attendanceStatus}</h2>
-            <p>{attendanceMarked ? `Checked in at ${formatTime(attendance.record.checkIn)}${attendance.record.checkOut ? ` · Checked out at ${formatTime(attendance.record.checkOut)}` : ''}` : 'Mark your attendance from the attendance page.'}</p>
-          </div>
-        </div>
-        <div className="teacher-focus-side">
-          <Link className="teacher-secondary-action" to="/module/attendance">
-            {attendanceMarked ? 'View my attendance' : 'Mark my attendance'} <ArrowRight size={16} />
-          </Link>
-        </div>
-      </section>
-
-      <section className="teacher-overview-grid">
-        <article className="teacher-overview-card"><div className="teacher-overview-icon purple"><BookOpen size={20} /></div><div><strong>{loading ? '—' : assignedSections.length}</strong><span>Assigned classes</span></div></article>
-        <article className="teacher-overview-card"><div className="teacher-overview-icon blue"><Users size={20} /></div><div><strong>{loading ? '—' : studentCount}</strong><span>Students in my sections</span></div></article>
-        <article className="teacher-overview-card"><div className="teacher-overview-icon orange"><Clock3 size={20} /></div><div><strong>{loading ? '—' : todaySchedule.length}</strong><span>Periods today</span></div></article>
-        <article className="teacher-overview-card"><div className="teacher-overview-icon green"><GraduationCap size={20} /></div><div><strong>{loading ? '—' : subjectCount}</strong><span>Assigned subjects</span></div></article>
-      </section>
 
       <section className="teacher-quick-actions">
         <div className="teacher-panel-title-row">
