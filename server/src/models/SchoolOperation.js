@@ -6,7 +6,7 @@ const schoolOperationSchema = new mongoose.Schema(
     module: {
       type: String,
       required: true,
-      enum: ["subjects", "timetable", "attendance", "fees", "exams", "notices", "events", "payroll"],
+      enum: ["subjects", "timetable", "attendance", "fees", "exams", "notices", "events", "payroll", "communication"],
       index: true,
     },
     title: { type: String, required: true, trim: true },
