@@ -95,7 +95,8 @@ export default function TeacherWorkspacePage({ mode }) {
       : mode === 'events' ? [r.title, r.type, r.description, r.location] : [r.title, data.message, data.className, data.sectionName, data.audience, data.description]
     const match = !query.trim() || parts.some((x) => String(x || '').toLowerCase().includes(query.trim().toLowerCase()))
     if (!match) return false
-    // Notice audience visibility is filtered securely by the backend for the signed-in role.\n    return true
+    // The API already scopes notices by the signed-in user's role.
+    return true
   }), [records, query, mode])
 
   const sendMessage = async (e) => {
@@ -142,7 +143,7 @@ export default function TeacherWorkspacePage({ mode }) {
     </form>}
     <section className="teacher-workspace-toolbar"><label><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search title, class or subject…" /></label><span>{loading ? 'Loading…' : visible.length + ' records'}</span></section>
     {loading ? <section className="teacher-workspace-empty"><Loader2 size={23} /><strong>Loading {meta[1].toLowerCase()}…</strong></section> : !visible.length ? <section className="teacher-workspace-empty"><span className="teacher-workspace-title-icon"><Icon size={22} /></span><strong>{error ? 'Records could not be loaded' : mode === 'review' ? 'No marks submitted for review yet' : mode === 'performance' ? 'No student performance data yet' : mode === 'events' ? 'No school events available' : mode === 'communication' ? 'No parent messages yet' : mode === 'homework' ? 'No assignments recorded yet' : mode === 'homework' ? 'No assignments recorded yet' : 'No notices available'}</strong><p>{mode === 'communication' ? 'Create a message to begin the recorded communication history.' : mode === 'homework' ? 'Create an assignment to save it in the classwork register.' : 'Only saved school records are shown here. No demo records are fabricated.'}</p>{error && <button className="teacher-workspace-secondary" onClick={load}>Retry</button>}</section> :
-      <section className="teacher-workspace-list-panel"><div className="teacher-workspace-list-heading"><div><span className="teacher-workspace-eyebrow">{meta[0]}</span><h2>{mode === 'review' ? 'Marks workflow' : mode === 'performance' ? 'Exam performance registers' : mode === 'communication' ? 'Parent communication history' : mode === 'homework' ? 'Classwork register' : mode === 'homework' ? 'Classwork register' : mode === 'events' ? 'School events' : 'Published notices for teachers'}</h2></div><span>{visible.length} records</span></div>
+      <section className="teacher-workspace-list-panel"><div className="teacher-workspace-list-heading"><div><span className="teacher-workspace-eyebrow">{meta[0]}</span><h2>{mode === 'review' ? 'Marks workflow' : mode === 'performance' ? 'Exam performance registers' : mode === 'communication' ? 'Parent communication history' : mode === 'homework' ? 'Classwork register' : mode === 'homework' ? 'Classwork register' : mode === 'events' ? 'School events' : mode === 'notice-admin' ? 'Notice history' : 'Published notices for you'}</h2></div><span>{visible.length} records</span></div>
         {visible.map((r, i) => {
           if (mode === 'review' || mode === 'performance') {
             const ex = r.exam || {}, s = r.summary || {}
@@ -151,7 +152,7 @@ export default function TeacherWorkspacePage({ mode }) {
           }
           if (mode === 'events') return <article className="teacher-workspace-record" key={r._id || i}><span className="teacher-workspace-record-icon"><CalendarDays size={18} /></span><div className="teacher-workspace-record-copy"><strong>{r.title || r.name || 'School event'}</strong><span>{dateLabel(r.date)} · {r.type || 'School event'}{r.location ? ' · ' + r.location : ''}</span><small>{r.description || r.audience || 'School calendar entry'}</small></div><span className="teacher-workspace-status">{r.audience || 'School calendar'}</span></article>
           const d = r.data || {}
-          return <article className="teacher-workspace-record" key={r._id || i}><span className="teacher-workspace-record-icon">{mode === 'communication' ? <MessageCircle size={18} /> : <BellRing size={18} />}</span><div className="teacher-workspace-record-copy"><strong>{r.title || 'School update'}</strong><span>{d.className ? d.className + ' · ' : ''}{d.audience || 'School'}{d.category && d.category !== r.title ? ' · ' + d.category : ''} · {dateLabel(r.createdAt)}</span><small>{d.message || d.description || 'No message text was added.'}</small></div><span className="teacher-workspace-status">{mode === 'communication' ? 'Recorded' : mode === 'homework' ? 'Assigned' : 'Published'}</span></article>
+          return <article className="teacher-workspace-record" key={r._id || i}><span className="teacher-workspace-record-icon">{mode === 'communication' ? <MessageCircle size={18} /> : <BellRing size={18} />}</span><div className="teacher-workspace-record-copy"><strong>{r.title || 'School update'}</strong><span>{d.className ? d.className + ' · ' : ''}{d.audience || 'School'}{d.category && d.category !== r.title ? ' · ' + d.category : ''}{mode === 'notice-admin' && r.createdBy?.name ? ' · By ' + r.createdBy.name : ''} · {dateLabel(r.createdAt)}</span><small>{d.message || d.description || 'No message text was added.'}</small></div><span className="teacher-workspace-status">{mode === 'communication' ? 'Recorded' : mode === 'homework' ? 'Assigned' : 'Published'}</span></article>
         })}
       </section>}
   </main>
