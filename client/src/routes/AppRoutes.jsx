@@ -34,6 +34,7 @@ function ModuleRoute() {
   const { user } = useAuth(); const { moduleKey } = useParams(); const homeRoute = ROLE_HOME_ROUTES[user?.role] || '/login'
   if (user?.role === 'principal' && moduleKey === 'notices') return <TeacherWorkspacePage mode="notice-admin" />
   if (user?.role === 'student' && moduleKey === 'assignments') return <StudentAssignmentsPage />
+  if (['student', 'parent'].includes(user?.role) && moduleKey === 'notices') return <TeacherWorkspacePage mode="notices" />
   if (user?.role === 'teacher') {
     if (moduleKey === 'exam-schedule') return <ExamSchedulePage mode="schedule" />
     if (moduleKey === 'enter-marks') return <ExamSchedulePage mode="marks" />
