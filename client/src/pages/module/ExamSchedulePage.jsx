@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { CalendarDays, Check, Clock3, FileText, Loader2, Plus, Trash2, Users, X } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import apiClient from '../../api/client'
@@ -13,11 +14,13 @@ const emptyExam = () => ({ subjectName: '', maxMarks: '100', examDate: '', start
 
 function ExamSchedulePage({ mode = "all" }) {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const isPrincipal = user?.role === 'principal'
   const [year, setYear] = useState(null)
   const [classes, setClasses] = useState([])
   const [sections, setSections] = useState([])
   const [exams, setExams] = useState([])
+  const [examProgress, setExamProgress] = useState({})
   const [teacherAssignments, setTeacherAssignments] = useState([])
   const [marksExam, setMarksExam] = useState(null)
   const [reviewExam, setReviewExam] = useState(null)
@@ -84,7 +87,21 @@ function ExamSchedulePage({ mode = "all" }) {
       if (selectedSection) params.sectionId = selectedSection
     }
     const response = await apiClient.get('/exams', { params })
-    setExams(response.data.exams || [])
+    const records = response.data.exams || []
+    setExams(records)
+    if (isPrincipal) {
+      const entries = await Promise.all(records.map(async (exam) => {
+        try {
+          const marksResponse = await apiClient.get(`/exams/${exam._id}/marks`)
+          return [exam._id, marksResponse.data.summary || null]
+        } catch {
+          return [exam._id, null]
+        }
+      }))
+      setExamProgress(Object.fromEntries(entries))
+    } else {
+      setExamProgress({})
+    }
   }
 
   useEffect(() => {
@@ -131,6 +148,20 @@ function ExamSchedulePage({ mode = "all" }) {
       String(item.subject?.name || '').trim().toLowerCase() === subjectName
     )
     return assigned && examDateHasArrived(exam)
+  }
+
+  const examStatus = (exam) => {
+    const summary = examProgress[exam._id]
+    if (summary && summary.total > 0 && summary.published === summary.total) return 'Published'
+    if (summary && summary.total > 0 && summary.approved + summary.published === summary.total) return 'Ready to publish'
+    if (summary && summary.total > 0 && summary.submitted + summary.approved + summary.published === summary.total && summary.submitted > 0) return 'Pending review'
+    if (summary && summary.entered > 0) return 'Marks in progress'
+    return examDateHasArrived(exam) ? 'Marks pending' : 'Scheduled'
+  }
+  const statusClass = (status) => status.toLowerCase().replaceAll(' ', '-')
+  const canDeleteExam = (exam) => {
+    const summary = examProgress[exam._id]
+    return isPrincipal && summary && summary.entered === 0 && summary.published === 0
   }
 
   const classCount = new Set(exams.map((exam) => idOf(exam.class)).filter(Boolean)).size
@@ -230,7 +261,7 @@ function ExamSchedulePage({ mode = "all" }) {
   return (
     <div className="exam-page">
       <header className="exam-hero">
-        <div><span className="exam-eyebrow">ASSESSMENT · {year?.name || 'ACADEMIC YEAR'}</span><div className="exam-title-row"><div className="exam-icon"><FileText size={22} /></div><div><h1>{isPrincipal ? 'Exams & Results' : mode === 'marks' ? 'Enter Student Marks' : 'Exam Schedule'}</h1><p>{isPrincipal ? 'Manage school exam schedules and monitor marks and results readiness.' : mode === 'marks' ? 'Choose a completed exam from your assigned classes and enter student marks.' : user?.role === 'teacher' ? 'View the school exam schedule for your assigned classes and subjects.' : user?.role === 'parent' ? 'View exam dates and times for your linked children.' : 'View the exam schedule for your class and section.'}</p></div></div></div>
+        <div><span className="exam-eyebrow">ASSESSMENT · {year?.name || 'ACADEMIC YEAR'}</span><div className="exam-title-row"><div className="exam-icon"><FileText size={22} /></div><div><h1>{isPrincipal ? 'Exams & Schedule' : mode === 'marks' ? 'Enter Student Marks' : 'Exam Schedule'}</h1><p>{isPrincipal ? 'Schedule exams and track each exam from its scheduled date through publication.' : mode === 'marks' ? 'Choose a completed exam from your assigned classes and enter student marks.' : user?.role === 'teacher' ? 'View the school exam schedule for your assigned classes and subjects.' : user?.role === 'parent' ? 'View exam dates and times for your linked children.' : 'View the exam schedule for your class and section.'}</p></div></div></div>
         {isPrincipal && <button className="exam-primary-btn" type="button" onClick={openForm}><Plus size={17} /> Schedule exams</button>}
       </header>
 
@@ -263,14 +294,26 @@ function ExamSchedulePage({ mode = "all" }) {
           </div>
           <span className="exam-register-hint">{loading ? 'Loading records…' : `${visibleExams.length} shown`}</span>
         </div>
-        {loading ? <div className="exam-loading"><Loader2 className="spin" size={20} /> Loading schedule...</div> : visibleExams.length ? <div className="exam-list">{visibleExams.map((exam) => <article className="exam-row" key={exam._id}><div className="exam-date"><strong>{new Date(exam.scheduledAt).toLocaleDateString('en-IN', { day: '2-digit' })}</strong><span>{new Date(exam.scheduledAt).toLocaleDateString('en-IN', { month: 'short' })}</span></div><div className="exam-main"><div className="exam-subject">{exam.subjectName}</div><div className="exam-meta"><span>Class {exam.class?.name}</span><span>Section {exam.section?.name}</span><span>{formatDate(exam.scheduledAt)}</span></div></div><div className="exam-time"><Clock3 size={15} /><strong>{formatTime(exam.scheduledAt)}{exam.endsAt ? ` – ${formatTime(exam.endsAt)}` : ''}</strong></div>{user?.role === 'teacher' && canEnterMarks(exam) && mode !== 'schedule' && <button className="exam-enter-marks" type="button" onClick={() => setMarksExam(exam)}><FileText size={15} /> Enter marks</button>}{isPrincipal && examDateHasArrived(exam) && <button className="exam-enter-marks" type="button" onClick={() => setReviewExam(exam)}><Check size={15} /> Review marks</button>}{isPrincipal && <button className="exam-delete" type="button" onClick={() => removeExam(exam)} aria-label="Remove exam"><Trash2 size={16} /></button>}</article>)}</div> : <div className="exam-empty"><div><CalendarDays size={22} /></div><h3>{viewFilter === 'completed' ? 'No past exams found' : viewFilter === 'upcoming' ? 'No upcoming exams' : 'No exams scheduled'}</h3><p>{isPrincipal ? 'Create the first exam using the Schedule exams button.' : 'No exam has been scheduled for the classes available to you yet.'}</p></div>}</section>
+        {loading ? <div className="exam-loading"><Loader2 className="spin" size={20} /> Loading schedule...</div> : visibleExams.length ? <div className="exam-list">{visibleExams.map((exam) => {
+          const status = isPrincipal ? examStatus(exam) : ''
+          return <article className="exam-row" key={exam._id}>
+            <div className="exam-date"><strong>{new Date(exam.scheduledAt).toLocaleDateString('en-IN', { day: '2-digit' })}</strong><span>{new Date(exam.scheduledAt).toLocaleDateString('en-IN', { month: 'short' })}</span></div>
+            <div className="exam-main"><div className="exam-subject">{exam.subjectName}</div><div className="exam-meta"><span>Class {exam.class?.name}</span><span>Section {exam.section?.name}</span><span>{formatDate(exam.scheduledAt)}</span></div>{isPrincipal && <span className={`exam-status-pill ${statusClass(status)}`}>{status}</span>}</div>
+            <div className="exam-time"><Clock3 size={15} /><strong>{formatTime(exam.scheduledAt)}{exam.endsAt ? ` – ${formatTime(exam.endsAt)}` : ''}</strong></div>
+            <div className="exam-row-actions">
+              {user?.role === 'teacher' && canEnterMarks(exam) && mode !== 'schedule' && <button className="exam-enter-marks" type="button" onClick={() => setMarksExam(exam)}><FileText size={15} /> Enter marks</button>}
+              {isPrincipal && status === 'Published' && <button className="exam-enter-marks" type="button" onClick={() => navigate('/module/results')}>View results</button>}
+              {isPrincipal && status !== 'Published' && examDateHasArrived(exam) && <button className="exam-enter-marks" type="button" onClick={() => setReviewExam(exam)}><Check size={15} /> Review marks</button>}
+              {canDeleteExam(exam) && <button className="exam-delete" type="button" onClick={() => removeExam(exam)} aria-label="Remove exam"><Trash2 size={16} /></button>}
+            </div>
+          </article>
+        })}</div> : <div className="exam-empty"><div><CalendarDays size={22} /></div><h3>{viewFilter === 'completed' ? 'No past exams found' : viewFilter === 'upcoming' ? 'No upcoming exams' : 'No exams scheduled'}</h3><p>{isPrincipal ? 'Create the first exam using the Schedule exams button.' : 'No exam has been scheduled for the classes available to you yet.'}</p></div>}</section>
 
       {isPrincipal && mode === 'all' && <section className="exam-quick-actions" aria-label="Assessment quick actions">
-        <div className="exam-quick-actions-heading"><span className="exam-eyebrow">QUICK ACTIONS</span><h2>Assessment workspace</h2><p>Start a supported action or see which workflows still need to be connected.</p></div>
+        <div className="exam-quick-actions-heading"><span className="exam-eyebrow">QUICK ACTIONS</span><h2>Assessment workspace</h2><p>Schedule exams here and manage submitted marks on the Results & Publication page.</p></div>
         <div className="exam-quick-actions-grid">
           <button type="button" className="exam-quick-action" onClick={openForm}><span className="exam-quick-action-icon"><Plus size={18} /></span><span><strong>Schedule exams</strong><small>Create a class and section timetable</small></span><span className="exam-quick-action-arrow">↗</span></button>
-          <div className="exam-quick-action is-unavailable"><span className="exam-quick-action-icon"><FileText size={18} /></span><span><strong>Marks management</strong><small>Review submitted marks from each completed exam row</small></span></div>
-          <div className="exam-quick-action is-unavailable"><span className="exam-quick-action-icon"><Check size={18} /></span><span><strong>Results & reports</strong><small>Not connected to results records yet</small></span></div>
+          <button type="button" className="exam-quick-action" onClick={() => navigate("/module/results")}><span className="exam-quick-action-icon"><FileText size={18} /></span><span><strong>Results & publication</strong><small>Review teacher submissions and publish approved results</small></span><span className="exam-quick-action-arrow">↗</span></button>
         </div>
       </section>}
 
