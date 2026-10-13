@@ -117,6 +117,7 @@ function ModulePage({ moduleKey }) {
   const [newCode, setNewCode] = useState('')
   const [newType, setNewType] = useState('Elective')
   const [feeFilter, setFeeFilter] = useState('All')
+  const [feeTab, setFeeTab] = useState('Overview')
   const configuredModule = MODULES[moduleKey]
 
   useEffect(() => {
@@ -323,30 +324,98 @@ function ModulePage({ moduleKey }) {
   )
 
   const renderFees = () => {
-    const feeRows = filteredRows.filter((row) => feeFilter === 'All' || String(row[4]).toLowerCase() === feeFilter.toLowerCase())
+    const financeRoles = ['principal', 'accountant'].includes(user?.role)
+    const feeTabs = financeRoles
+      ? ['Overview', 'Student dues', 'Payments', 'Fee structure', 'Reports']
+      : ['My fee account', 'Payment history', 'Receipts']
+    const activeTab = financeRoles ? feeTab : feeTab === 'Overview' ? 'My fee account' : feeTab
+    const emptyCopy = {
+      Overview: ['Finance overview is not connected yet', 'Once fee records and payment transactions are connected, this area will show verified collections, outstanding balances and overdue accounts.'],
+      'Student dues': ['No fee accounts to display', 'Student fee assignments and balances will appear here after the fee ledger is connected. No sample students or balances are shown.'],
+      Payments: ['No payment transactions yet', 'Verified payments will appear here with date, student, method, reference and receipt status. Unconfirmed payments will not count as collected.'],
+      'Fee structure': ['Fee structure is not configured', 'The school will be able to define fees by academic year and class, including components, installments and due dates after the setup workflow is connected.'],
+      Reports: ['Finance reports are not available yet', 'Collection summaries, class-wise dues and overdue reports will be available once real fee and payment records exist.'],
+      'My fee account': ['Your fee account is not connected yet', 'When the school publishes your fee details, you will be able to review the amount assigned, payments received and remaining balance here.'],
+      'Payment history': ['No payment history available', 'Payments linked to your account will appear here after the school payment ledger is connected.'],
+      Receipts: ['No receipts available', 'Receipts will appear here when a payment has been recorded and confirmed by the school.'],
+    }
+    const copy = emptyCopy[activeTab] || emptyCopy.Overview
     return (
-      <div className="fees-workspace">
-        <section className="fee-pulse-grid">
-          {module.stats.map(([label, value, trend]) => <article key={label}><span>{label}</span><strong>{value}</strong><small className={trend?.startsWith('-') ? 'negative' : 'positive'}>{trend || 'Current academic year'}</small></article>)}
-        </section>
-
-        <section className="fee-cycle-panel">
-          <div><span className="variant-kicker">FEE COLLECTION WORKSPACE</span><h2>Track the fee cycle without leaving the register</h2><p>Use the status filter to move from paid students to partial and due accounts.</p></div>
-          <div className="fee-cycle"><span className="done">Fee assigned</span><ChevronRight size={15} /><span className="done">Payment received</span><ChevronRight size={15} /><span className="current">Receipt / balance</span><ChevronRight size={15} /><span>Follow-up</span></div>
-        </section>
-
-        <section className="module-variant-panel fee-ledger-panel">
-          <div className="fee-ledger-header"><VariantHeader kicker="PAYMENT REGISTER" title="Student fee accounts" description="Review total fee, amount paid and the current collection state." chip={`${feeRows.length} visible`} />
-            <div className="fee-filter-tabs">{['All', 'Paid', 'Partial', 'Due'].map((filter) => <button type="button" key={filter} className={feeFilter === filter ? 'active' : ''} onClick={() => setFeeFilter(filter)}>{filter}</button>)}</div>
+      <div className="fees-workspace fees-stage-one">
+        <section className="fee-workspace-intro">
+          <div>
+            <span className="variant-kicker">{financeRoles ? 'SCHOOL FINANCE' : 'FAMILY FEE PORTAL'}</span>
+            <h2>{financeRoles ? 'Fees, balances and payment records' : 'Fee account and payment records'}</h2>
+            <p>{financeRoles
+              ? 'A single workspace for fee structures, student dues, verified payments and receipts.'
+              : 'Review fee details and confirmed payments shared by your school.'}</p>
           </div>
-          <div className="fee-table-wrap"><table className="fee-table"><thead><tr><th>Student</th><th>Class</th><th>Total fee</th><th>Paid</th><th>Balance</th><th>Status</th><th /></tr></thead>
-            <tbody>{feeRows.map((row) => { const total = Number(String(row[2]).replace(/[^0-9]/g, '')) || 0; const paid = Number(String(row[3]).replace(/[^0-9]/g, '')) || 0; const balance = Math.max(total - paid, 0); return <tr key={row[0]}><td><strong>{row[0]}</strong></td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td><td>{balance ? `₹${balance.toLocaleString('en-IN')}` : '₹0'}</td><td><span className={`status-pill ${statusClass(row[4])}`}>{row[4]}</span></td><td><button type="button" className="table-action">View</button></td></tr> })}</tbody>
-          </table></div>
+          <div className="fee-data-state"><span className="fee-state-dot" /> <span>Live finance data not connected</span></div>
         </section>
 
-        <section className="fee-attention-panel">
-          <div><span className="variant-kicker">FOLLOW-UP QUEUE</span><h2>Accounts needing attention</h2><p>These are the students from the current register with a balance or partial payment.</p></div>
-          <div className="fee-attention-list">{module.rows.filter((row) => ['Partial', 'Due'].includes(row[4])).map((row) => <div key={row[0]}><div><strong>{row[0]}</strong><span>{row[1]} · {row[4]}</span></div><strong>{row[2]} total · {row[3]} paid</strong></div>)}</div>
+        {financeRoles && (
+          <section className="fee-pulse-grid fee-unavailable-metrics" aria-label="Finance metrics">
+            {[
+              ['Fees assigned', '—', 'Available after fee setup'],
+              ['Collected', '—', 'Verified payments only'],
+              ['Outstanding', '—', 'Calculated from live balances'],
+              ['Overdue accounts', '—', 'Based on configured due dates'],
+            ].map(([label, value, hint]) => (
+              <article key={label}><span>{label}</span><strong>{value}</strong><small>{hint}</small></article>
+            ))}
+          </section>
+        )}
+
+        <nav className="fee-workspace-tabs" aria-label="Fees and payments sections">
+          {feeTabs.map((tab) => (
+            <button type="button" key={tab} className={activeTab === tab ? 'active' : ''} onClick={() => setFeeTab(tab === 'My fee account' ? 'Overview' : tab)}>{tab}</button>
+          ))}
+        </nav>
+
+        {activeTab === 'Overview' && financeRoles && (
+          <section className="fee-overview-grid">
+            <article className="fee-overview-card fee-overview-primary">
+              <span className="variant-kicker">COLLECTION WORKFLOW</span>
+              <h3>From fee assignment to receipt</h3>
+              <p>Keep each step traceable. A payment should update a balance only after it is recorded and verified.</p>
+              <div className="fee-workflow-steps">
+                <div><span>01</span><strong>Fee structure</strong><small>Set class-wise components and due dates</small></div>
+                <div><span>02</span><strong>Student dues</strong><small>Assign the applicable fee to each student</small></div>
+                <div><span>03</span><strong>Record payment</strong><small>Capture amount, method and reference</small></div>
+                <div><span>04</span><strong>Receipt & balance</strong><small>Confirm payment and recalculate dues</small></div>
+              </div>
+            </article>
+            <article className="fee-overview-card">
+              <span className="variant-kicker">QUICK ACCESS</span>
+              <h3>Open a finance register</h3>
+              <p>Choose a section to review its structure. Records will appear when the backend workflow is ready.</p>
+              <div className="fee-quick-links">
+                {['Student dues', 'Payments', 'Fee structure', 'Reports'].map((tab) => <button type="button" key={tab} onClick={() => setFeeTab(tab)}><span>{tab}</span><strong>›</strong></button>)}
+              </div>
+            </article>
+          </section>
+        )}
+
+        <section className="module-variant-panel fee-ledger-panel fee-empty-panel">
+          <div className="fee-ledger-header">
+            <VariantHeader
+              kicker={activeTab === 'Payments' || activeTab === 'Payment history' ? 'PAYMENT REGISTER' : activeTab === 'Fee structure' ? 'FEE CONFIGURATION' : activeTab === 'Reports' ? 'FINANCE REPORTS' : activeTab === 'Receipts' ? 'RECEIPT REGISTER' : 'FEE ACCOUNTS'}
+              title={copy[0]}
+              description={copy[1]}
+              chip="Awaiting live data"
+            />
+          </div>
+          <div className="fee-empty-state">
+            <div className="fee-empty-icon"><CreditCard size={23} /></div>
+            <strong>{copy[0]}</strong>
+            <p>{copy[1]}</p>
+            <span>Demo figures and sample student records have been removed to avoid misleading financial information.</span>
+          </div>
+        </section>
+
+        <section className="fee-integrity-note">
+          <div><strong>Keep finance records accurate</strong><p>Fees assigned, payments collected and outstanding dues are different figures. They will be calculated separately from confirmed records.</p></div>
+          <span>Audit-friendly by design</span>
         </section>
       </div>
     )
