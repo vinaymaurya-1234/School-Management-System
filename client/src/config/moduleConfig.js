@@ -88,12 +88,12 @@ export const MODULES = {
     stats: [], columns: [], rows: [], actions: ['Mark all present', 'Save attendance'],
   },
   fees: {
-    title: 'Fees & Payments', eyebrow: 'FINANCE', description: 'Track fee collections, dues, receipts and payment status.', icon: CreditCard,
+    title: 'Fees & Payments', eyebrow: 'FINANCE', description: 'Manage fee structures, student dues, verified payments and receipts.', icon: CreditCard,
     permissionByRole: { principal: 'fees.manage', accountant: 'fees.manage', student: 'fees.view.own', parent: 'fees.view.children' },
-    stats: [['Collected', '₹18.4L', '+8.2%'], ['Pending', '₹4.2L', '-3.4%'], ['Paid students', '1,084', '+5.1%'], ['Overdue', '83', '-9.7%']],
-    columns: ['Student', 'Class', 'Total fee', 'Paid', 'Status'],
-    rows: [['Aarav Sharma', '10-A', '₹42,000', '₹42,000', 'Paid'], ['Anaya Patel', '9-B', '₹39,000', '₹30,000', 'Partial'], ['Vivaan Mehta', '8-A', '₹36,000', '₹36,000', 'Paid'], ['Diya Shah', '10-B', '₹42,000', '₹28,000', 'Due'], ['Arjun Rao', '7-C', '₹34,000', '₹34,000', 'Paid']],
-    actions: ['Record payment', 'Create receipt', 'Fee report'],
+    stats: [],
+    columns: [],
+    rows: [],
+    actions: [],
   },
   reports: {
     title: 'Reports & Analytics', eyebrow: 'INSIGHTS', description: 'View academic, attendance, finance and operational reports.', icon: BarChart3,
