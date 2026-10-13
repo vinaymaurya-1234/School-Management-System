@@ -2,6 +2,7 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   BookOpen,
+  CreditCard,
   ChevronRight,
   Clock3,
   FileText,
@@ -116,7 +117,6 @@ function ModulePage({ moduleKey }) {
   const [newSubject, setNewSubject] = useState('')
   const [newCode, setNewCode] = useState('')
   const [newType, setNewType] = useState('Elective')
-  const [feeFilter, setFeeFilter] = useState('All')
   const [feeTab, setFeeTab] = useState('Overview')
   const configuredModule = MODULES[moduleKey]
 
