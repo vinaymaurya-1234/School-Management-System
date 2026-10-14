@@ -525,3 +525,10 @@
  .module-page.module-fees .fees-stage-two .fee-family-account-head > div:last-child { text-align:left; }
  .module-page.module-fees .fees-stage-two .fee-instalment-list > div { align-items:flex-start; flex-direction:column; }
 }
+
+
+.module-page.module-fees .fee-global-filter-panel { display:flex; align-items:end; flex-wrap:wrap; gap:14px; padding:14px 18px; margin-top:-8px; border:1px solid #dedede; border-radius:12px; background:#fff; }
+.module-page.module-fees .fee-global-filter-panel label { display:grid; gap:6px; min-width:220px; color:#333; font-size:12px; font-weight:750; }
+.module-page.module-fees .fee-global-filter-panel select { min-height:38px; padding:8px 10px; border:1px solid #d8d8d8; border-radius:8px; background:#fff; color:#171717; font-size:13px; }
+.module-page.module-fees .fee-global-filter-panel span { flex:1; color:#666; font-size:12px; }
+.module-page.module-fees .fee-global-filter-panel button { min-height:38px; padding:0 13px; border:1px solid #d8d8d8; border-radius:8px; background:#f7f7f7; color:#171717; font-size:12px; font-weight:750; cursor:pointer; }
