@@ -543,3 +543,8 @@
 .module-page.module-fees .fees-stage-two .fee-setup-guidance strong { color:#111; }
 .module-page.module-fees .fees-stage-two .fee-setup-guidance span { color:#555; }
 @media (max-width:640px) { .module-page.module-fees .fees-stage-two .fee-workspace-intro-actions { justify-content:flex-start; } }
+
+
+/* Class-wide fee assignment helper */
+.module-page.module-fees .fees-stage-two .fee-inline-help { margin: -4px 0 16px; color: #626262; font-size: 13px; line-height: 1.55; }
+.module-page.module-fees .fees-stage-two .fee-existing-row .fee-structure-status { display: inline-flex; margin-left: 8px; font-size: 11px; color: #555; }
