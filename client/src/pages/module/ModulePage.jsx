@@ -359,21 +359,50 @@ function ModulePage({ moduleKey }) {
       setFeeLoading(true)
       setFeeError('')
       try {
-        const summaryPromise = apiClient.get('/fees/summary')
         const finance = ['principal', 'accountant'].includes(user.role)
-        const optional = finance ? [
-          apiClient.get('/fees/options'),
-          apiClient.get('/fees/structures'),
-          apiClient.get('/fees/students'),
-        ] : []
-        const [summary, ...extras] = await Promise.all([summaryPromise, ...optional])
+        const summary = await apiClient.get('/fees/summary')
         if (!active) return
         setFeeData(summary.data || { summary: {}, accounts: [], payments: [], available: false })
         if (finance) {
-          setFeeOptions(extras[0].data || { academicYears: [], classes: [], sections: [] })
-          setFeeStructures(extras[1].data || [])
-          setFeeStudents(extras[2].data || [])
-          const activeYear = (extras[0].data?.academicYears || []).find((item) => item.isActive) || extras[0].data?.academicYears?.[0]
+          const results = await Promise.allSettled([
+            apiClient.get('/fees/options'),
+            apiClient.get('/fees/structures'),
+            apiClient.get('/fees/students'),
+          ])
+          let options = results[0].status === 'fulfilled' ? results[0].value.data : null
+          const structures = results[1].status === 'fulfilled' ? results[1].value.data : []
+          let students = results[2].status === 'fulfilled' ? results[2].value.data : []
+          if (!options?.academicYears?.length || !options?.classes?.length || !options?.sections?.length) {
+            const academic = await Promise.allSettled([
+              apiClient.get('/academic/years'),
+              apiClient.get('/academic/classes'),
+              apiClient.get('/academic/sections'),
+            ])
+            options = {
+              academicYears: academic[0].status === 'fulfilled' ? academic[0].value.data?.years || [] : options?.academicYears || [],
+              classes: academic[1].status === 'fulfilled' ? academic[1].value.data?.classes || [] : options?.classes || [],
+              sections: academic[2].status === 'fulfilled' ? academic[2].value.data?.sections || [] : options?.sections || [],
+            }
+          }
+          if (!students.length) {
+            const enrollmentResponse = await apiClient.get('/academic/enrollments').catch(() => null)
+            students = (enrollmentResponse?.data?.enrollments || []).filter((item) => item.status === 'active' && item.student).map((item) => ({
+              studentId: String(item.student._id || item.student.id || item.student),
+              name: item.student.name || '',
+              email: item.student.email || '',
+              classId: item.class?._id || item.class,
+              className: item.class?.name || '—',
+              sectionId: item.section?._id || item.section,
+              sectionName: item.section?.name || '—',
+              academicYearId: item.academicYear?._id || item.academicYear,
+              admissionNumber: '—',
+            }))
+          }
+          if (!active) return
+          setFeeOptions({ academicYears: options?.academicYears || [], classes: options?.classes || [], sections: options?.sections || [] })
+          setFeeStructures(Array.isArray(structures) ? structures : [])
+          setFeeStudents(Array.isArray(students) ? students : [])
+          const activeYear = (options?.academicYears || []).find((item) => item.isActive) || options?.academicYears?.[0]
           if (activeYear) setFeeYear((current) => current || activeYear._id)
         }
       } catch (error) {
