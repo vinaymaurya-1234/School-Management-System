@@ -157,7 +157,7 @@ function ModulePage({ moduleKey }) {
   useEffect(() => {
     if (user?.role !== 'principal' && user?.role !== 'accountant') return
     const query = feePaymentSearch.trim()
-    if (selectedFeePaymentAccount || query.length < 2 || activeTab !== 'Payments') {
+    if (selectedFeePaymentAccount || query.length < 2 || feeTab !== 'Payments') {
       setFeePaymentResults([])
       setFeePaymentSearchLoading(false)
       return
@@ -178,7 +178,7 @@ function ModulePage({ moduleKey }) {
       }
     }, 250)
     return () => { current = false; clearTimeout(timeout) }
-  }, [feePaymentSearch, selectedFeePaymentAccount, activeTab, user?.role])
+  }, [feePaymentSearch, selectedFeePaymentAccount, feeTab, user?.role])
 
   useEffect(() => {
     if (user?.role !== 'teacher') {
