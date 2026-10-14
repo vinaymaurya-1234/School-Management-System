@@ -147,12 +147,17 @@ router.post("/accounts/assign", financeOnly, async (req, res, next) => {
   try {
     const { studentId, feeStructureId } = req.body;
     if (!idIsValid(studentId) || !idIsValid(feeStructureId)) return res.status(400).json({ message: "Choose a valid student and fee structure." });
-    const [enrollment, structure] = await Promise.all([
-      StudentEnrollment.findOne({ school: req.user.school, student: studentId, status: "active" }).sort({ createdAt: -1 }),
-      FeeStructure.findOne({ _id: feeStructureId, school: req.user.school, active: true }),
-    ]);
-    if (!enrollment || !structure || String(enrollment.class) !== String(structure.class) || String(enrollment.academicYear) !== String(structure.academicYear)) {
-      return res.status(400).json({ message: "The selected fee structure must match the student's active class and academic year." });
+    const structure = await FeeStructure.findOne({ _id: feeStructureId, school: req.user.school, active: true });
+    if (!structure) return res.status(400).json({ message: "Choose an active fee structure from this school." });
+    const enrollment = await StudentEnrollment.findOne({
+      school: req.user.school,
+      student: studentId,
+      academicYear: structure.academicYear,
+      class: structure.class,
+      status: "active",
+    });
+    if (!enrollment) {
+      return res.status(400).json({ message: "The selected student must have an active enrollment in the fee structure's class and academic year." });
     }
     const account = await FeeAccount.create({
       school: req.user.school, academicYear: enrollment.academicYear, student: studentId, class: enrollment.class, section: enrollment.section,
