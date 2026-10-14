@@ -136,6 +136,9 @@ router.post("/structures", financeOnly, async (req, res, next) => {
     const instalmentTotal = Math.round(cleanInstalments.reduce((sum, item) => sum + item.amount, 0) * 100) / 100;
     if (Math.abs(totalAmount - instalmentTotal) > 0.01) return res.status(400).json({ message: "The instalment total must equal the total of all fee components." });
     const structure = await FeeStructure.create({ school: req.user.school, academicYear, class: classId, name: String(name).trim(), components: cleanComponents, instalments: cleanInstalments, totalAmount, createdBy: req.user._id });
+    // Keep one active fee plan per class/year for automatic late-admission assignment.
+    // Existing student accounts keep their copied instalments and are not modified.
+    await FeeStructure.updateMany({ school: req.user.school, academicYear, class: classId, _id: { $ne: structure._id }, active: true }, { $set: { active: false } });
     res.status(201).json(structure);
   } catch (error) {
     if (error.code === 11000) return res.status(409).json({ message: "A fee structure with this name already exists for this class and academic year." });
@@ -143,32 +146,54 @@ router.post("/structures", financeOnly, async (req, res, next) => {
   }
 });
 
+async function createAccountForEnrollment(enrollment, structure, schoolId) {
+  try {
+    return await FeeAccount.create({
+      school: schoolId,
+      academicYear: enrollment.academicYear,
+      student: enrollment.student,
+      class: enrollment.class,
+      section: enrollment.section,
+      feeStructure: structure._id,
+      instalments: structure.instalments.map(item => ({ structureInstalmentId: item._id, name: item.name, amount: item.amount, dueDate: item.dueDate })),
+    });
+  } catch (error) {
+    if (error.code === 11000) return null; // Existing assignment: safe to retry without duplicates.
+    throw error;
+  }
+}
+
+router.post("/accounts/assign-class", financeOnly, async (req, res, next) => {
+  try {
+    const { academicYear, classId, feeStructureId } = req.body || {};
+    if (![academicYear, classId, feeStructureId].every(idIsValid)) return res.status(400).json({ message: "Choose an academic year, class and fee structure." });
+    const structure = await FeeStructure.findOne({ _id: feeStructureId, school: req.user.school, academicYear, class: classId, active: true });
+    if (!structure) return res.status(400).json({ message: "Choose the active fee structure for this exact class and academic year." });
+    const enrollments = await StudentEnrollment.find({ school: req.user.school, academicYear, class: classId, status: "active" }).lean();
+    let assigned = 0;
+    let alreadyAssigned = 0;
+    for (const enrollment of enrollments) {
+      const account = await createAccountForEnrollment(enrollment, structure, req.user.school);
+      if (account) assigned += 1;
+      else alreadyAssigned += 1;
+    }
+    res.json({ message: "Class fee assignment completed.", className: String(classId), totalEnrolled: enrollments.length, assigned, alreadyAssigned, sectionsIncluded: true });
+  } catch (error) { next(error); }
+});
+
+// Kept for API compatibility; new UI uses class-wide assignment.
 router.post("/accounts/assign", financeOnly, async (req, res, next) => {
   try {
     const { studentId, feeStructureId } = req.body;
     if (!idIsValid(studentId) || !idIsValid(feeStructureId)) return res.status(400).json({ message: "Choose a valid student and fee structure." });
     const structure = await FeeStructure.findOne({ _id: feeStructureId, school: req.user.school, active: true });
     if (!structure) return res.status(400).json({ message: "Choose an active fee structure from this school." });
-    const enrollment = await StudentEnrollment.findOne({
-      school: req.user.school,
-      student: studentId,
-      academicYear: structure.academicYear,
-      class: structure.class,
-      status: "active",
-    });
-    if (!enrollment) {
-      return res.status(400).json({ message: "The selected student must have an active enrollment in the fee structure's class and academic year." });
-    }
-    const account = await FeeAccount.create({
-      school: req.user.school, academicYear: enrollment.academicYear, student: studentId, class: enrollment.class, section: enrollment.section,
-      feeStructure: structure._id,
-      instalments: structure.instalments.map(item => ({ structureInstalmentId: item._id, name: item.name, amount: item.amount, dueDate: item.dueDate })),
-    });
+    const enrollment = await StudentEnrollment.findOne({ school: req.user.school, student: studentId, academicYear: structure.academicYear, class: structure.class, status: "active" });
+    if (!enrollment) return res.status(400).json({ message: "The student must be actively enrolled in this class and academic year." });
+    const account = await createAccountForEnrollment(enrollment, structure, req.user.school);
+    if (!account) return res.status(409).json({ message: "This fee structure is already assigned to the student for this academic year." });
     res.status(201).json(account);
-  } catch (error) {
-    if (error.code === 11000) return res.status(409).json({ message: "This fee structure is already assigned to the student for this academic year." });
-    next(error);
-  }
+  } catch (error) { next(error); }
 });
 
 router.post("/payments/offline", financeOnly, async (req, res, next) => {
