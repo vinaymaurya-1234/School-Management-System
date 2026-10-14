@@ -238,6 +238,13 @@ router.post("/payments/online/verify", async (req, res, next) => {
     const provided = Buffer.from(String(razorpay_signature || ""));
     const expectedBuffer = Buffer.from(expected);
     if (provided.length !== expectedBuffer.length || !crypto.timingSafeEqual(provided, expectedBuffer)) return res.status(400).json({ message: "Payment signature verification failed." });
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) return res.status(503).json({ message: "Payment gateway verification is not configured on the server." });
+    const gatewayAuth = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString("base64");
+    const gatewayResponse = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(razorpay_payment_id)}`, { headers: { Authorization: `Basic ${gatewayAuth}` } });
+    const gatewayPayment = await gatewayResponse.json();
+    if (!gatewayResponse.ok || gatewayPayment.order_id !== razorpay_order_id || gatewayPayment.status !== "captured" || Number(gatewayPayment.amount) !== Math.round(payment.amount * 100)) {
+      return res.status(409).json({ message: "The gateway has not confirmed a captured payment matching this fee instalment. Check payment status before retrying." });
+    }
     payment.status = "verified";
     payment.gatewayPaymentId = razorpay_payment_id;
     payment.reference = razorpay_payment_id;
