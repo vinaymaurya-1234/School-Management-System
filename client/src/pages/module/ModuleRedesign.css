@@ -532,3 +532,6 @@
 .module-page.module-fees .fee-global-filter-panel select { min-height:38px; padding:8px 10px; border:1px solid #d8d8d8; border-radius:8px; background:#fff; color:#171717; font-size:13px; }
 .module-page.module-fees .fee-global-filter-panel span { flex:1; color:#666; font-size:12px; }
 .module-page.module-fees .fee-global-filter-panel button { min-height:38px; padding:0 13px; border:1px solid #d8d8d8; border-radius:8px; background:#f7f7f7; color:#171717; font-size:12px; font-weight:750; cursor:pointer; }
+
+
+.module-page.module-fees .fee-global-filter-panel input { min-height:38px; padding:8px 10px; border:1px solid #d8d8d8; border-radius:8px; background:#fff; color:#171717; font-size:13px; }
