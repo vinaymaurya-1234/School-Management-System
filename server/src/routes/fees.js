@@ -89,7 +89,6 @@ router.get("/summary", async (req, res, next) => {
     const payments = await FeePayment.find({ school: req.user.school, ...(visibleIds ? { student: { $in: visibleIds } } : {}) })
       .populate("student", "name").populate("account", "feeStructure").sort({ createdAt: -1 }).limit(100).lean();
     const now = new Date();
-    const verified = payments.filter(item => item.status === "verified");
     const summary = {
       feesAssigned: rows.reduce((sum, item) => sum + item.totalAmount, 0),
       collected: rows.reduce((sum, item) => sum + item.paidAmount, 0),
