@@ -376,3 +376,13 @@
   .module-fees .fee-pulse-grid { grid-template-columns: 1fr; }
   .module-fees .fee-workflow-steps { grid-template-columns: 1fr; }
 }
+
+
+/* Higher-specificity overrides for the later global UI stylesheet. */
+.module-page.module-fees .module-title-icon { background:#f1f1f1 !important; color:#171717 !important; border-color:#dedede !important; }
+.module-page.module-fees .eyebrow,
+.module-page.module-fees .variant-kicker,
+.module-page.module-fees .fee-workspace-intro .variant-kicker { color:#555 !important; }
+.module-page.module-fees .module-stat:first-child { background:#fff !important; border-color:#dedede !important; }
+.module-page.module-fees .module-search:focus-within { border-color:#888 !important; box-shadow:0 0 0 3px rgba(0,0,0,.05) !important; }
+.module-page.module-fees .secondary-button:hover { color:#171717 !important; border-color:#999 !important; }
