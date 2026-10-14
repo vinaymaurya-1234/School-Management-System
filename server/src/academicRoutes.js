@@ -4,6 +4,7 @@ import User from "./models/User.js";
 import { ClassSubject } from "./models/Subject.js";
 import TimetableEntry from "./models/Timetable.js";
 import AttendanceSession from "./models/Attendance.js";
+import { FeeStructure, FeeAccount } from "./models/Fees.js";
 import { requireAuth } from "./middleware/auth.js";
 import { ROLES } from "./config/permissions.js";
 
@@ -188,7 +189,29 @@ router.post("/enrollments", async (req, res, next) => {
     if (!studentUser) return res.status(404).json({ message: "Student user not found" });
     if (!schoolClass || !sectionDoc) return res.status(404).json({ message: "Class or section not found for the academic year" });
     const enrollment = await StudentEnrollment.create({ school: req.user.school, academicYear, student, class: classId, section });
-    res.status(201).json({ enrollment });
+
+    // Automatically attach the active fee plan for this class/year to late admissions.
+    // Enrollment remains valid when finance has not configured a fee plan yet.
+    let feeAssignment = { assigned: false, reason: "No active fee structure exists for this class and academic year." };
+    const feeStructure = await FeeStructure.findOne({ school: req.user.school, academicYear, class: classId, active: true }).sort({ createdAt: -1 });
+    if (feeStructure) {
+      try {
+        await FeeAccount.create({
+          school: req.user.school,
+          academicYear,
+          student,
+          class: classId,
+          section,
+          feeStructure: feeStructure._id,
+          instalments: feeStructure.instalments.map(item => ({ structureInstalmentId: item._id, name: item.name, amount: item.amount, dueDate: item.dueDate })),
+        });
+        feeAssignment = { assigned: true, feeStructure: feeStructure._id };
+      } catch (feeError) {
+        if (feeError.code === 11000) feeAssignment = { assigned: false, alreadyAssigned: true, feeStructure: feeStructure._id };
+        else throw feeError;
+      }
+    }
+    res.status(201).json({ enrollment, feeAssignment });
   } catch (error) {
     if (error.code === 11000) return res.status(409).json({ message: "Student is already enrolled for this academic year" });
     next(error);
