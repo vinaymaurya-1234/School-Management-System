@@ -221,7 +221,7 @@ router.post("/payments/online/order", async (req, res, next) => {
     const instalment = account.instalments.find(item => String(item._id) === String(instalmentId));
     const value = safeAmount(amount);
     if (!instalment || !value) return res.status(400).json({ message: "Choose an instalment and enter a positive amount." });
-    const totals = await paymentTotals([account._id]);
+    const totals = await paymentTotals([account._id], true);
     const paid = totals.get(`${account._id}:${instalment._id}`) || 0;
     if (value > instalment.amount - paid + 0.001) return res.status(400).json({ message: "Payment amount exceeds the remaining instalment balance." });
     const auth = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString("base64");
