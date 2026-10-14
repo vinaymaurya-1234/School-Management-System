@@ -118,10 +118,14 @@ router.post("/structures", financeOnly, async (req, res, next) => {
       SchoolClass.findOne({ _id: classId, school: req.user.school, academicYear }),
     ]);
     if (!year || !schoolClass) return res.status(400).json({ message: "Choose a valid academic year and class from this school." });
-    const cleanComponents = components.map(item => ({ name: String(item.name || "").trim(), amount: safeAmount(item.amount) })).filter(item => item.name && item.amount >= 0);
-    if (!cleanComponents.length || cleanComponents.some(item => !item.name || !Number.isFinite(Number(item.amount)))) return res.status(400).json({ message: "Each fee component needs a name and valid amount." });
-    const cleanInstalments = instalments.map(item => ({ name: String(item.name || "").trim(), amount: safeAmount(item.amount), dueDate: new Date(item.dueDate) }));
-    if (cleanInstalments.some(item => !item.name || !item.amount || Number.isNaN(item.dueDate.getTime()))) return res.status(400).json({ message: "Each instalment needs a name, positive amount and due date." });
+    if (components.some(item => !String(item.name || "").trim() || !Number.isFinite(Number(item.amount)) || Number(item.amount) < 0)) {
+      return res.status(400).json({ message: "Each fee component needs a name and a valid non-negative amount." });
+    }
+    const cleanComponents = components.map(item => ({ name: String(item.name).trim(), amount: Math.round(Number(item.amount) * 100) / 100 }));
+    const cleanInstalments = instalments.map(item => ({ name: String(item.name || "").trim(), amount: Number(item.amount), dueDate: new Date(item.dueDate) }));
+    if (cleanInstalments.some(item => !item.name || !Number.isFinite(item.amount) || item.amount <= 0 || Number.isNaN(item.dueDate.getTime()))) {
+      return res.status(400).json({ message: "Each instalment needs a name, positive amount and due date." });
+    }
     const totalAmount = Math.round(cleanComponents.reduce((sum, item) => sum + item.amount, 0) * 100) / 100;
     const instalmentTotal = Math.round(cleanInstalments.reduce((sum, item) => sum + item.amount, 0) * 100) / 100;
     if (Math.abs(totalAmount - instalmentTotal) > 0.01) return res.status(400).json({ message: "The instalment total must equal the total of all fee components." });
