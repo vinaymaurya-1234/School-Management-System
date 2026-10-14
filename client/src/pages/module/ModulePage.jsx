@@ -398,7 +398,7 @@ function ModulePage({ moduleKey }) {
     event.preventDefault()
     setFeeBusy(true); setFeeError(''); setFeeNotice('')
     try {
-      const response = await apiClient.post('/fees/structures', {
+      await apiClient.post('/fees/structures', {
         academicYear: feeYear, class: feeClass, name: feeStructureName,
         components: feeComponents.map((item) => ({ name: item.name, amount: Number(item.amount) })),
         instalments: feeInstalments.map((item) => ({ name: item.name, amount: Number(item.amount), dueDate: item.dueDate })),
