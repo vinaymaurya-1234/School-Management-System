@@ -504,6 +504,8 @@ function ModulePage({ moduleKey }) {
     const accounts = feeData.accounts || []
     const payments = feeData.payments || []
     const visiblePayments = payments.filter((payment) => {
+      const matchesSearch = !feeSearch.trim() || [payment.student?.name, payment.receiptNumber, payment.reference, payment.gatewayOrderId, payment.status, payment.offlineMethod].some((value) => String(value || '').toLowerCase().includes(feeSearch.trim().toLowerCase()))
+      if (!matchesSearch) return false
       if (feePeriod === 'all') return true
       const paymentDate = new Date(payment.verifiedAt || payment.createdAt)
       const now = new Date()
