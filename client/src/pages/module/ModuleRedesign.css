@@ -548,3 +548,30 @@
 /* Class-wide fee assignment helper */
 .module-page.module-fees .fees-stage-two .fee-inline-help { margin: -4px 0 16px; color: #626262; font-size: 13px; line-height: 1.55; }
 .module-page.module-fees .fees-stage-two .fee-existing-row .fee-structure-status { display: inline-flex; margin-left: 8px; font-size: 11px; color: #555; }
+
+
+/* Scalable offline-payment student lookup */
+.module-page.module-fees .fees-stage-two .fee-payment-student-lookup { position: relative; display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.module-page.module-fees .fees-stage-two .fee-payment-searchbox { display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 13px; border: 1px solid #dedede; border-radius: 11px; background: #fff; color: #777; }
+.module-page.module-fees .fees-stage-two .fee-payment-searchbox:focus-within { border-color: #777; box-shadow: 0 0 0 3px rgba(0,0,0,.045); }
+.module-page.module-fees .fees-stage-two .fee-payment-searchbox input { min-width: 0; width: 100%; padding: 0; border: 0; outline: 0; box-shadow: none; background: transparent; }
+.module-page.module-fees .fees-stage-two .fee-payment-student-lookup > small { color: #666; font-size: 12px; line-height: 1.45; }
+.module-page.module-fees .fees-stage-two .fee-payment-search-results { position: relative; z-index: 3; display: grid; max-height: 270px; overflow-y: auto; border: 1px solid #dedede; border-radius: 12px; background: #fff; box-shadow: 0 12px 30px rgba(0,0,0,.08); }
+.module-page.module-fees .fees-stage-two .fee-payment-search-results button { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px 12px; padding: 12px 14px; border: 0; border-bottom: 1px solid #eee; background: #fff; color: #111; text-align: left; cursor: pointer; }
+.module-page.module-fees .fees-stage-two .fee-payment-search-results button:last-child { border-bottom: 0; }
+.module-page.module-fees .fees-stage-two .fee-payment-search-results button:hover,
+.module-page.module-fees .fees-stage-two .fee-payment-search-results button:focus-visible { background: #f6f6f6; outline: 0; }
+.module-page.module-fees .fees-stage-two .fee-payment-search-results button strong { font-size: 13px; }
+.module-page.module-fees .fees-stage-two .fee-payment-search-results button span { grid-column: 1; color: #666; font-size: 11px; }
+.module-page.module-fees .fees-stage-two .fee-payment-search-results button b { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 12px; }
+.module-page.module-fees .fees-stage-two .fee-payment-selected { display: grid; gap: 14px; padding: 15px; border: 1px solid #e1e1e1; border-radius: 13px; background: #f8f8f8; }
+.module-page.module-fees .fees-stage-two .fee-payment-selected-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.module-page.module-fees .fees-stage-two .fee-payment-selected-head > div { display: grid; gap: 4px; }
+.module-page.module-fees .fees-stage-two .fee-payment-selected-head small,
+.module-page.module-fees .fees-stage-two .fee-payment-balance-grid small { color: #666; font-size: 10px; font-weight: 800; letter-spacing: .5px; }
+.module-page.module-fees .fees-stage-two .fee-payment-selected-head strong { font-size: 15px; }
+.module-page.module-fees .fees-stage-two .fee-payment-selected-head span { color: #666; font-size: 12px; }
+.module-page.module-fees .fees-stage-two .fee-payment-balance-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.module-page.module-fees .fees-stage-two .fee-payment-balance-grid > div { display: grid; gap: 5px; padding-top: 11px; border-top: 1px solid #e5e5e5; }
+.module-page.module-fees .fees-stage-two .fee-payment-balance-grid strong { font-size: 16px; }
+@media (max-width: 700px) { .module-page.module-fees .fees-stage-two .fee-payment-balance-grid { grid-template-columns: 1fr; } .module-page.module-fees .fees-stage-two .fee-payment-search-results button { grid-template-columns: 1fr; } .module-page.module-fees .fees-stage-two .fee-payment-search-results button b { grid-column: 1; grid-row: auto; } }
