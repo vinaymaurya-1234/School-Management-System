@@ -196,7 +196,11 @@ router.post("/enrollments", async (req, res, next) => {
     const feeStructure = await FeeStructure.findOne({ school: req.user.school, academicYear, class: classId, active: true }).sort({ createdAt: -1 });
     if (feeStructure) {
       try {
-        await FeeAccount.create({
+        const existingFeeAccount = await FeeAccount.exists({ school: req.user.school, academicYear, student });
+        if (existingFeeAccount) {
+          feeAssignment = { assigned: false, alreadyAssigned: true, feeStructure: feeStructure._id };
+        } else {
+          await FeeAccount.create({
           school: req.user.school,
           academicYear,
           student,
@@ -204,8 +208,9 @@ router.post("/enrollments", async (req, res, next) => {
           section,
           feeStructure: feeStructure._id,
           instalments: feeStructure.instalments.map(item => ({ structureInstalmentId: item._id, name: item.name, amount: item.amount, dueDate: item.dueDate })),
-        });
-        feeAssignment = { assigned: true, feeStructure: feeStructure._id };
+          });
+          feeAssignment = { assigned: true, feeStructure: feeStructure._id };
+        }
       } catch (feeError) {
         if (feeError.code === 11000) feeAssignment = { assigned: false, alreadyAssigned: true, feeStructure: feeStructure._id };
         else {
