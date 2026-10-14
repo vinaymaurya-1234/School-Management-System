@@ -208,7 +208,12 @@ router.post("/enrollments", async (req, res, next) => {
         feeAssignment = { assigned: true, feeStructure: feeStructure._id };
       } catch (feeError) {
         if (feeError.code === 11000) feeAssignment = { assigned: false, alreadyAssigned: true, feeStructure: feeStructure._id };
-        else throw feeError;
+        else {
+          // The enrollment has already been saved; don't make the client retry it
+          // and receive a misleading duplicate-enrollment error just because fees failed.
+          console.error("Automatic fee assignment failed for enrollment", String(enrollment._id), feeError);
+          feeAssignment = { assigned: false, reason: "Enrollment saved, but automatic fee assignment failed. Finance should retry class-wide assignment.", feeStructure: feeStructure._id };
+        }
       }
     }
     res.status(201).json({ enrollment, feeAssignment });
