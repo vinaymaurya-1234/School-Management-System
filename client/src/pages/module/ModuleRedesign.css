@@ -535,3 +535,11 @@
 
 
 .module-page.module-fees .fee-global-filter-panel input { min-height:38px; padding:8px 10px; border:1px solid #d8d8d8; border-radius:8px; background:#fff; color:#171717; font-size:13px; }
+
+
+/* Fees setup diagnostics and refresh controls */
+.module-page.module-fees .fees-stage-two .fee-workspace-intro-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+.module-page.module-fees .fees-stage-two .fee-setup-guidance { display:flex; flex-direction:column; align-items:flex-start; gap:5px; border-color:#d8d8d8; background:#f7f7f7; color:#333; line-height:1.55; }
+.module-page.module-fees .fees-stage-two .fee-setup-guidance strong { color:#111; }
+.module-page.module-fees .fees-stage-two .fee-setup-guidance span { color:#555; }
+@media (max-width:640px) { .module-page.module-fees .fees-stage-two .fee-workspace-intro-actions { justify-content:flex-start; } }
