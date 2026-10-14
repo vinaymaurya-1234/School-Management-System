@@ -154,6 +154,36 @@ router.get("/structures", financeOnly, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+router.put("/structures/:structureId", financeOnly, async (req, res, next) => {
+  try {
+    const { academicYear, class: classId, name, components, instalments } = req.body;
+    if (!idIsValid(req.params.structureId) || !idIsValid(academicYear) || !idIsValid(classId) || !String(name || "").trim() || !Array.isArray(components) || !components.length || !Array.isArray(instalments) || !instalments.length) {
+      return res.status(400).json({ message: "Academic year, class, name, fee components and at least one instalment are required." });
+    }
+    const [year, schoolClass, existing] = await Promise.all([
+      AcademicYear.findOne({ _id: academicYear, school: req.user.school }),
+      SchoolClass.findOne({ _id: classId, school: req.user.school, academicYear }),
+      FeeStructure.findOne({ _id: req.params.structureId, school: req.user.school }),
+    ]);
+    if (!year || !schoolClass || !existing) return res.status(404).json({ message: "Choose a valid fee structure, academic year and class from this school." });
+    if (String(existing.academicYear) !== String(academicYear) || String(existing.class) !== String(classId)) return res.status(400).json({ message: "Editing a fee structure cannot change its academic year or class." });
+    if (components.some(item => !String(item.name || "").trim() || !Number.isFinite(Number(item.amount)) || Number(item.amount) < 0)) return res.status(400).json({ message: "Each fee component needs a name and a valid non-negative amount." });
+    const cleanComponents = components.map(item => ({ name: String(item.name).trim(), amount: Math.round(Number(item.amount) * 100) / 100 }));
+    const cleanInstalments = instalments.map(item => ({ name: String(item.name || "").trim(), amount: Number(item.amount), dueDate: new Date(item.dueDate) }));
+    if (cleanInstalments.some(item => !item.name || !Number.isFinite(item.amount) || item.amount <= 0 || Number.isNaN(item.dueDate.getTime()))) return res.status(400).json({ message: "Each instalment needs a name, positive amount and due date." });
+    const totalAmount = Math.round(cleanComponents.reduce((sum, item) => sum + item.amount, 0) * 100) / 100;
+    const instalmentTotal = Math.round(cleanInstalments.reduce((sum, item) => sum + item.amount, 0) * 100) / 100;
+    if (totalAmount <= 0 || Math.abs(totalAmount - instalmentTotal) > 0.01) return res.status(400).json({ message: "The instalment total must equal the total of all fee components." });
+    existing.name = String(name).trim();
+    existing.components = cleanComponents;
+    existing.instalments = cleanInstalments;
+    existing.totalAmount = totalAmount;
+    await existing.save();
+    // Existing student accounts keep their copied fee schedule; edits apply to future assignments.
+    res.json(existing);
+  } catch (error) { next(error); }
+});
+
 router.post("/structures", financeOnly, async (req, res, next) => {
   try {
     const { academicYear, class: classId, name, components, instalments } = req.body;
@@ -165,6 +195,8 @@ router.post("/structures", financeOnly, async (req, res, next) => {
       SchoolClass.findOne({ _id: classId, school: req.user.school, academicYear }),
     ]);
     if (!year || !schoolClass) return res.status(400).json({ message: "Choose a valid academic year and class from this school." });
+    const classPlanExists = await FeeStructure.exists({ school: req.user.school, academicYear, class: classId });
+    if (classPlanExists) return res.status(409).json({ message: "A fee structure already exists for this class and academic year. Select it from Existing fee structures and edit it instead." });
     if (components.some(item => !String(item.name || "").trim() || !Number.isFinite(Number(item.amount)) || Number(item.amount) < 0)) {
       return res.status(400).json({ message: "Each fee component needs a name and a valid non-negative amount." });
     }
