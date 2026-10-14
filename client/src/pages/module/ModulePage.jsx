@@ -353,7 +353,7 @@ function ModulePage({ moduleKey }) {
   )
 
   useEffect(() => {
-    if (moduleKey !== 'fees' || !user) return
+    if (moduleKey !== 'fees' || !user?.id) return
     let active = true
     const loadFees = async () => {
       setFeeLoading(true)
