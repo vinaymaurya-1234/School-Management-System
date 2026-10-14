@@ -90,7 +90,7 @@ router.get("/accounts/search", financeOnly, async (req, res, next) => {
   try {
     const query = String(req.query.q || "").trim();
     if (query.length < 2) return res.json({ accounts: [], minimumCharacters: 2 });
-    const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\router.get("/summary", async (req, res, next) => {");
+    const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(safeQuery, "i");
     const [users, profiles] = await Promise.all([
       User.find({ school: req.user.school, role: "student", active: true, $or: [{ name: regex }, { email: regex }] }).select("_id").limit(30).lean(),
