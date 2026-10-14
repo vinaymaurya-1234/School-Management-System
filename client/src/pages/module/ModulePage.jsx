@@ -401,20 +401,23 @@ function ModulePage({ moduleKey }) {
             apiClient.get('/fees/structures'),
             apiClient.get('/fees/students'),
           ])
-          let options = results[0].status === 'fulfilled' ? results[0].value.data : null
+          const feeOptionsResponse = results[0].status === 'fulfilled' ? results[0].value.data : null
           const structures = results[1].status === 'fulfilled' ? results[1].value.data : []
           let students = results[2].status === 'fulfilled' ? results[2].value.data : []
-          if (!options?.academicYears?.length || !options?.classes?.length || !options?.sections?.length) {
-            const academic = await Promise.allSettled([
-              apiClient.get('/academic/years'),
-              apiClient.get('/academic/classes'),
-              apiClient.get('/academic/sections'),
-            ])
-            options = {
-              academicYears: academic[0].status === 'fulfilled' ? academic[0].value.data?.years || [] : options?.academicYears || [],
-              classes: academic[1].status === 'fulfilled' ? academic[1].value.data?.classes || [] : options?.classes || [],
-              sections: academic[2].status === 'fulfilled' ? academic[2].value.data?.sections || [] : options?.sections || [],
-            }
+          // Academic Setup is the source of truth for years/classes/sections.
+          // Fetch its endpoints directly on every load so stale/partial fee options cannot hide real records.
+          const academic = await Promise.allSettled([
+            apiClient.get('/academic/years'),
+            apiClient.get('/academic/classes'),
+            apiClient.get('/academic/sections'),
+          ])
+          const academicYears = academic[0].status === 'fulfilled' ? academic[0].value.data?.years : null
+          const academicClasses = academic[1].status === 'fulfilled' ? academic[1].value.data?.classes : null
+          const academicSections = academic[2].status === 'fulfilled' ? academic[2].value.data?.sections : null
+          const options = {
+            academicYears: Array.isArray(academicYears) && academicYears.length ? academicYears : feeOptionsResponse?.academicYears || [],
+            classes: Array.isArray(academicClasses) && academicClasses.length ? academicClasses : feeOptionsResponse?.classes || [],
+            sections: Array.isArray(academicSections) && academicSections.length ? academicSections : feeOptionsResponse?.sections || [],
           }
           if (!students.length) {
             const enrollmentResponse = await apiClient.get('/academic/enrollments').catch(() => null)
@@ -454,12 +457,21 @@ function ModulePage({ moduleKey }) {
     const response = await apiClient.get('/fees/summary')
     setFeeData(response.data || { summary: {}, accounts: [], payments: [], available: false })
     if (['principal', 'accountant'].includes(user?.role)) {
-      const [options, structures, students] = await Promise.all([
+      const [optionsResult, structuresResult, studentsResult, yearsResult, classesResult, sectionsResult] = await Promise.allSettled([
         apiClient.get('/fees/options'), apiClient.get('/fees/structures'), apiClient.get('/fees/students'),
+        apiClient.get('/academic/years'), apiClient.get('/academic/classes'), apiClient.get('/academic/sections'),
       ])
-      setFeeOptions(options.data || { academicYears: [], classes: [], sections: [] })
-      setFeeStructures(structures.data || [])
-      setFeeStudents(students.data || [])
+      const options = optionsResult.status === 'fulfilled' ? optionsResult.value.data : {}
+      const years = yearsResult.status === 'fulfilled' ? yearsResult.value.data?.years : null
+      const classes = classesResult.status === 'fulfilled' ? classesResult.value.data?.classes : null
+      const sections = sectionsResult.status === 'fulfilled' ? sectionsResult.value.data?.sections : null
+      setFeeOptions({
+        academicYears: Array.isArray(years) && years.length ? years : options.academicYears || [],
+        classes: Array.isArray(classes) && classes.length ? classes : options.classes || [],
+        sections: Array.isArray(sections) && sections.length ? sections : options.sections || [],
+      })
+      setFeeStructures(structuresResult.status === 'fulfilled' && Array.isArray(structuresResult.value.data) ? structuresResult.value.data : [])
+      setFeeStudents(studentsResult.status === 'fulfilled' && Array.isArray(studentsResult.value.data) ? studentsResult.value.data : [])
     }
   }
 
