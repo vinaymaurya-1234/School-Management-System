@@ -147,6 +147,10 @@ router.post("/structures", financeOnly, async (req, res, next) => {
 });
 
 async function createAccountForEnrollment(enrollment, structure, schoolId) {
+  // A student should have at most one fee account per school and academic year,
+  // even if a finance user later creates a replacement structure.
+  const existing = await FeeAccount.exists({ school: schoolId, academicYear: enrollment.academicYear, student: enrollment.student });
+  if (existing) return null;
   try {
     return await FeeAccount.create({
       school: schoolId,
@@ -158,7 +162,7 @@ async function createAccountForEnrollment(enrollment, structure, schoolId) {
       instalments: structure.instalments.map(item => ({ structureInstalmentId: item._id, name: item.name, amount: item.amount, dueDate: item.dueDate })),
     });
   } catch (error) {
-    if (error.code === 11000) return null; // Existing assignment: safe to retry without duplicates.
+    if (error.code === 11000) return null; // Concurrent/repeated assignment: do not duplicate.
     throw error;
   }
 }
@@ -172,10 +176,13 @@ router.post("/accounts/assign-class", financeOnly, async (req, res, next) => {
     const enrollments = await StudentEnrollment.find({ school: req.user.school, academicYear, class: classId, status: "active" }).lean();
     let assigned = 0;
     let alreadyAssigned = 0;
-    for (const enrollment of enrollments) {
-      const account = await createAccountForEnrollment(enrollment, structure, req.user.school);
-      if (account) assigned += 1;
-      else alreadyAssigned += 1;
+    // Process in small batches so whole-school classes with thousands of students
+    // do not generate a long serial chain of database writes.
+    for (let offset = 0; offset < enrollments.length; offset += 100) {
+      const batch = enrollments.slice(offset, offset + 100);
+      const outcomes = await Promise.all(batch.map(enrollment => createAccountForEnrollment(enrollment, structure, req.user.school)));
+      assigned += outcomes.filter(Boolean).length;
+      alreadyAssigned += outcomes.filter(value => !value).length;
     }
     res.json({ message: "Class fee assignment completed.", className: String(classId), totalEnrolled: enrollments.length, assigned, alreadyAssigned, sectionsIncluded: true });
   } catch (error) { next(error); }
