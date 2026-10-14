@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { requireAuth } from "../middleware/auth.js";
 import { AcademicYear, SchoolClass, Section, StudentEnrollment } from "../models/Academic.js";
 import Student from "../models/Student.js";
+import User from "../models/User.js";
 import Parent from "../models/Parent.js";
 import { FeeStructure, FeeAccount, FeePayment } from "../models/Fees.js";
 
@@ -82,6 +83,46 @@ router.get("/students", financeOnly, async (req, res, next) => {
       classId: row.class?._id, className: row.class?.name || "—", sectionId: row.section?._id, sectionName: row.section?.name || "—",
       academicYearId: row.academicYear, admissionNumber: byUser.get(String(row.student._id))?.admissionNumber || "—",
     })));
+  } catch (error) { next(error); }
+});
+
+router.get("/accounts/search", financeOnly, async (req, res, next) => {
+  try {
+    const query = String(req.query.q || "").trim();
+    if (query.length < 2) return res.json({ accounts: [], minimumCharacters: 2 });
+    const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\router.get("/summary", async (req, res, next) => {");
+    const regex = new RegExp(safeQuery, "i");
+    const [users, profiles] = await Promise.all([
+      User.find({ school: req.user.school, role: "student", active: true, $or: [{ name: regex }, { email: regex }] }).select("_id").limit(30).lean(),
+      Student.find({ school: req.user.school, active: true, admissionNumber: regex }).select("user").limit(30).lean(),
+    ]);
+    const studentIds = [...new Set([...users.map(item => String(item._id)), ...profiles.map(item => String(item.user))])];
+    if (!studentIds.length) return res.json({ accounts: [] });
+    const accounts = await FeeAccount.find({ school: req.user.school, status: "active", student: { $in: studentIds } })
+      .populate("student", "name email")
+      .populate("class", "name")
+      .populate("section", "name")
+      .populate("academicYear", "name isActive")
+      .populate("feeStructure", "name totalAmount")
+      .sort({ createdAt: -1 }).limit(30).lean();
+    const totals = await paymentTotals(accounts.map(item => item._id));
+    const pendingRows = await FeePayment.aggregate([
+      { $match: { school: req.user.school, account: { $in: accounts.map(item => item._id) }, status: "pending_verification" } },
+      { $group: { _id: { account: "$account", instalmentId: "$instalmentId" }, reserved: { $sum: "$amount" } } },
+    ]);
+    const reserved = new Map(pendingRows.map(item => [`${item._id.account}:${item._id.instalmentId}`, item.reserved]));
+    const result = accounts.map(account => {
+      const view = accountView(account, totals);
+      const instalments = view.instalments.map(item => ({
+        ...item,
+        reserved: reserved.get(`${account._id}:${item._id}`) || 0,
+        availableToCollect: Math.max(0, Math.round((item.balance - (reserved.get(`${account._id}:${item._id}`) || 0)) * 100) / 100),
+      }));
+      const suggested = instalments.find(item => item.availableToCollect > 0);
+      const profile = profiles.find(item => String(item.user) === String(account.student?._id));
+      return { ...view, instalments, student: { ...account.student, admissionNumber: profile?.admissionNumber || "" }, suggestedInstalmentId: suggested?._id || "" };
+    }).filter(item => item.balance > 0);
+    res.json({ accounts: result });
   } catch (error) { next(error); }
 });
 
