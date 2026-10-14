@@ -121,7 +121,7 @@ router.get("/accounts/search", financeOnly, async (req, res, next) => {
       const suggested = instalments.find(item => item.availableToCollect > 0);
       const profile = profiles.find(item => String(item.user) === String(account.student?._id));
       return { ...view, instalments, student: { ...account.student, admissionNumber: profile?.admissionNumber || "" }, suggestedInstalmentId: suggested?._id || "" };
-    }).filter(item => item.balance > 0);
+    }).filter(item => item.instalments.some(instalment => instalment.availableToCollect > 0));
     res.json({ accounts: result });
   } catch (error) { next(error); }
 });
