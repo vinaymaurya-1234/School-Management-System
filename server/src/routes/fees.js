@@ -149,7 +149,21 @@ router.get("/summary", async (req, res, next) => {
 
 router.get("/structures", financeOnly, async (req, res, next) => {
   try {
-    const structures = await FeeStructure.find({ school: req.user.school }).populate("academicYear", "name").populate("class", "name").sort({ createdAt: -1 }).lean();
+    // Repair legacy class/year groups that have no active plan after earlier duplicate creation.
+    const structures = await FeeStructure.find({ school: req.user.school }).populate("academicYear", "name").populate("class", "name").sort({ createdAt: -1, _id: -1 }).lean();
+    const groups = new Map();
+    for (const structure of structures) {
+      const key = `${String(structure.academicYear?._id || structure.academicYear)}:${String(structure.class?._id || structure.class)}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(structure);
+    }
+    for (const group of groups.values()) {
+      if (!group.some(item => item.active !== false) && group.length) {
+        const latest = group[0];
+        await FeeStructure.updateOne({ _id: latest._id, school: req.user.school }, { $set: { active: true } });
+        latest.active = true;
+      }
+    }
     res.json(structures);
   } catch (error) { next(error); }
 });
