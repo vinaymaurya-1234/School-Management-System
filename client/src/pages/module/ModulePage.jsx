@@ -127,6 +127,11 @@ function ModulePage({ moduleKey }) {
   const [feeNotice, setFeeNotice] = useState('')
   const [feeSearch, setFeeSearch] = useState('')
   const [feeStatusFilter, setFeeStatusFilter] = useState('all')
+  const [feeClassFilter, setFeeClassFilter] = useState('all')
+  const [feeSectionFilter, setFeeSectionFilter] = useState('all')
+  const [feeMethodFilter, setFeeMethodFilter] = useState('all')
+  const [feeFromDate, setFeeFromDate] = useState('')
+  const [feeToDate, setFeeToDate] = useState('')
   const [feeFiltersOpen, setFeeFiltersOpen] = useState(false)
   const [feePeriod, setFeePeriod] = useState('this-month')
   const [feeYear, setFeeYear] = useState('')
@@ -506,8 +511,11 @@ function ModulePage({ moduleKey }) {
     const visiblePayments = payments.filter((payment) => {
       const matchesSearch = !feeSearch.trim() || [payment.student?.name, payment.receiptNumber, payment.reference, payment.gatewayOrderId, payment.status, payment.offlineMethod].some((value) => String(value || '').toLowerCase().includes(feeSearch.trim().toLowerCase()))
       if (!matchesSearch) return false
-      if (feePeriod === 'all') return true
+      if (feeMethodFilter !== 'all' && (feeMethodFilter === 'online' ? payment.method !== 'online' : payment.method !== 'offline' || payment.offlineMethod !== feeMethodFilter)) return false
       const paymentDate = new Date(payment.verifiedAt || payment.createdAt)
+      if (feeFromDate && paymentDate < new Date(`${feeFromDate}T00:00:00`)) return false
+      if (feeToDate && paymentDate > new Date(`${feeToDate}T23:59:59`)) return false
+      if (feePeriod === 'all') return true
       const now = new Date()
       return paymentDate.getFullYear() === now.getFullYear() && paymentDate.getMonth() === now.getMonth()
     })
@@ -518,7 +526,9 @@ function ModulePage({ moduleKey }) {
       const studentName = account.student?.name || ''
       const className = account.class?.name || ''
       const statusMatch = feeStatusFilter === 'all' || account.instalments?.some((item) => item.status === feeStatusFilter)
-      return statusMatch && [studentName, className, account.section?.name, account.feeStructure?.name, account.student?.email].some((value) => String(value || '').toLowerCase().includes(feeSearch.trim().toLowerCase()))
+      const classMatch = feeClassFilter === 'all' || String(account.class?._id || account.class) === String(feeClassFilter)
+      const sectionMatch = feeSectionFilter === 'all' || String(account.section?._id || account.section) === String(feeSectionFilter)
+      return statusMatch && classMatch && sectionMatch && [studentName, className, account.section?.name, account.feeStructure?.name, account.student?.email].some((value) => String(value || '').toLowerCase().includes(feeSearch.trim().toLowerCase()))
     })
     const activeAccount = accounts.find((item) => String(item._id) === String(feePaymentAccount)) || accounts[0]
     const pendingPayments = payments.filter((payment) => payment.status === 'pending_verification')
@@ -701,7 +711,7 @@ function ModulePage({ moduleKey }) {
         <div className="module-heading-actions">{user?.role !== 'teacher' && <button className="icon-button" type="button" aria-label="More options"><MoreHorizontal size={18} /></button>}{actions[0] && <button className="primary-button module-add" type="button"><Plus size={16} />{actions[0]}</button>}</div>
       </div>
       <div className="module-stats">{module.stats.map(([label, value, trend]) => <div className="module-stat" key={label}><span>{label}</span><strong>{value}</strong>{trend && <small className={trend.startsWith('-') ? 'negative' : 'positive'}>{trend.startsWith('-') ? <ArrowDownRight size={13} /> : <ArrowUpRight size={13} />}{trend.replace('-', '')}</small>}</div>)}</div>
-      {searchable && <div className="module-toolbar"><div className="module-search"><Search size={17} /><input value={moduleKey === 'fees' ? feeSearch : query} onChange={(event) => moduleKey === 'fees' ? setFeeSearch(event.target.value) : setQuery(event.target.value)} placeholder={moduleKey === 'fees' ? 'Search student, class, fee plan or payment...' : `Search ${module.title.toLowerCase()}...`} /></div><div className="toolbar-actions"><button type="button" className="secondary-button" onClick={() => moduleKey === 'fees' ? setFeeFiltersOpen((open) => !open) : undefined}><SlidersHorizontal size={15} /> Filters</button><button type="button" className="secondary-button" onClick={() => moduleKey === 'fees' ? setFeePeriod((period) => period === 'this-month' ? 'all' : 'this-month') : undefined}>{moduleKey === 'fees' && feePeriod === 'all' ? 'All time' : 'This month'}</button></div></div>}{moduleKey === 'fees' && feeFiltersOpen && <div className="fee-global-filter-panel"><label>Instalment status<select value={feeStatusFilter} onChange={(event) => setFeeStatusFilter(event.target.value)}><option value="all">All statuses</option><option value="pending">Pending</option><option value="partial">Partially paid</option><option value="overdue">Overdue</option><option value="paid">Paid</option></select></label><span>{feePeriod === 'this-month' ? 'Payment register is limited to the current month.' : 'Showing payment records across all dates.'}</span><button type="button" onClick={() => { setFeeStatusFilter('all'); setFeeSearch(''); setFeePeriod('this-month') }}>Reset filters</button></div>}
+      {searchable && <div className="module-toolbar"><div className="module-search"><Search size={17} /><input value={moduleKey === 'fees' ? feeSearch : query} onChange={(event) => moduleKey === 'fees' ? setFeeSearch(event.target.value) : setQuery(event.target.value)} placeholder={moduleKey === 'fees' ? 'Search student, class, fee plan or payment...' : `Search ${module.title.toLowerCase()}...`} /></div><div className="toolbar-actions"><button type="button" className="secondary-button" onClick={() => moduleKey === 'fees' ? setFeeFiltersOpen((open) => !open) : undefined}><SlidersHorizontal size={15} /> Filters</button><button type="button" className="secondary-button" onClick={() => moduleKey === 'fees' ? setFeePeriod((period) => period === 'this-month' ? 'all' : 'this-month') : undefined}>{moduleKey === 'fees' && feePeriod === 'all' ? 'All time' : 'This month'}</button></div></div>}{moduleKey === 'fees' && feeFiltersOpen && <div className="fee-global-filter-panel">{['principal', 'accountant'].includes(user?.role) && <><label>Class<select value={feeClassFilter} onChange={(event) => { setFeeClassFilter(event.target.value); setFeeSectionFilter('all') }}><option value="all">All classes</option>{feeOptions.classes.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}</select></label><label>Section<select value={feeSectionFilter} onChange={(event) => setFeeSectionFilter(event.target.value)}><option value="all">All sections</option>{feeOptions.sections.filter((item) => feeClassFilter === 'all' || String(item.class?._id || item.class) === String(feeClassFilter)).map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}</select></label><label>Instalment status<select value={feeStatusFilter} onChange={(event) => setFeeStatusFilter(event.target.value)}><option value="all">All statuses</option><option value="pending">Pending</option><option value="partial">Partially paid</option><option value="overdue">Overdue</option><option value="paid">Paid</option></select></label></>}<label>Payment method<select value={feeMethodFilter} onChange={(event) => setFeeMethodFilter(event.target.value)}><option value="all">All methods</option><option value="online">Online</option><option value="cash">Cash</option><option value="upi">UPI</option><option value="bank_transfer">Bank transfer</option><option value="cheque">Cheque</option></select></label><label>From date<input type="date" value={feeFromDate} onChange={(event) => setFeeFromDate(event.target.value)} /></label><label>To date<input type="date" value={feeToDate} onChange={(event) => setFeeToDate(event.target.value)} /></label><span>{feePeriod === 'this-month' ? 'Payment register is limited to the current month.' : 'Showing payment records across all dates.'}</span><button type="button" onClick={() => { setFeeStatusFilter('all'); setFeeClassFilter('all'); setFeeSectionFilter('all'); setFeeMethodFilter('all'); setFeeFromDate(''); setFeeToDate(''); setFeeSearch(''); setFeePeriod('this-month') }}>Reset filters</button></div>}
       {renderBody()}
     </div>
   )
