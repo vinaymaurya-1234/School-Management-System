@@ -118,6 +118,28 @@ function ModulePage({ moduleKey }) {
   const [newCode, setNewCode] = useState('')
   const [newType, setNewType] = useState('Elective')
   const [feeTab, setFeeTab] = useState('Overview')
+  const [feeData, setFeeData] = useState({ summary: {}, accounts: [], payments: [], available: false })
+  const [feeOptions, setFeeOptions] = useState({ academicYears: [], classes: [], sections: [] })
+  const [feeStructures, setFeeStructures] = useState([])
+  const [feeStudents, setFeeStudents] = useState([])
+  const [feeLoading, setFeeLoading] = useState(false)
+  const [feeError, setFeeError] = useState('')
+  const [feeNotice, setFeeNotice] = useState('')
+  const [feeSearch, setFeeSearch] = useState('')
+  const [feeStatusFilter, setFeeStatusFilter] = useState('all')
+  const [feeYear, setFeeYear] = useState('')
+  const [feeClass, setFeeClass] = useState('')
+  const [feeStructureName, setFeeStructureName] = useState('')
+  const [feeComponents, setFeeComponents] = useState([{ name: 'Tuition fee', amount: '' }])
+  const [feeInstalments, setFeeInstalments] = useState([{ name: 'Instalment 1', amount: '', dueDate: '' }])
+  const [feeAssignStudent, setFeeAssignStudent] = useState('')
+  const [feeAssignStructure, setFeeAssignStructure] = useState('')
+  const [feePaymentAccount, setFeePaymentAccount] = useState('')
+  const [feePaymentInstalment, setFeePaymentInstalment] = useState('')
+  const [feePaymentAmount, setFeePaymentAmount] = useState('')
+  const [feePaymentMethod, setFeePaymentMethod] = useState('cash')
+  const [feePaymentReference, setFeePaymentReference] = useState('')
+  const [feeBusy, setFeeBusy] = useState(false)
   const configuredModule = MODULES[moduleKey]
 
   useEffect(() => {
@@ -323,102 +345,178 @@ function ModulePage({ moduleKey }) {
     </section>
   )
 
+  useEffect(() => {
+    if (moduleKey !== 'fees' || !user) return
+    let active = true
+    const loadFees = async () => {
+      setFeeLoading(true)
+      setFeeError('')
+      try {
+        const summaryPromise = apiClient.get('/fees/summary')
+        const finance = ['principal', 'accountant'].includes(user.role)
+        const optional = finance ? [
+          apiClient.get('/fees/options'),
+          apiClient.get('/fees/structures'),
+          apiClient.get('/fees/students'),
+        ] : []
+        const [summary, ...extras] = await Promise.all([summaryPromise, ...optional])
+        if (!active) return
+        setFeeData(summary.data || { summary: {}, accounts: [], payments: [], available: false })
+        if (finance) {
+          setFeeOptions(extras[0].data || { academicYears: [], classes: [], sections: [] })
+          setFeeStructures(extras[1].data || [])
+          setFeeStudents(extras[2].data || [])
+          const activeYear = (extras[0].data?.academicYears || []).find((item) => item.isActive) || extras[0].data?.academicYears?.[0]
+          if (activeYear) setFeeYear((current) => current || activeYear._id)
+        }
+      } catch (error) {
+        if (active) setFeeError(error.response?.data?.message || 'Finance data could not be loaded. Check the server connection and try again.')
+      } finally {
+        if (active) setFeeLoading(false)
+      }
+    }
+    loadFees()
+    return () => { active = false }
+  }, [moduleKey, user?.id, user?.role])
+
+  const refreshFees = async () => {
+    const response = await apiClient.get('/fees/summary')
+    setFeeData(response.data || { summary: {}, accounts: [], payments: [], available: false })
+    if (['principal', 'accountant'].includes(user?.role)) {
+      const [options, structures, students] = await Promise.all([
+        apiClient.get('/fees/options'), apiClient.get('/fees/structures'), apiClient.get('/fees/students'),
+      ])
+      setFeeOptions(options.data || { academicYears: [], classes: [], sections: [] })
+      setFeeStructures(structures.data || [])
+      setFeeStudents(students.data || [])
+    }
+  }
+
+  const submitFeeStructure = async (event) => {
+    event.preventDefault()
+    setFeeBusy(true); setFeeError(''); setFeeNotice('')
+    try {
+      const response = await apiClient.post('/fees/structures', {
+        academicYear: feeYear, class: feeClass, name: feeStructureName,
+        components: feeComponents.map((item) => ({ name: item.name, amount: Number(item.amount) })),
+        instalments: feeInstalments.map((item) => ({ name: item.name, amount: Number(item.amount), dueDate: item.dueDate })),
+      })
+      setFeeNotice('Fee structure saved. You can now assign it to students in the matching class.')
+      setFeeStructureName(''); setFeeComponents([{ name: 'Tuition fee', amount: '' }])
+      setFeeInstalments([{ name: 'Instalment 1', amount: '', dueDate: '' }])
+      await refreshFees()
+      setFeeTab('Fee structure')
+    } catch (error) { setFeeError(error.response?.data?.message || 'Could not save the fee structure.') }
+    finally { setFeeBusy(false) }
+  }
+
+  const assignFeeAccount = async (event) => {
+    event.preventDefault()
+    setFeeBusy(true); setFeeError(''); setFeeNotice('')
+    try {
+      await apiClient.post('/fees/accounts/assign', { studentId: feeAssignStudent, feeStructureId: feeAssignStructure })
+      setFeeNotice('Fee structure assigned to the student. Instalments are now available in Student dues.')
+      await refreshFees()
+      setFeeTab('Student dues')
+    } catch (error) { setFeeError(error.response?.data?.message || 'Could not assign the fee structure.') }
+    finally { setFeeBusy(false) }
+  }
+
+  const recordOfflinePayment = async (event) => {
+    event.preventDefault()
+    setFeeBusy(true); setFeeError(''); setFeeNotice('')
+    try {
+      await apiClient.post('/fees/payments/offline', {
+        accountId: feePaymentAccount, instalmentId: feePaymentInstalment, amount: Number(feePaymentAmount),
+        offlineMethod: feePaymentMethod, reference: feePaymentReference,
+      })
+      setFeeNotice('Payment recorded and sent for verification. It will count as collected after verification.')
+      setFeePaymentAmount(''); setFeePaymentReference('')
+      await refreshFees()
+      setFeeTab('Payments')
+    } catch (error) { setFeeError(error.response?.data?.message || 'Could not record this payment.') }
+    finally { setFeeBusy(false) }
+  }
+
+  const verifyOfflinePayment = async (paymentId, action = 'verify') => {
+    setFeeBusy(true); setFeeError(''); setFeeNotice('')
+    try {
+      await apiClient.post(`/fees/payments/${paymentId}/${action}`, action === 'reject' ? { reason: 'Rejected by finance team' } : {})
+      setFeeNotice(action === 'verify' ? 'Payment verified and receipt generated.' : 'Payment rejected. It has not been counted as collected.')
+      await refreshFees()
+    } catch (error) { setFeeError(error.response?.data?.message || 'Could not update the payment status.') }
+    finally { setFeeBusy(false) }
+  }
+
+  const payOnline = async (account, instalment) => {
+    setFeeError(''); setFeeNotice('')
+    try {
+      if (!window.Razorpay) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+          script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+          script.onload = resolve; script.onerror = reject
+          document.body.appendChild(script)
+        })
+      }
+      const amount = window.prompt(`Enter amount to pay for ${instalment.name} (remaining ₹${Number(instalment.balance).toFixed(2)}):`, String(instalment.balance))
+      if (amount === null) return
+      const orderResponse = await apiClient.post('/fees/payments/online/order', { accountId: account._id, instalmentId: instalment._id, amount: Number(amount) })
+      const { keyId, order, paymentId } = orderResponse.data
+      const checkout = new window.Razorpay({
+        key: keyId, order_id: order.id, amount: order.amount, currency: order.currency,
+        name: 'School Fees', description: instalment.name, prefill: { name: user?.name },
+        handler: async (response) => {
+          try {
+            await apiClient.post('/fees/payments/online/verify', { paymentId, razorpay_order_id: response.razorpay_order_id, razorpay_payment_id: response.razorpay_payment_id, razorpay_signature: response.razorpay_signature })
+            setFeeNotice('Online payment verified successfully. Your receipt is ready.')
+            await refreshFees()
+          } catch (error) { setFeeError(error.response?.data?.message || 'Payment verification failed. Please contact the school finance office.') }
+        },
+        modal: { ondismiss: () => setFeeNotice('Checkout closed. No payment was marked as successful.') },
+        theme: { color: '#171717' },
+      })
+      checkout.open()
+    } catch (error) { setFeeError(error.response?.data?.message || 'Online checkout could not start. The school may need to configure its gateway keys.') }
+  }
+
   const renderFees = () => {
     const financeRoles = ['principal', 'accountant'].includes(user?.role)
-    const feeTabs = financeRoles
-      ? ['Overview', 'Student dues', 'Payments', 'Fee structure', 'Reports']
-      : ['My fee account', 'Payment history', 'Receipts']
+    const feeTabs = financeRoles ? ['Overview', 'Student dues', 'Payments', 'Fee structure', 'Reports'] : ['My fee account', 'Payment history', 'Receipts']
     const activeTab = financeRoles ? feeTab : feeTab === 'Overview' ? 'My fee account' : feeTab
-    const emptyCopy = {
-      Overview: ['Finance overview is not connected yet', 'Once fee records and payment transactions are connected, this area will show verified collections, outstanding balances and overdue accounts.'],
-      'Student dues': ['No fee accounts to display', 'Student fee assignments and balances will appear here after the fee ledger is connected. No sample students or balances are shown.'],
-      Payments: ['No payment transactions yet', 'Verified payments will appear here with date, student, method, reference and receipt status. Unconfirmed payments will not count as collected.'],
-      'Fee structure': ['Fee structure is not configured', 'The school will be able to define fees by academic year and class, including components, installments and due dates after the setup workflow is connected.'],
-      Reports: ['Finance reports are not available yet', 'Collection summaries, class-wise dues and overdue reports will be available once real fee and payment records exist.'],
-      'My fee account': ['Your fee account is not connected yet', 'When the school publishes your fee details, you will be able to review the amount assigned, payments received and remaining balance here.'],
-      'Payment history': ['No payment history available', 'Payments linked to your account will appear here after the school payment ledger is connected.'],
-      Receipts: ['No receipts available', 'Receipts will appear here when a payment has been recorded and confirmed by the school.'],
-    }
-    const copy = emptyCopy[activeTab] || emptyCopy.Overview
-    return (
-      <div className="fees-workspace fees-stage-one">
-        <section className="fee-workspace-intro">
-          <div>
-            <span className="variant-kicker">{financeRoles ? 'SCHOOL FINANCE' : 'FAMILY FEE PORTAL'}</span>
-            <h2>{financeRoles ? 'Fees, balances and payment records' : 'Fee account and payment records'}</h2>
-            <p>{financeRoles
-              ? 'A single workspace for fee structures, student dues, verified payments and receipts.'
-              : 'Review fee details and confirmed payments shared by your school.'}</p>
-          </div>
-          <div className="fee-data-state"><span className="fee-state-dot" /> <span>Live finance data not connected</span></div>
-        </section>
-
-        {financeRoles && (
-          <section className="fee-pulse-grid fee-unavailable-metrics" aria-label="Finance metrics">
-            {[
-              ['Fees assigned', '—', 'Available after fee setup'],
-              ['Collected', '—', 'Verified payments only'],
-              ['Outstanding', '—', 'Calculated from live balances'],
-              ['Overdue accounts', '—', 'Based on configured due dates'],
-            ].map(([label, value, hint]) => (
-              <article key={label}><span>{label}</span><strong>{value}</strong><small>{hint}</small></article>
-            ))}
-          </section>
-        )}
-
-        <nav className="fee-workspace-tabs" aria-label="Fees and payments sections">
-          {feeTabs.map((tab) => (
-            <button type="button" key={tab} className={activeTab === tab ? 'active' : ''} onClick={() => setFeeTab(tab === 'My fee account' ? 'Overview' : tab)}>{tab}</button>
-          ))}
-        </nav>
-
-        {activeTab === 'Overview' && financeRoles && (
-          <section className="fee-overview-grid">
-            <article className="fee-overview-card fee-overview-primary">
-              <span className="variant-kicker">COLLECTION WORKFLOW</span>
-              <h3>From fee assignment to receipt</h3>
-              <p>Keep each step traceable. A payment should update a balance only after it is recorded and verified.</p>
-              <div className="fee-workflow-steps">
-                <div><span>01</span><strong>Fee structure</strong><small>Set class-wise components and due dates</small></div>
-                <div><span>02</span><strong>Student dues</strong><small>Assign the applicable fee to each student</small></div>
-                <div><span>03</span><strong>Record payment</strong><small>Capture amount, method and reference</small></div>
-                <div><span>04</span><strong>Receipt & balance</strong><small>Confirm payment and recalculate dues</small></div>
-              </div>
-            </article>
-            <article className="fee-overview-card">
-              <span className="variant-kicker">QUICK ACCESS</span>
-              <h3>Open a finance register</h3>
-              <p>Choose a section to review its structure. Records will appear when the backend workflow is ready.</p>
-              <div className="fee-quick-links">
-                {['Student dues', 'Payments', 'Fee structure', 'Reports'].map((tab) => <button type="button" key={tab} onClick={() => setFeeTab(tab)}><span>{tab}</span><strong>›</strong></button>)}
-              </div>
-            </article>
-          </section>
-        )}
-
-        <section className="module-variant-panel fee-ledger-panel fee-empty-panel">
-          <div className="fee-ledger-header">
-            <VariantHeader
-              kicker={activeTab === 'Payments' || activeTab === 'Payment history' ? 'PAYMENT REGISTER' : activeTab === 'Fee structure' ? 'FEE CONFIGURATION' : activeTab === 'Reports' ? 'FINANCE REPORTS' : activeTab === 'Receipts' ? 'RECEIPT REGISTER' : 'FEE ACCOUNTS'}
-              title={copy[0]}
-              description={copy[1]}
-              chip="Awaiting live data"
-            />
-          </div>
-          <div className="fee-empty-state">
-            <div className="fee-empty-icon"><CreditCard size={23} /></div>
-            <strong>{copy[0]}</strong>
-            <p>{copy[1]}</p>
-            <span>Demo figures and sample student records have been removed to avoid misleading financial information.</span>
-          </div>
-        </section>
-
-        <section className="fee-integrity-note">
-          <div><strong>Keep finance records accurate</strong><p>Fees assigned, payments collected and outstanding dues are different figures. They will be calculated separately from confirmed records.</p></div>
-          <span>Audit-friendly by design</span>
-        </section>
-      </div>
-    )
+    const accounts = feeData.accounts || []
+    const payments = feeData.payments || []
+    const summary = feeData.summary || {}
+    const money = (value) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(Number(value || 0))
+    const date = (value) => value ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+    const visibleAccounts = accounts.filter((account) => {
+      const studentName = account.student?.name || ''
+      const className = account.class?.name || ''
+      const statusMatch = feeStatusFilter === 'all' || account.instalments?.some((item) => item.status === feeStatusFilter)
+      return statusMatch && [studentName, className, account.section?.name, account.feeStructure?.name, account.student?.email].some((value) => String(value || '').toLowerCase().includes(feeSearch.trim().toLowerCase()))
+    })
+    const activeAccount = accounts.find((item) => String(item._id) === String(feePaymentAccount)) || accounts[0]
+    const pendingPayments = payments.filter((payment) => payment.status === 'pending_verification')
+    const statusLabel = (value) => ({ pending: 'Pending', partial: 'Partially paid', paid: 'Paid', overdue: 'Overdue', pending_verification: 'Awaiting verification', pending_gateway: 'Payment pending', verified: 'Verified', rejected: 'Rejected', reversed: 'Reversed' }[value] || value || '—')
+    const empty = (title, description) => <div className="fee-empty-state"><div className="fee-empty-icon"><CreditCard size={23} /></div><strong>{title}</strong><p>{description}</p></div>
+    const accountTable = (rows) => rows.length ? <div className="fee-table-wrap"><table className="fee-table"><thead><tr><th>Student</th><th>Class</th><th>Fee structure</th><th>Assigned</th><th>Paid</th><th>Balance</th><th>Instalments</th></tr></thead><tbody>{rows.map((account) => <tr key={account._id}><td><strong>{account.student?.name || 'Student'}</strong><small>{account.student?.email || ''}</small></td><td>{account.class?.name || '—'} {account.section?.name || ''}</td><td>{account.feeStructure?.name || 'Fee account'}</td><td>{money(account.totalAmount)}</td><td>{money(account.paidAmount)}</td><td><strong>{money(account.balance)}</strong></td><td>{account.instalments?.filter((item) => item.balance > 0).length || 0} due</td></tr>)}</tbody></table></div> : empty('No fee accounts yet', financeRoles ? 'Create a fee structure, then assign it to a student. No sample students or balances are shown.' : 'The school has not assigned a fee structure to your account yet.')
+    const paymentTable = (rows) => rows.length ? <div className="fee-table-wrap"><table className="fee-table"><thead><tr><th>Receipt / Reference</th><th>Student</th><th>Date</th><th>Method</th><th>Amount</th><th>Status</th>{financeRoles && <th>Action</th>}</tr></thead><tbody>{rows.map((payment) => <tr key={payment._id}><td><strong>{payment.receiptNumber || payment.gatewayOrderId || 'Awaiting receipt'}</strong><small>{payment.reference || 'No reference'}</small></td><td>{payment.student?.name || 'Student'}</td><td>{date(payment.verifiedAt || payment.createdAt)}</td><td>{payment.method === 'online' ? 'Online' : String(payment.offlineMethod || 'Offline').replace('_', ' ')}</td><td>{money(payment.amount)}</td><td><span className="fee-status">{statusLabel(payment.status)}</span></td>{financeRoles && <td>{payment.status === 'pending_verification' ? <div className="fee-row-actions"><button type="button" disabled={feeBusy} onClick={() => verifyOfflinePayment(payment._id, 'verify')}>Verify</button><button type="button" className="fee-reject" disabled={feeBusy} onClick={() => verifyOfflinePayment(payment._id, 'reject')}>Reject</button></div> : payment.status === 'verified' ? <button type="button" onClick={async () => { try { const r = await apiClient.get(`/fees/payments/${payment._id}/receipt`); window.alert(`Receipt: ${r.data.receiptNumber}\nStudent: ${r.data.student}\nAmount: ${money(r.data.amount)}\nMethod: ${r.data.method}\nPaid: ${date(r.data.paidAt)}`) } catch (error) { setFeeError(error.response?.data?.message || 'Receipt unavailable') } }}>View receipt</button> : '—'}</td>}</tr>)}</tbody></table></div> : empty('No payment records', 'Recorded payments will appear here. Only verified payments count towards collected fees.')
+    return <div className="fees-workspace fees-stage-two">
+      <section className="fee-workspace-intro"><div><span className="variant-kicker">{financeRoles ? 'SCHOOL FINANCE' : 'FAMILY FEE PORTAL'}</span><h2>{financeRoles ? 'Fees, instalments and payment records' : 'Your fee account and instalments'}</h2><p>{financeRoles ? 'Configure class-wise instalments, assign fees, verify payments and issue receipts.' : 'Review each instalment, due date, remaining balance and confirmed payment.'}</p></div><div className="fee-data-state"><span className="fee-state-dot" /> {feeLoading ? 'Loading finance data…' : feeError ? 'Connection needs attention' : 'Live finance records'}</div></section>
+      {feeError && <div className="fee-feedback fee-feedback-error" role="alert">{feeError}<button type="button" onClick={() => setFeeError('')}>Dismiss</button></div>}
+      {feeNotice && <div className="fee-feedback" role="status">{feeNotice}<button type="button" onClick={() => setFeeNotice('')}>Dismiss</button></div>}
+      {financeRoles && <section className="fee-pulse-grid"><article><span>Fees assigned</span><strong>{feeData.available ? money(summary.feesAssigned) : '—'}</strong><small>Assigned fee accounts</small></article><article><span>Collected</span><strong>{feeData.available ? money(summary.collected) : '—'}</strong><small>Verified payments only</small></article><article><span>Outstanding</span><strong>{feeData.available ? money(summary.outstanding) : '—'}</strong><small>Remaining account balances</small></article><article><span>Overdue accounts</span><strong>{feeData.available ? Number(summary.overdueAccounts || 0) : '—'}</strong><small>Past-due instalments with balance</small></article></section>}
+      <nav className="fee-workspace-tabs" aria-label="Fees and payments sections">{feeTabs.map((tab) => <button type="button" key={tab} className={activeTab === tab ? 'active' : ''} onClick={() => setFeeTab(tab === 'My fee account' ? 'Overview' : tab)}>{tab}</button>)}</nav>
+      {activeTab === 'Overview' && financeRoles && <section className="fee-overview-grid"><article className="fee-overview-card fee-overview-primary"><span className="variant-kicker">COLLECTION WORKFLOW</span><h3>From fee setup to receipt</h3><p>Each instalment has a due date. Balances change only after a payment is verified.</p><div className="fee-workflow-steps"><button type="button" onClick={() => setFeeTab('Fee structure')}><span>01</span><strong>Fee structure</strong><small>Configure components and instalments</small></button><button type="button" onClick={() => setFeeTab('Student dues')}><span>02</span><strong>Student dues</strong><small>Assign fee plans to enrolled students</small></button><button type="button" onClick={() => setFeeTab('Payments')}><span>03</span><strong>Payments</strong><small>Record and verify offline payments</small></button><button type="button" onClick={() => setFeeTab('Reports')}><span>04</span><strong>Reports & receipts</strong><small>Review balances and confirmed receipts</small></button></div></article><article className="fee-overview-card"><span className="variant-kicker">QUICK ACCESS</span><h3>Finance registers</h3><p>Open a register to manage real records.</p><div className="fee-quick-links">{['Student dues', 'Payments', 'Fee structure', 'Reports'].map((tab) => <button type="button" key={tab} onClick={() => setFeeTab(tab)}><span>{tab}</span><strong>›</strong></button>)}</div></article></section>}
+      {activeTab === 'Fee structure' && financeRoles && <section className="module-variant-panel fee-ledger-panel"><VariantHeader kicker="FEE CONFIGURATION" title="Create a class fee plan" description="The sum of all fee components must equal the sum of instalments." chip={`${feeStructures.length} structures`} /><form className="fee-form" onSubmit={submitFeeStructure}><div className="fee-form-grid"><label>Academic year<select required value={feeYear} onChange={(event) => setFeeYear(event.target.value)}><option value="">Select academic year</option>{feeOptions.academicYears.map((year) => <option key={year._id} value={year._id}>{year.name}{year.isActive ? ' · Active' : ''}</option>)}</select></label><label>Class<select required value={feeClass} onChange={(event) => setFeeClass(event.target.value)}><option value="">Select class</option>{feeOptions.classes.filter((item) => !feeYear || String(item.academicYear?._id || item.academicYear) === String(feeYear)).map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}</select></label><label className="fee-form-wide">Fee plan name<input required value={feeStructureName} onChange={(event) => setFeeStructureName(event.target.value)} placeholder="e.g. Standard annual fee" /></label></div><div className="fee-form-section"><div><h3>Fee components</h3><p>Enter the real amounts configured by your school.</p></div><button type="button" className="fee-outline-button" onClick={() => setFeeComponents((items) => [...items, { name: '', amount: '' }])}>+ Add component</button></div>{feeComponents.map((item, index) => <div className="fee-repeat-row" key={index}><input aria-label="Component name" required placeholder="Component name" value={item.name} onChange={(event) => setFeeComponents((items) => items.map((row, i) => i === index ? { ...row, name: event.target.value } : row))} /><input aria-label="Component amount" required type="number" min="0.01" step="0.01" placeholder="Amount ₹" value={item.amount} onChange={(event) => setFeeComponents((items) => items.map((row, i) => i === index ? { ...row, amount: event.target.value } : row))} />{feeComponents.length > 1 && <button type="button" aria-label="Remove component" onClick={() => setFeeComponents((items) => items.filter((_, i) => i !== index))}>Remove</button>}</div>)}<div className="fee-form-section"><div><h3>Instalment schedule</h3><p>Set a due date and amount for every instalment.</p></div><button type="button" className="fee-outline-button" onClick={() => setFeeInstalments((items) => [...items, { name: `Instalment ${items.length + 1}`, amount: '', dueDate: '' }])}>+ Add instalment</button></div>{feeInstalments.map((item, index) => <div className="fee-repeat-row fee-instalment-row" key={index}><input aria-label="Instalment name" required placeholder="Instalment name" value={item.name} onChange={(event) => setFeeInstalments((items) => items.map((row, i) => i === index ? { ...row, name: event.target.value } : row))} /><input aria-label="Instalment amount" required type="number" min="0.01" step="0.01" placeholder="Amount ₹" value={item.amount} onChange={(event) => setFeeInstalments((items) => items.map((row, i) => i === index ? { ...row, amount: event.target.value } : row))} /><input aria-label="Instalment due date" required type="date" value={item.dueDate} onChange={(event) => setFeeInstalments((items) => items.map((row, i) => i === index ? { ...row, dueDate: event.target.value } : row))} />{feeInstalments.length > 1 && <button type="button" aria-label="Remove instalment" onClick={() => setFeeInstalments((items) => items.filter((_, i) => i !== index))}>Remove</button>}</div>)}<div className="fee-total-line"><span>Components total: <strong>{money(feeComponents.reduce((sum, item) => sum + Number(item.amount || 0), 0))}</strong></span><span>Instalments total: <strong>{money(feeInstalments.reduce((sum, item) => sum + Number(item.amount || 0), 0))}</strong></span></div><button className="fee-primary-button" disabled={feeBusy}>{feeBusy ? 'Saving…' : 'Save fee structure'}</button></form><div className="fee-existing-list"><h3>Existing fee structures</h3>{feeStructures.length ? feeStructures.map((item) => <div className="fee-existing-row" key={item._id}><div><strong>{item.name}</strong><small>{item.class?.name || 'Class'} · {item.academicYear?.name || 'Academic year'} · {item.instalments?.length || 0} instalments</small></div><strong>{money(item.totalAmount)}</strong></div>) : <p>No fee structures configured yet.</p>}</div></section>}
+      {activeTab === 'Student dues' && financeRoles && <section className="module-variant-panel fee-ledger-panel"><VariantHeader kicker="STUDENT DUES" title="Assign fees and track instalments" description="Fee structures can only be assigned to a student in the matching class and academic year." chip={`${visibleAccounts.length} accounts`} /><form className="fee-inline-form" onSubmit={assignFeeAccount}><label>Student<select required value={feeAssignStudent} onChange={(event) => setFeeAssignStudent(event.target.value)}><option value="">Select enrolled student</option>{feeStudents.filter((student) => { const st = feeStructures.find((item) => String(item._id) === String(feeAssignStructure)); return !st || (String(student.classId) === String(st.class?._id || st.class) && String(student.academicYearId) === String(st.academicYear?._id || st.academicYear)) }).map((student) => <option key={student.studentId} value={student.studentId}>{student.name} · {student.className}-{student.sectionName}</option>)}</select></label><label>Fee structure<select required value={feeAssignStructure} onChange={(event) => setFeeAssignStructure(event.target.value)}><option value="">Select fee structure</option>{feeStructures.map((item) => <option key={item._id} value={item._id}>{item.name} · Class {item.class?.name || '—'} · {money(item.totalAmount)}</option>)}</select></label><button className="fee-primary-button" disabled={feeBusy}>{feeBusy ? 'Assigning…' : 'Assign fee'}</button></form><div className="fee-filter-row"><label><Search size={17} /><input value={feeSearch} onChange={(event) => setFeeSearch(event.target.value)} placeholder="Search student, class or fee plan" /></label><select value={feeStatusFilter} onChange={(event) => setFeeStatusFilter(event.target.value)}><option value="all">All instalment statuses</option><option value="pending">Pending</option><option value="partial">Partially paid</option><option value="overdue">Overdue</option><option value="paid">Paid</option></select></div>{accountTable(visibleAccounts)}{visibleAccounts.length > 0 && <div className="fee-account-details"><h3>Instalment ledger</h3>{visibleAccounts.map((account) => <article key={account._id}><div><strong>{account.student?.name || 'Student'} · {account.class?.name || '—'}-{account.section?.name || '—'}</strong><span>{account.feeStructure?.name || 'Fee account'} · Balance {money(account.balance)}</span></div><div className="fee-instalment-list">{account.instalments.map((item) => <div key={item._id}><span><strong>{item.name}</strong><small>Due {date(item.dueDate)} · {statusLabel(item.status)}</small></span><span>{money(item.paid)} paid <strong>{money(item.balance)} due</strong></span></div>)}</div></article>)}</div>}</section>}
+      {activeTab === 'Payments' && financeRoles && <section className="module-variant-panel fee-ledger-panel"><VariantHeader kicker="PAYMENT REGISTER" title="Record offline payment" description="Offline payments remain pending until an authorized finance user verifies them." chip={`${pendingPayments.length} awaiting verification`} /><form className="fee-inline-form fee-payment-form" onSubmit={recordOfflinePayment}><label>Student fee account<select required value={feePaymentAccount} onChange={(event) => { setFeePaymentAccount(event.target.value); setFeePaymentInstalment('') }}><option value="">Select fee account</option>{accounts.map((account) => <option key={account._id} value={account._id}>{account.student?.name || 'Student'} · {account.class?.name || '—'} · balance {money(account.balance)}</option>)}</select></label><label>Instalment<select required value={feePaymentInstalment} onChange={(event) => setFeePaymentInstalment(event.target.value)}><option value="">Select instalment</option>{(activeAccount?.instalments || []).filter((item) => item.balance > 0).map((item) => <option key={item._id} value={item._id}>{item.name} · remaining {money(item.balance)}</option>)}</select></label><label>Amount received<input required type="number" min="0.01" step="0.01" value={feePaymentAmount} onChange={(event) => setFeePaymentAmount(event.target.value)} placeholder="Amount ₹" /></label><label>Method<select value={feePaymentMethod} onChange={(event) => setFeePaymentMethod(event.target.value)}><option value="cash">Cash</option><option value="upi">UPI</option><option value="bank_transfer">Bank transfer</option><option value="cheque">Cheque</option></select></label><label>Reference / transaction ID<input value={feePaymentReference} onChange={(event) => setFeePaymentReference(event.target.value)} placeholder="Optional reference" /></label><button className="fee-primary-button" disabled={feeBusy}>{feeBusy ? 'Recording…' : 'Record payment'}</button></form><h3 className="fee-subheading">Transactions</h3>{paymentTable(payments)}</section>}
+      {(activeTab === 'My fee account' || activeTab === 'Overview') && !financeRoles && <section className="module-variant-panel fee-ledger-panel"><VariantHeader kicker="MY FEE ACCOUNT" title="Your assigned fee instalments" description="Pay online through the school's configured payment gateway or review recorded payments." chip={`${accounts.length} fee accounts`} />{accounts.length ? accounts.map((account) => <article className="fee-family-account" key={account._id}><div className="fee-family-account-head"><div><h3>{account.feeStructure?.name || 'Fee account'}</h3><p>{account.class?.name || 'Class'} · {account.section?.name || 'Section'}</p></div><div><small>Remaining balance</small><strong>{money(account.balance)}</strong></div></div><div className="fee-instalment-list">{account.instalments.map((item) => <div key={item._id}><span><strong>{item.name}</strong><small>Due {date(item.dueDate)} · {statusLabel(item.status)}</small></span><span>{money(item.paid)} paid <strong>{money(item.balance)} due</strong>{item.balance > 0 && <button type="button" className="fee-outline-button" onClick={() => payOnline(account, item)}>Pay online</button>}</span></div>)}</div></article>) : empty('Your fee account is not available yet', 'The school has not assigned fees to your linked student account. Contact the school finance office if you think this is incorrect.')}</section>}
+      {(activeTab === 'Payment history' || activeTab === 'Receipts' || activeTab === 'Payments' && !financeRoles) && <section className="module-variant-panel fee-ledger-panel"><VariantHeader kicker={activeTab === 'Receipts' ? 'RECEIPT REGISTER' : 'PAYMENT HISTORY'} title={activeTab === 'Receipts' ? 'Confirmed receipts' : 'Payments linked to your account'} description="Only confirmed transactions have receipts and affect your balance." />{paymentTable(activeTab === 'Receipts' ? payments.filter((item) => item.status === 'verified') : payments)}</section>}
+      {activeTab === 'Reports' && financeRoles && <section className="module-variant-panel fee-ledger-panel"><VariantHeader kicker="FINANCE REPORTS" title="Collection and dues report" description="Export the current live account register as CSV for reconciliation." /><div className="fee-report-summary"><div><span>Fees assigned</span><strong>{money(summary.feesAssigned)}</strong></div><div><span>Collected</span><strong>{money(summary.collected)}</strong></div><div><span>Outstanding</span><strong>{money(summary.outstanding)}</strong></div><div><span>Overdue accounts</span><strong>{summary.overdueAccounts ?? '—'}</strong></div></div><button type="button" className="fee-primary-button" onClick={() => { const lines = [['Student','Class','Fee structure','Assigned','Paid','Balance','Instalment','Due date','Status']]; visibleAccounts.forEach((account) => account.instalments.forEach((item) => lines.push([account.student?.name || '', account.class?.name || '', account.feeStructure?.name || '', item.amount, item.paid, item.balance, item.name, date(item.dueDate), item.status]))); const csv = lines.map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"','""')}"`).join(',')).join('\r\n'); const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); const link = document.createElement('a'); link.href = url; link.download = 'school-fee-report.csv'; link.click(); URL.revokeObjectURL(url) }}>Export CSV report</button></section>}
+      {feeLoading && <p className="fee-loading-note">Loading the latest finance records…</p>}
+      {!feeLoading && !feeError && !feeData.available && empty('Finance data unavailable', 'No live finance data was returned. Check the server and database connection; no sample values are being displayed.')}
+    </div>
   }
 
   const renderFinance = () => (
