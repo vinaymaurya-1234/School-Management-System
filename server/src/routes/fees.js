@@ -25,9 +25,16 @@ async function visibleStudentIds(req) {
   return [];
 }
 
-async function paymentTotals(accountIds) {
+async function paymentTotals(accountIds, reservePending = false) {
+  const match = reservePending
+    ? { account: { $in: accountIds }, $or: [
+        { status: "verified" },
+        { status: "pending_verification" },
+        { status: "pending_gateway", createdAt: { $gte: new Date(Date.now() - 30 * 60 * 1000) } },
+      ] }
+    : { account: { $in: accountIds }, status: "verified" };
   const rows = await FeePayment.aggregate([
-    { $match: { account: { $in: accountIds }, status: "verified" } },
+    { $match: match },
     { $group: { _id: { account: "$account", instalmentId: "$instalmentId" }, paid: { $sum: "$amount" } } },
   ]);
   return new Map(rows.map(row => [`${row._id.account}:${row._id.instalmentId}`, row.paid]));
@@ -166,7 +173,7 @@ router.post("/payments/offline", financeOnly, async (req, res, next) => {
     const account = await FeeAccount.findOne({ _id: accountId, school: req.user.school, status: "active" });
     if (!account || !idIsValid(instalmentId) || !account.instalments.some(item => String(item._id) === String(instalmentId)) || !value) return res.status(400).json({ message: "Choose a valid fee account, instalment and positive payment amount." });
     if (!["cash", "upi", "bank_transfer", "cheque"].includes(offlineMethod)) return res.status(400).json({ message: "Choose a valid offline payment method." });
-    const totals = await paymentTotals([account._id]);
+    const totals = await paymentTotals([account._id], true);
     const item = account.instalments.find(inst => String(inst._id) === String(instalmentId));
     const paid = totals.get(`${account._id}:${item._id}`) || 0;
     if (value > item.amount - paid + 0.001) return res.status(400).json({ message: "Payment amount exceeds the remaining instalment balance." });
