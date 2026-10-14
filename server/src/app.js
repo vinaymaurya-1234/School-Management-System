@@ -14,6 +14,7 @@ import teacherAttendanceRoutes from "./routes/teacherAttendance.js";
 import operationsRoutes from "./routes/operations.js";
 import eventRoutes from "./routes/events.js";
 import examRoutes from "./routes/exams.js";
+import feeRoutes from "./routes/fees.js";
 
 const app = express();
 app.set("trust proxy", true);
@@ -42,6 +43,7 @@ app.use("/api/teacher-attendance", teacherAttendanceRoutes);
 app.use("/api/operations", operationsRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/exams", examRoutes);
+app.use("/api/fees", feeRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
