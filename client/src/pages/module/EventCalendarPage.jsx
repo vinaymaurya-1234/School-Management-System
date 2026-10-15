@@ -14,6 +14,7 @@ import {
 import apiClient from '../../api/client'
 import './EventCalendarPage.css'
 
+import '../../styles/StudentSchoolLife.css'
 const EVENT_TYPES = ['School Event', 'Holiday', 'PTM', 'Exam', 'Meeting', 'Activity']
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
