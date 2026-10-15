@@ -57,7 +57,7 @@ router.get("/me", requireAuth, async (req, res) => {
 
 router.put("/me", requireAuth, async (req, res, next) => {
   try {
-    const { name, email, password } = req.body || {};
+    const { name, email, password, currentPassword } = req.body || {};
     if (name !== undefined) {
       const value = String(name).trim();
       if (!value) return res.status(400).json({ message: "Name cannot be empty" });
@@ -70,9 +70,15 @@ router.put("/me", requireAuth, async (req, res, next) => {
       if (owner) return res.status(409).json({ message: "A user with this email already exists" });
       req.user.email = normalizedEmail;
     }
-    if (password !== undefined) {
+    if (password !== undefined && String(password).length) {
       if (String(password).length < 6) return res.status(400).json({ message: "Password must be at least 6 characters" });
-      req.user.password = String(password);
+      if (!currentPassword) return res.status(400).json({ message: "Current password is required to change your password" });
+      const account = await User.findById(req.user._id).select("+password");
+      const passwordMatches = await account.comparePassword(String(currentPassword));
+      if (!passwordMatches) return res.status(401).json({ message: "Current password is incorrect" });
+      account.password = String(password);
+      await account.save();
+      req.user = account;
     }
     await req.user.save();
     res.json({ message: "Profile updated successfully", user: serializeUser(req.user) });
