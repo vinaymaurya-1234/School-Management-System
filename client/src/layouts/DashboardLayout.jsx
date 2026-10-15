@@ -4,6 +4,7 @@ import Topbar from '../components/layout/Topbar'
 import StudentTopbar from '../components/layout/StudentTopbar'
 import '../styles/PremiumShell.css'
 import '../styles/PremiumPolish.css'
+import '../styles/StudentSchoolLife.css'
 
 function DashboardLayout() {
   const { user } = useAuth()
