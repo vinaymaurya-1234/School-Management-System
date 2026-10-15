@@ -7,6 +7,11 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
+  ClipboardCheck,
+  FileText,
+  Bell,
+  CalendarRange,
+  WalletCards,
   GraduationCap,
   LayoutGrid,
   Medal,
@@ -63,167 +68,105 @@ function StudentDashboard() {
     }
 
     loadDashboard()
-    return () => {
-      cancelled = true
-    }
-  }, [user?.id])
-
-  const todayKey = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
-  const today = useMemo(
-    () => timetable.filter((entry) => entry.day === todayKey).sort((a, b) => a.periodNumber - b.periodNumber),
-    [timetable, todayKey],
-  )
-  const weekDays = new Set(timetable.map((entry) => entry.day)).size
-  const firstName = user?.name?.split(' ')[0] || 'Student'
-  const attendancePercentage = Number(attendance?.percentage || 0)
+    const studentLinks = [
+    { title: 'Attendance', description: 'Review your attendance record', href: '/module/attendance', Icon: ClipboardCheck, tone: 'blue' },
+    { title: 'Class timetable', description: 'Subjects, periods and teachers', href: '/module/timetable', Icon: CalendarDays, tone: 'violet' },
+    { title: 'Exams', description: 'Check upcoming exam schedules', href: '/module/exams', Icon: CalendarRange, tone: 'orange' },
+    { title: 'Results', description: 'View published marks and grades', href: '/module/results', Icon: Trophy, tone: 'green' },
+    { title: 'Assignments', description: 'Homework assigned by teachers', href: '/module/assignments', Icon: FileText, tone: 'blue' },
+    { title: 'Notices', description: 'Important school announcements', href: '/module/notices', Icon: Bell, tone: 'orange' },
+    { title: 'Events & holidays', description: 'School events and holidays', href: '/module/events', Icon: CalendarRange, tone: 'violet' },
+    { title: 'Fees & receipts', description: 'Fee account and payment receipts', href: '/module/fees', Icon: WalletCards, tone: 'green' },
+  ]
 
   return (
-    <div className="student-dashboard">
-      <section className="student-hero">
-        <div className="student-hero-copy">
-          <span className="student-eyebrow">STUDENT PORTAL</span>
+    <div className="student-dashboard student-dashboard-v2">
+      <section className="student-v2-hero">
+        <div className="student-v2-hero-copy">
+          <span className="student-eyebrow"><span className="student-live-dot" /> YOUR STUDENT SPACE</span>
           <h1>Good to see you, {firstName}.</h1>
-          <p>
-            {enrollment
-              ? `Class ${enrollment.class?.name || '—'} · Section ${enrollment.section?.name || '—'} · ${enrollment.academicYear?.name || 'Current academic year'}`
-              : 'Your current class information will appear here once your enrollment is active.'}
-          </p>
-        </div>
-        <div className="student-hero-badge">
-          <div className="student-avatar">{firstName.charAt(0).toUpperCase()}</div>
-          <div>
-            <strong>{enrollment?.class?.name || 'Student'}</strong>
-            <span>{enrollment?.section?.name ? `Section ${enrollment.section.name}` : 'Portal'}</span>
+          <p>{enrollment
+            ? `Class ${enrollment.class?.name || '—'} · Section ${enrollment.section?.name || '—'} · ${enrollment.academicYear?.name || 'Current academic year'}`
+            : 'Your class details will appear here when your enrollment is active.'}</p>
+          <div className="student-v2-hero-actions">
+            <Link to="/module/timetable" className="student-v2-primary-link">Open my timetable <ArrowRight size={16} /></Link>
+            <Link to="/module/assignments" className="student-v2-secondary-link">View assignments</Link>
           </div>
+        </div>
+        <div className="student-v2-hero-art" aria-hidden="true">
+          <div className="student-v2-orbit orbit-one" /><div className="student-v2-orbit orbit-two" />
+          <div className="student-v2-book"><GraduationCap size={52} strokeWidth={1.4} /></div>
+          <span className="student-v2-art-label">LEARN · GROW · ACHIEVE</span>
         </div>
       </section>
 
       {error && <div className="student-alert">{error}</div>}
 
-      <section className="student-stat-grid" aria-label="Student overview">
-        <div className="student-stat-card attendance-stat">
-          <div className="student-stat-icon"><CheckCircle2 size={20} /></div>
-          <span>Attendance</span>
-          <strong>{attendancePercentage}%</strong>
-          <small>From saved attendance</small>
-          <div className="student-progress"><span style={{ width: `${Math.min(attendancePercentage, 100)}%` }} /></div>
-        </div>
-        <div className="student-stat-card">
-          <div className="student-stat-icon"><GraduationCap size={20} /></div>
-          <span>My class</span>
+      <section className="student-v2-stats" aria-label="Your academic overview">
+        <article className="student-v2-stat student-v2-stat-attendance">
+          <div className="student-v2-stat-top"><span>Attendance</span><span className="student-v2-stat-icon"><CheckCircle2 size={19} /></span></div>
+          <strong>{loading ? '—' : attendance ? `${attendancePercentage}%` : '—'}</strong>
+          <small>{attendance ? 'Based on recorded attendance' : 'No attendance summary available yet'}</small>
+          <div className="student-v2-progress"><span style={{ width: `${Math.min(attendancePercentage, 100)}%` }} /></div>
+        </article>
+        <article className="student-v2-stat">
+          <div className="student-v2-stat-top"><span>My class</span><span className="student-v2-stat-icon"><GraduationCap size={19} /></span></div>
           <strong>{enrollment?.class?.name || '—'}</strong>
-          <small>{enrollment?.section?.name ? `Section ${enrollment.section.name}` : 'Not enrolled'}</small>
+          <small>{enrollment?.section?.name ? `Section ${enrollment.section.name}` : 'Active enrollment required'}</small>
+        </article>
+        <article className="student-v2-stat">
+          <div className="student-v2-stat-top"><span>Weekly periods</span><span className="student-v2-stat-icon"><BookOpen size={19} /></span></div>
+          <strong>{loading ? '—' : timetable.length}</strong>
+          <small>{loading ? 'Loading published timetable' : `${weekDays} scheduled days in your timetable`}</small>
+        </article>
+        <article className="student-v2-stat">
+          <div className="student-v2-stat-top"><span>Today's periods</span><span className="student-v2-stat-icon"><CalendarDays size={19} /></span></div>
+          <strong>{loading ? '—' : today.length}</strong>
+          <small>From your published timetable</small>
+        </article>
+      </section>
+
+      <section className="student-v2-section">
+        <div className="student-v2-section-heading">
+          <div><span className="student-panel-kicker">YOUR SCHOOL, IN ONE PLACE</span><h2>What would you like to do?</h2><p>Open any student service below.</p></div>
         </div>
-        <div className="student-stat-card">
-          <div className="student-stat-icon"><BookOpen size={20} /></div>
-          <span>Weekly lessons</span>
-          <strong>{timetable.length}</strong>
-          <small>{weekDays} active days</small>
-        </div>
-        <div className="student-stat-card">
-          <div className="student-stat-icon"><CalendarDays size={20} /></div>
-          <span>Today's periods</span>
-          <strong>{today.length}</strong>
-          <small>Published timetable</small>
+        <div className="student-v2-services">
+          {studentLinks.map(({ title, description, href, Icon, tone }) => (
+            <Link className="student-v2-service" to={href} key={title}>
+              <span className={`student-v2-service-icon tone-${tone}`}><Icon size={21} /></span>
+              <span className="student-v2-service-copy"><strong>{title}</strong><small>{description}</small></span>
+              <ArrowRight className="student-v2-service-arrow" size={17} />
+            </Link>
+          ))}
         </div>
       </section>
 
-      <section className="student-quick-grid">
-        <Link className="student-action-card action-timetable" to="/module/timetable">
-          <div className="action-card-top">
-            <div className="action-icon"><LayoutGrid size={21} /></div>
-            <ArrowRight size={18} />
-          </div>
-          <strong>My timetable</strong>
-          <span>View your complete weekly class schedule.</span>
-        </Link>
-        <Link className="student-action-card action-exams" to="/module/exams">
-          <div className="action-card-top">
-            <div className="action-icon"><CalendarDays size={21} /></div>
-            <ArrowRight size={18} />
-          </div>
-          <strong>Exam timetable</strong>
-          <span>Check upcoming exams for your class and section.</span>
-        </Link>
-        <Link className="student-action-card action-results" to="/module/results">
-          <div className="action-card-top">
-            <div className="action-icon"><Trophy size={21} /></div>
-            <ArrowRight size={18} />
-          </div>
-          <strong>View results</strong>
-          <span>See published marks, grades and performance.</span>
-        </Link>
-      </section>
-
-      <section className="student-content-grid">
-        <div className="student-panel timetable-panel">
-          <div className="student-panel-header">
-            <div>
-              <span className="student-panel-kicker">TODAY</span>
-              <h2>Today's timetable</h2>
-              <p>Your published schedule for today.</p>
-            </div>
+      <section className="student-v2-bottom-grid">
+        <article className="student-v2-panel">
+          <div className="student-v2-panel-heading">
+            <div><span className="student-panel-kicker">TODAY</span><h2>Today's class schedule</h2><p>Your published periods for today.</p></div>
             <Link to="/module/timetable" className="student-text-link">Full timetable <ArrowRight size={15} /></Link>
           </div>
-
-          <div className="student-schedule-list">
-            {today.map((entry, index) => (
-              <div className="student-schedule-row" key={entry._id || `${entry.day}-${entry.periodNumber}-${index}`}>
-                <div className="schedule-time">
-                  <Clock3 size={15} />
-                  <strong>{entry.startTime}</strong>
-                  {entry.endTime && <span>{entry.endTime}</span>}
+          {loading ? <div className="student-loading-list"><span /><span /><span /></div> : today.length ? (
+            <div className="student-v2-schedule">
+              {today.map((entry, index) => (
+                <div className="student-v2-schedule-row" key={entry._id || `${entry.day}-${entry.periodNumber}-${index}`}>
+                  <div className="student-v2-time"><strong>{entry.startTime || '—'}</strong><span>{entry.endTime || ''}</span></div>
+                  <div className="student-v2-subject"><strong>{entry.subject?.name || 'Subject'}</strong><span>{entry.teacher?.name || 'Teacher'}{entry.room ? ` · ${entry.room}` : ''}</span></div>
+                  <span className="student-v2-period">Period {entry.periodNumber || index + 1}</span>
                 </div>
-                <div className="schedule-subject">
-                  <strong>{entry.subject?.name || 'Subject'}</strong>
-                  <span>{entry.teacher?.name || 'Teacher'} · {entry.room || 'Room not set'}</span>
-                </div>
-                <span className="period-pill">Period {entry.periodNumber || index + 1}</span>
-              </div>
-            ))}
-            {!today.length && !loading && (
-              <div className="student-empty-state">
-                <div className="empty-icon"><CalendarDays size={22} /></div>
-                <strong>No timetable periods published for today.</strong>
-                <span>The principal's published timetable will appear here automatically.</span>
-              </div>
-            )}
-            {loading && (
-              <div className="student-loading-list">
-                <span /><span /><span />
-              </div>
-            )}
+              ))}
+            </div>
+          ) : <div className="student-v2-empty"><CalendarDays size={23} /><strong>No periods published for today</strong><span>Your schedule will appear here when the school publishes it.</span></div>}
+        </article>
+        <article className="student-v2-panel student-v2-progress-panel">
+          <span className="student-panel-kicker">KEEP ON TRACK</span><h2>Your progress</h2><p>Use these shortcuts to stay up to date with your learning.</p>
+          <div className="student-v2-progress-links">
+            <Link to="/module/attendance"><span className="student-v2-mini-icon"><CheckCircle2 size={17} /></span><span><strong>Attendance record</strong><small>Check your recorded presence</small></span><ArrowRight size={16} /></Link>
+            <Link to="/module/exams"><span className="student-v2-mini-icon"><CalendarRange size={17} /></span><span><strong>Exam schedule</strong><small>Prepare for upcoming exams</small></span><ArrowRight size={16} /></Link>
+            <Link to="/module/notices"><span className="student-v2-mini-icon"><Bell size={17} /></span><span><strong>School notices</strong><small>Don't miss important updates</small></span><ArrowRight size={16} /></Link>
           </div>
-        </div>
-
-        <div className="student-panel academic-panel">
-          <div className="student-panel-header">
-            <div>
-              <span className="student-panel-kicker">ACADEMIC SNAPSHOT</span>
-              <h2>Your progress</h2>
-              <p>A quick look at your current academic status.</p>
-            </div>
-          </div>
-          <div className="student-progress-list">
-            <div className="progress-item">
-              <div className="progress-item-icon"><GraduationCap size={18} /></div>
-              <div><span>Class & section</span><strong>{enrollment?.class?.name || '—'}{enrollment?.section?.name ? ` · ${enrollment.section.name}` : ''}</strong></div>
-            </div>
-            <div className="progress-item">
-              <div className="progress-item-icon"><CheckCircle2 size={18} /></div>
-              <div><span>Present days</span><strong>{attendance?.present || 0}</strong></div>
-            </div>
-            <div className="progress-item">
-              <div className="progress-item-icon"><Medal size={18} /></div>
-              <div><span>Late days</span><strong>{attendance?.late || 0}</strong></div>
-            </div>
-            <div className="progress-item">
-              <div className="progress-item-icon"><Award size={18} /></div>
-              <div><span>Attendance status</span><strong>{attendancePercentage >= 75 ? 'On track' : 'Needs attention'}</strong></div>
-            </div>
-          </div>
-          <div className="student-dashboard-links"><Link className="student-outline-button" to="/module/attendance">View attendance <ArrowRight size={16} /></Link><Link className="student-outline-button" to="/module/results">View published results <ArrowRight size={16} /></Link></div>
-        </div>
+        </article>
       </section>
     </div>
   )
