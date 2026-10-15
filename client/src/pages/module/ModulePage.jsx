@@ -21,6 +21,7 @@ import './ModuleRedesign.css'
 import '../../styles/SchoolUX.css'
 import '../../styles/SchoolUXFix.css'
 
+import '../../styles/StudentSchoolLife.css'
 const statusClass = (value) => {
   const text = String(value).toLowerCase()
   if (['active', 'paid', 'good', 'processed', 'published', 'open', 'up', 'stable'].some((item) => text.includes(item))) return 'success'
