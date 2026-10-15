@@ -103,7 +103,13 @@ function VariantHeader({ kicker, title, description, chip }) {
 }
 
 function ModulePage({ moduleKey }) {
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
+  const [profileForm, setProfileForm] = useState({ name: user?.name || '', email: user?.email || '', currentPassword: '', newPassword: '' })
+  const [profileSchool, setProfileSchool] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileError, setProfileError] = useState('')
+  const [profileSuccess, setProfileSuccess] = useState('')
   const [teacherRows, setTeacherRows] = useState([])
   const [teacherAssignments, setTeacherAssignments] = useState([])
   const [teacherEnrollments, setTeacherEnrollments] = useState([])
@@ -113,6 +119,59 @@ function ModulePage({ moduleKey }) {
   const [teacherLoading, setTeacherLoading] = useState(false)
   const [teacherLoadError, setTeacherLoadError] = useState('')
   const [query, setQuery] = useState('')
+  useEffect(() => {
+    if (moduleKey !== 'profile') return
+    let active = true
+    setProfileLoading(true)
+    apiClient.get('/auth/me')
+      .then(({ data }) => {
+        if (!active) return
+        const account = data.user || {}
+        setProfileForm((current) => ({ ...current, name: account.name || '', email: account.email || '' }))
+        setProfileSchool(data.school || null)
+        if (updateUser) updateUser(account)
+      })
+      .catch((error) => {
+        if (active) setProfileError(error.response?.data?.message || 'Could not load your saved profile. Please retry.')
+      })
+      .finally(() => { if (active) setProfileLoading(false) })
+    return () => { active = false }
+  }, [moduleKey])
+
+  const saveProfile = async (event) => {
+    event.preventDefault()
+    setProfileError('')
+    setProfileSuccess('')
+    if (!profileForm.name.trim() || !profileForm.email.trim()) {
+      setProfileError('Name and email are required.')
+      return
+    }
+    if (profileForm.newPassword && profileForm.newPassword.length < 6) {
+      setProfileError('New password must be at least 6 characters.')
+      return
+    }
+    if (profileForm.newPassword && !profileForm.currentPassword) {
+      setProfileError('Enter your current password to set a new password.')
+      return
+    }
+    setProfileSaving(true)
+    try {
+      const payload = { name: profileForm.name.trim(), email: profileForm.email.trim().toLowerCase() }
+      if (profileForm.newPassword) {
+        payload.currentPassword = profileForm.currentPassword
+        payload.password = profileForm.newPassword
+      }
+      const { data } = await apiClient.put('/auth/me', payload)
+      if (updateUser && data.user) updateUser(data.user)
+      setProfileForm((current) => ({ ...current, name: data.user?.name || current.name, email: data.user?.email || current.email, currentPassword: '', newPassword: '' }))
+      setProfileSuccess('Your profile was saved to the school database.')
+    } catch (error) {
+      setProfileError(error.response?.data?.message || 'Profile could not be saved. Please try again.')
+    } finally {
+      setProfileSaving(false)
+    }
+  }
+
   const [selectedCurriculumClass, setSelectedCurriculumClass] = useState('6')
   const [customSubjects, setCustomSubjects] = useState({})
   const [newSubject, setNewSubject] = useState('')
@@ -665,7 +724,29 @@ function ModulePage({ moduleKey }) {
   )
 
   const renderProfile = () => (
-    <section className="module-variant-panel"><VariantHeader kicker="ACCOUNT DETAILS" title="Personal information" description="Keep identity, contact and security details in one calm workspace." /><div className="profile-fields">{filteredRows.map((row) => <div className="profile-field" key={row[0]}><span>{row[0]}</span><strong>{row[1]}</strong><small>{row[2]}</small></div>)}</div></section>
+    <div className="student-profile-workspace">
+      <section className="module-variant-panel student-profile-intro">
+        <VariantHeader kicker="YOUR ACCOUNT" title="Personal information" description="Update the name and email connected to your school login. Changes are saved to your account." chip={profileLoading ? 'Loading profile' : user?.roleLabel || user?.role || 'Account'} />
+        <div className="student-profile-identity"><div className="student-profile-avatar-large">{(profileForm.name || user?.name || 'S').trim().charAt(0).toUpperCase()}</div><div><strong>{profileForm.name || user?.name || 'Student account'}</strong><span>{profileForm.email || user?.email || 'No email available'}</span><small>{profileSchool?.name || 'School account'} · {user?.roleLabel || user?.role || 'Member'}</small></div><span className="student-profile-secure">Account verified by login</span></div>
+      </section>
+      <section className="module-variant-panel student-profile-edit-panel">
+        <VariantHeader kicker="EDIT DETAILS" title="Account settings" description="Your changes are validated by the server before they are saved." />
+        {profileError && <div className="student-profile-message error" role="alert">{profileError}</div>}
+        {profileSuccess && <div className="student-profile-message success" role="status">{profileSuccess}</div>}
+        <form className="student-profile-form" onSubmit={saveProfile}>
+          <div className="student-profile-form-section"><div><h3>Basic information</h3><p>Use an email address you can access.</p></div><div className="student-profile-form-grid">
+            <label>Full name<input autoComplete="name" value={profileForm.name} onChange={(event) => setProfileForm((current) => ({ ...current, name: event.target.value }))} required maxLength={100} /></label>
+            <label>Email address<input type="email" autoComplete="email" value={profileForm.email} onChange={(event) => setProfileForm((current) => ({ ...current, email: event.target.value }))} required maxLength={254} /></label>
+          </div></div>
+          <div className="student-profile-form-section"><div><h3>Change password</h3><p>Leave both password fields blank if you do not want to change it. A minimum of 6 characters is required.</p></div><div className="student-profile-form-grid">
+            <label>Current password<input type="password" autoComplete="current-password" value={profileForm.currentPassword} onChange={(event) => setProfileForm((current) => ({ ...current, currentPassword: event.target.value }))} placeholder="Required only for password change" /></label>
+            <label>New password<input type="password" autoComplete="new-password" value={profileForm.newPassword} onChange={(event) => setProfileForm((current) => ({ ...current, newPassword: event.target.value }))} minLength={6} placeholder="At least 6 characters" /></label>
+          </div></div>
+          <div className="student-profile-form-footer"><span><strong>Private account data</strong><small>Passwords are hashed by the server and are never displayed.</small></span><button type="submit" className="student-profile-save" disabled={profileSaving || profileLoading}>{profileSaving ? 'Saving changes…' : 'Save changes'}</button></div>
+        </form>
+      </section>
+      <section className="module-variant-panel student-profile-security"><div><span className="student-profile-security-icon">✓</span><div><strong>Account security</strong><p>Your account is authenticated using your existing school login. Password updates require your current password.</p></div></div><span className="student-profile-role">{user?.roleLabel || user?.role || 'Member'}</span></section>
+    </div>
   )
 
   const renderCommunication = () => (
@@ -800,7 +881,7 @@ function ModulePage({ moduleKey }) {
       <div className="module-heading"><div className="module-heading-copy"><div className="eyebrow">{module.eyebrow}</div><div className="module-title-line"><div className="module-title-icon"><Icon size={22} /></div><div><h1>{module.title}</h1><p>{module.description}</p></div></div></div>
         <div className="module-heading-actions">{user?.role !== 'teacher' && <button className="icon-button" type="button" aria-label="More options"><MoreHorizontal size={18} /></button>}{actions[0] && <button className="primary-button module-add" type="button"><Plus size={16} />{actions[0]}</button>}</div>
       </div>
-      <div className="module-stats">{module.stats.map(([label, value, trend]) => <div className="module-stat" key={label}><span>{label}</span><strong>{value}</strong>{trend && <small className={trend.startsWith('-') ? 'negative' : 'positive'}>{trend.startsWith('-') ? <ArrowDownRight size={13} /> : <ArrowUpRight size={13} />}{trend.replace('-', '')}</small>}</div>)}</div>
+      <div className="module-stats">{(moduleKey === 'profile' ? [['Account', profileLoading ? 'Loading…' : 'Active', ''], ['Role', user?.roleLabel || user?.role || 'Member', ''], ['Email', profileForm.email ? 'On file' : 'Unavailable', ''], ['Password', 'Protected', '']] : module.stats).map(([label, value, trend]) => <div className="module-stat" key={label}><span>{label}</span><strong>{value}</strong>{trend && <small className={trend.startsWith('-') ? 'negative' : 'positive'}>{trend.startsWith('-') ? <ArrowDownRight size={13} /> : <ArrowUpRight size={13} />}{trend.replace('-', '')}</small>}</div>)}</div>
       {searchable && <div className="module-toolbar"><div className="module-search"><Search size={17} /><input value={moduleKey === 'fees' ? feeSearch : query} onChange={(event) => moduleKey === 'fees' ? setFeeSearch(event.target.value) : setQuery(event.target.value)} placeholder={moduleKey === 'fees' ? 'Search student, class, fee plan or payment...' : `Search ${module.title.toLowerCase()}...`} /></div><div className="toolbar-actions"><button type="button" className="secondary-button" onClick={() => moduleKey === 'fees' ? setFeeFiltersOpen((open) => !open) : undefined}><SlidersHorizontal size={15} /> Filters</button><button type="button" className="secondary-button" onClick={() => moduleKey === 'fees' ? setFeePeriod((period) => period === 'this-month' ? 'all' : 'this-month') : undefined}>{moduleKey === 'fees' && feePeriod === 'all' ? 'All time' : 'This month'}</button></div></div>}{moduleKey === 'fees' && feeFiltersOpen && <div className="fee-global-filter-panel">{['principal', 'accountant'].includes(user?.role) && <><label>Class<select value={feeClassFilter} onChange={(event) => { setFeeClassFilter(event.target.value); setFeeSectionFilter('all') }}><option value="all">All classes</option>{feeOptions.classes.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}</select></label><label>Section<select value={feeSectionFilter} onChange={(event) => setFeeSectionFilter(event.target.value)}><option value="all">All sections</option>{feeOptions.sections.filter((item) => feeClassFilter === 'all' || String(item.class?._id || item.class) === String(feeClassFilter)).map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}</select></label><label>Instalment status<select value={feeStatusFilter} onChange={(event) => setFeeStatusFilter(event.target.value)}><option value="all">All statuses</option><option value="pending">Pending</option><option value="partial">Partially paid</option><option value="overdue">Overdue</option><option value="paid">Paid</option></select></label></>}<label>Payment method<select value={feeMethodFilter} onChange={(event) => setFeeMethodFilter(event.target.value)}><option value="all">All methods</option><option value="online">Online</option><option value="cash">Cash</option><option value="upi">UPI</option><option value="bank_transfer">Bank transfer</option><option value="cheque">Cheque</option></select></label><label>From date<input type="date" value={feeFromDate} onChange={(event) => setFeeFromDate(event.target.value)} /></label><label>To date<input type="date" value={feeToDate} onChange={(event) => setFeeToDate(event.target.value)} /></label><span>{feePeriod === 'this-month' ? 'Payment register is limited to the current month.' : 'Showing payment records across all dates.'}</span><button type="button" onClick={() => { setFeeStatusFilter('all'); setFeeClassFilter('all'); setFeeSectionFilter('all'); setFeeMethodFilter('all'); setFeeFromDate(''); setFeeToDate(''); setFeeSearch(''); setFeePeriod('this-month') }}>Reset filters</button></div>}
       {renderBody()}
     </div>
