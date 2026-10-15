@@ -64,7 +64,10 @@ function StudentDashboard() {
     }
 
     loadDashboard()
-    const studentLinks = [
+    return () => { cancelled = true }
+  }, [user?.id])
+
+  const studentLinks = [
     { title: 'Attendance', description: 'Review your attendance record', href: '/module/attendance', Icon: ClipboardCheck, tone: 'blue' },
     { title: 'Class timetable', description: 'Subjects, periods and teachers', href: '/module/timetable', Icon: CalendarDays, tone: 'violet' },
     { title: 'Exams', description: 'Check upcoming exam schedules', href: '/module/exams', Icon: CalendarRange, tone: 'orange' },
@@ -74,6 +77,12 @@ function StudentDashboard() {
     { title: 'Events & holidays', description: 'School events and holidays', href: '/module/events', Icon: CalendarRange, tone: 'violet' },
     { title: 'Fees & receipts', description: 'Fee account and payment receipts', href: '/module/fees', Icon: WalletCards, tone: 'green' },
   ]
+
+  const firstName = String(user?.name || user?.fullName || user?.username || 'Student').trim().split(/\\s+/)[0]
+  const attendancePercentage = Number(attendance?.percentage ?? attendance?.attendancePercentage ?? attendance?.summary?.percentage ?? 0)
+  const todayName = new Intl.DateTimeFormat('en', { weekday: 'long' }).format(new Date())
+  const today = useMemo(() => timetable.filter((entry) => String(entry.day || '').toLowerCase() === todayName.toLowerCase()), [timetable, todayName])
+  const weekDays = useMemo(() => new Set(timetable.map((entry) => entry.day).filter(Boolean)).size, [timetable])
 
   return (
     <div className="student-dashboard student-dashboard-v2">
