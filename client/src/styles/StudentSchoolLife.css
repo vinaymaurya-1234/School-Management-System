@@ -150,7 +150,7 @@
 
 
 /* Strict monochrome finish: remove legacy red, pink and status colors on student portal pages. */
-.student-app-shell .module-page.module-profile,
+.student-app-shell .module-page,
 .student-app-shell .event-calendar-page{filter:grayscale(1)}
 .student-app-shell .module-page.module-profile,
 .student-app-shell .event-calendar-page,
