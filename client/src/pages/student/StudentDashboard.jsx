@@ -2,19 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
-  Award,
   BookOpen,
   CalendarDays,
   CheckCircle2,
-  Clock3,
   ClipboardCheck,
   FileText,
   Bell,
   CalendarRange,
   WalletCards,
   GraduationCap,
-  LayoutGrid,
-  Medal,
   Trophy,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
