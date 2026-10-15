@@ -1,0 +1,85 @@
+/* Student School life pages — monochrome, responsive, data-first polish */
+.student-app-shell .teacher-workspace,
+.student-app-shell .event-calendar-page,
+.student-app-shell .module-page{color:#171717}
+.student-app-shell .teacher-workspace-hero,
+.student-app-shell .teacher-workspace-list-panel,
+.student-app-shell .teacher-workspace-stats>div,
+.student-app-shell .teacher-workspace-toolbar,
+.student-app-shell .teacher-workspace-record,
+.student-app-shell .teacher-event-summary,
+.student-app-shell .teacher-event-filters,
+.student-app-shell .event-page-header,
+.student-app-shell .calendar-panel,
+.student-app-shell .agenda-panel,
+.student-app-shell .upcoming-events-panel,
+.student-app-shell .module-table-card,
+.student-app-shell .module-actions-card,
+.student-app-shell .module-insight,
+.student-app-shell .fee-cycle-panel,
+.student-app-shell .fee-ledger-panel,
+.student-app-shell .fee-attention-panel{
+  background:#fff!important;border-color:#e5e5e5!important;box-shadow:0 8px 26px rgba(0,0,0,.035)!important
+}
+.student-app-shell .teacher-workspace-title,
+.student-app-shell .event-page-header h1,
+.student-app-shell .module-title-line h1{color:#111!important;letter-spacing:-.8px}
+.student-app-shell .teacher-workspace-eyebrow,
+.student-app-shell .event-eyebrow,
+.student-app-shell .table-kicker{color:#777!important}
+.student-app-shell .teacher-workspace-title-icon,
+.student-app-shell .teacher-workspace-record-icon,
+.student-app-shell .module-title-icon{background:#f2f2f2!important;color:#171717!important;border-color:#e2e2e2!important}
+.student-app-shell .teacher-workspace-primary,
+.student-app-shell .event-primary-button,
+.student-app-shell .module-add,
+.student-app-shell .fee-filter-tabs button.active,
+.student-app-shell .subject-group button.active{background:#171717!important;border-color:#171717!important;color:#fff!important}
+.student-app-shell .teacher-workspace-secondary,
+.student-app-shell .agenda-add,
+.student-app-shell .today-button,
+.student-app-shell .modal-cancel,
+.student-app-shell .secondary-button{background:#fff!important;border-color:#ddd!important;color:#222!important}
+.student-app-shell .teacher-workspace-primary:hover,
+.student-app-shell .event-primary-button:hover{background:#333!important}
+.student-app-shell .teacher-workspace-record:hover,
+.student-app-shell .upcoming-row:hover{background:#f8f8f8!important}
+.student-app-shell .teacher-workspace-status,
+.student-app-shell .teacher-event-type-badge,
+.student-app-shell .upcoming-status{background:#f1f1f1!important;color:#333!important;border-color:#e3e3e3!important}
+.student-app-shell .teacher-workspace-alert{background:#f5f5f5!important;color:#222!important;border-color:#e1e1e1!important}
+.student-app-shell .event-calendar-page button:focus-visible,
+.student-app-shell .teacher-workspace button:focus-visible,
+.student-app-shell .module-page button:focus-visible{outline:2px solid #555;outline-offset:2px}
+.student-app-shell .calendar-toolbar,
+.student-app-shell .calendar-weekdays,
+.student-app-shell .module-table th{background:#f5f5f5!important;color:#555!important;border-color:#e5e5e5!important}
+.student-app-shell .calendar-number{color:#222}
+.student-app-shell .calendar-number:hover,
+.student-app-shell .calendar-number.selected{background:#eee!important;color:#111!important}
+.student-app-shell .agenda-event,
+.student-app-shell .upcoming-date{background:#f4f4f4!important;border-color:#e3e3e3!important;color:#222!important}
+.student-app-shell .event-modal{border-color:#e1e1e1!important;background:#fff!important}
+.student-app-shell .modal-save{background:#171717!important;border-color:#171717!important;color:#fff!important}
+.student-app-shell .module-title-icon{border-radius:14px}
+.student-app-shell .module-stats .module-stat{background:#fff!important;border-color:#e5e5e5!important;box-shadow:0 8px 24px rgba(0,0,0,.03)!important}
+.student-app-shell .module-toolbar{background:#f8f8f8!important;border-color:#e5e5e5!important}
+.student-app-shell .module-table tbody tr:hover{background:#f8f8f8!important}
+.student-app-shell .status-pill{background:#f1f1f1!important;color:#333!important}
+.student-app-shell .status-pill.success,
+.student-app-shell .status-pill.warning{background:#eee!important;color:#333!important}
+.student-app-shell .fee-filter-tabs button,
+.student-app-shell .subject-group button{background:#f7f7f7!important;border-color:#e1e1e1!important;color:#333!important}
+.student-app-shell .fee-filter-tabs button.active,
+.student-app-shell .subject-group button.active{background:#171717!important;color:#fff!important}
+.student-app-shell input:focus,
+.student-app-shell select:focus,
+.student-app-shell textarea:focus{border-color:#999!important;box-shadow:0 0 0 3px rgba(0,0,0,.05)!important}
+@media(max-width:760px){
+ .student-app-shell .teacher-workspace-hero,
+ .student-app-shell .event-page-header{align-items:flex-start!important;flex-direction:column!important;gap:14px!important}
+ .student-app-shell .teacher-workspace-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .student-app-shell .teacher-workspace-record{align-items:flex-start!important;gap:10px!important}
+ .student-app-shell .event-calendar-page{padding-left:12px!important;padding-right:12px!important}
+ .student-app-shell .module-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
