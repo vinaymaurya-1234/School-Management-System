@@ -83,3 +83,67 @@
  .student-app-shell .event-calendar-page{padding-left:12px!important;padding-right:12px!important}
  .student-app-shell .module-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
+
+
+/* Final high-specificity overrides for all four Student > School life destinations.
+   Keep these after each page stylesheet so older role-neutral red themes cannot win. */
+.student-app-shell .module-page .module-heading,
+.student-app-shell .module-page .module-heading-copy,
+.student-app-shell .module-page .module-title-line,
+.student-app-shell .module-page .module-stats,
+.student-app-shell .module-page .module-toolbar,
+.student-app-shell .module-page .module-content-grid{color:#171717!important}
+.student-app-shell .module-page .module-heading{padding:22px 24px!important;border:1px solid #e5e5e5!important;border-radius:20px!important;background:#fff!important;box-shadow:0 8px 26px rgba(0,0,0,.035)!important}
+.student-app-shell .module-page .module-heading h1,
+.student-app-shell .module-page .module-title-line h1{color:#111!important}
+.student-app-shell .module-page .module-title-icon{background:#f1f1f1!important;color:#111!important;border:1px solid #e2e2e2!important}
+.student-app-shell .module-page .module-stat{background:#fff!important;border:1px solid #e5e5e5!important;box-shadow:0 8px 24px rgba(0,0,0,.03)!important}
+.student-app-shell .module-page .module-stat span,
+.student-app-shell .module-page .module-stat small{color:#666!important}
+.student-app-shell .module-page .module-stat strong{color:#111!important}
+.student-app-shell .module-page .module-toolbar{background:#f7f7f7!important;border-color:#e5e5e5!important}
+.student-app-shell .module-page .module-search,
+.student-app-shell .module-page .secondary-button{background:#fff!important;border-color:#dedede!important;color:#333!important}
+.student-app-shell .module-page .module-search:focus-within{border-color:#888!important;box-shadow:0 0 0 3px rgba(0,0,0,.05)!important}
+.student-app-shell .module-page .module-add{background:#111!important;color:#fff!important;border-color:#111!important}
+.student-app-shell .module-page .module-table th{background:#f4f4f4!important;color:#555!important;border-color:#e5e5e5!important}
+.student-app-shell .module-page .module-table td{border-color:#ededed!important}
+.student-app-shell .module-page .module-table tbody tr:hover{background:#f8f8f8!important}
+.student-app-shell .module-page .fee-workspace-intro,
+.student-app-shell .module-page .fee-pulse-grid>div,
+.student-app-shell .module-page .fee-overview-card,
+.student-app-shell .module-page .fee-workflow-steps,
+.student-app-shell .module-page .fee-workspace-tabs,
+.student-app-shell .module-page .fee-account-details,
+.student-app-shell .module-page .profile-field{background:#fff!important;border-color:#e5e5e5!important;box-shadow:none!important}
+.student-app-shell .module-page .fee-workspace-tabs button,
+.student-app-shell .module-page .fee-outline-button{background:#fff!important;border-color:#ddd!important;color:#222!important}
+.student-app-shell .module-page .fee-workspace-tabs button.active,
+.student-app-shell .module-page .fee-primary-button{background:#111!important;border-color:#111!important;color:#fff!important}
+.student-app-shell .module-page .profile-field label,
+.student-app-shell .module-page .profile-field small{color:#777!important}
+.student-app-shell .event-calendar-page .event-page-header{padding:22px 24px!important;border:1px solid #e5e5e5!important;border-radius:20px!important;background:#fff!important;box-shadow:0 8px 26px rgba(0,0,0,.035)!important}
+.student-app-shell .event-calendar-page .event-page-header h1{color:#111!important}
+.student-app-shell .event-calendar-page .event-page-header .event-eyebrow{color:#777!important}
+.student-app-shell .event-calendar-page .event-page-header .event-primary-button{background:#111!important;border-color:#111!important;color:#fff!important}
+.student-app-shell .event-calendar-page .event-page-header .event-primary-button:hover{background:#333!important}
+.student-app-shell .event-calendar-page .event-page-header>div>span,
+.student-app-shell .event-calendar-page .event-page-header svg{color:#222!important}
+.student-app-shell .event-calendar-page .event-page-header .event-title-icon,
+.student-app-shell .event-calendar-page .event-page-header [class*="icon"]{background:#f1f1f1!important;border-color:#e2e2e2!important;color:#111!important}
+.student-app-shell .event-calendar-page .calendar-workspace,
+.student-app-shell .event-calendar-page .calendar-panel,
+.student-app-shell .event-calendar-page .agenda-panel,
+.student-app-shell .event-calendar-page .upcoming-events-panel{background:#fff!important;border-color:#e5e5e5!important;box-shadow:0 8px 24px rgba(0,0,0,.03)!important}
+.student-app-shell .event-calendar-page .calendar-toolbar,
+.student-app-shell .event-calendar-page .calendar-weekdays{background:#f5f5f5!important;border-color:#e5e5e5!important}
+.student-app-shell .event-calendar-page .calendar-number.selected,
+.student-app-shell .event-calendar-page .today-button:hover{background:#111!important;color:#fff!important}
+.student-app-shell .event-calendar-page .agenda-event-marker,
+.student-app-shell .event-calendar-page .upcoming-date{background:#f1f1f1!important;color:#222!important;border-color:#e2e2e2!important}
+.student-app-shell .event-calendar-page .event-modal .modal-save{background:#111!important;border-color:#111!important;color:#fff!important}
+@media(max-width:760px){
+ .student-app-shell .module-page .module-heading,
+ .student-app-shell .event-calendar-page .event-page-header{padding:18px!important}
+ .student-app-shell .module-page .module-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
