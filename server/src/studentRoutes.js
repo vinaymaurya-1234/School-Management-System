@@ -4,6 +4,8 @@ import Parent from "./models/Parent.js";
 import User from "./models/User.js";
 import { requireAuth } from "./middleware/auth.js";
 import { ROLES } from "./config/permissions.js";
+import { AcademicYear, StudentEnrollment, SchoolClass, Section } from "./models/Academic.js";
+import School from "./models/School.js";
 
 const router = Router();
 function canManageStudents(role) { return [ROLES.PRINCIPAL, ROLES.ADMIN, ROLES.ACCOUNTANT].includes(role); }
@@ -34,6 +36,47 @@ router.post("/", async (req, res, next) => {
 });
 
 router.get("/", async (req, res, next) => { try { const students = await Student.find({ school: req.user.school }).populate("user", "name email role active").sort({ name: 1 }); res.json({ students: students.map(serializeStudent) }); } catch (error) { next(error); } });
+router.get("/me/profile", async (req, res, next) => {
+  try {
+    if (req.user.role !== ROLES.STUDENT) return res.status(403).json({ message: "This profile endpoint is for student accounts only" });
+    const student = await Student.findOne({ user: req.user._id, school: req.user.school });
+    if (!student) return res.status(404).json({ message: "Student profile has not been created by the school yet" });
+    const enrollment = await StudentEnrollment.findOne({ student: req.user._id, school: req.user.school, status: "active" })
+      .sort({ createdAt: -1 }).populate("academicYear", "name isActive startDate endDate")
+      .populate("class", "name order").populate("section", "name classTeacher");
+    const school = await School.findById(req.user.school).select("name code address activeAcademicYear");
+    res.json({
+      profile: serializeStudent(student),
+      account: { id: req.user._id, name: req.user.name, email: req.user.email, active: req.user.active, role: req.user.role, createdAt: req.user.createdAt },
+      school,
+      academics: enrollment ? {
+        academicYear: enrollment.academicYear,
+        class: enrollment.class,
+        section: enrollment.section,
+        enrollmentStatus: enrollment.status,
+        enrolledAt: enrollment.createdAt,
+      } : null,
+      documents: [],
+      documentUploadsAvailable: false,
+    });
+  } catch (error) { next(error); }
+});
+
+router.put("/me/profile", async (req, res, next) => {
+  try {
+    if (req.user.role !== ROLES.STUDENT) return res.status(403).json({ message: "This profile endpoint is for student accounts only" });
+    const allowed = ["address", "guardianPhone", "guardianEmail"];
+    const updates = {};
+    for (const field of allowed) if (req.body?.[field] !== undefined) updates[field] = String(req.body[field] || "").trim();
+    if (updates.guardianEmail) updates.guardianEmail = updates.guardianEmail.toLowerCase();
+    if (updates.guardianPhone && !/^[+0-9()\\s-]{7,20}$/.test(updates.guardianPhone)) return res.status(400).json({ message: "Enter a valid guardian phone number" });
+    if (updates.guardianEmail && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(updates.guardianEmail)) return res.status(400).json({ message: "Enter a valid guardian email address" });
+    const student = await Student.findOneAndUpdate({ user: req.user._id, school: req.user.school }, updates, { new: true, runValidators: true });
+    if (!student) return res.status(404).json({ message: "Student profile has not been created by the school yet" });
+    res.json({ message: "Contact details updated successfully", profile: serializeStudent(student) });
+  } catch (error) { next(error); }
+});
+
 router.get("/:id", async (req, res, next) => { try { const student = await Student.findOne({ _id: req.params.id, school: req.user.school }).populate("user", "name email role active"); if (!student) return res.status(404).json({ message: "Student not found" }); res.json({ student: serializeStudent(student) }); } catch (error) { next(error); } });
 router.put("/:id", async (req, res, next) => { try { if (!canManageStudents(req.user.role)) return res.status(403).json({ message: "You do not have permission to update students" }); const allowedFields=["name","dateOfBirth","gender","guardianName","guardianPhone","guardianEmail","address","admissionDate","active"]; const updates={}; for(const field of allowedFields) if(req.body?.[field]!==undefined) updates[field]=req.body[field]; const student=await Student.findOneAndUpdate({_id:req.params.id,school:req.user.school},updates,{new:true,runValidators:true}).populate("user","name email role active"); if(!student)return res.status(404).json({message:"Student not found"}); res.json({message:"Student updated successfully",student:serializeStudent(student)});}catch(error){next(error)} });
 async function setStudentStatus(req,res,next,active){try{if(!canManageStudents(req.user.role))return res.status(403).json({message:"You do not have permission to change student status"});const student=await Student.findOneAndUpdate({_id:req.params.id,school:req.user.school},{active},{new:true}).populate("user","name email role active");if(!student)return res.status(404).json({message:"Student not found"});await User.updateOne({_id:student.user},{active});return res.json({message:active?"Student and login activated successfully":"Student and login deactivated successfully",student:serializeStudent(student)})}catch(error){next(error)}}
