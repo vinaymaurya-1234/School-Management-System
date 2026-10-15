@@ -6,3 +6,16 @@
 @media(max-width:1250px){.student-topbar{grid-template-columns:auto minmax(0,1fr) auto;gap:14px;padding:12px 20px}.student-primary-nav{grid-column:1/-1;grid-row:2;overflow-x:auto;scrollbar-width:none}.student-primary-nav::-webkit-scrollbar{display:none}.student-brand{grid-column:1;grid-row:1}.student-topbar-search{grid-column:2;grid-row:1}.student-topbar-actions{grid-column:3;grid-row:1}.student-nav-dropdown{position:fixed;top:118px;left:18px}.student-topbar{min-height:126px}}
 @media(max-width:720px){.student-topbar{position:sticky;top:0;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:10px 13px 0;min-height:0}.student-brand-mark{width:36px;height:36px;border-radius:12px}.student-brand strong{font-size:16px}.student-brand small{font-size:8px}.student-topbar-search{grid-column:1/-1;grid-row:2;height:40px}.student-topbar-actions{grid-column:2;grid-row:1;gap:7px}.student-profile-trigger{padding:3px}.student-profile-copy,.student-profile-trigger>svg{display:none}.student-profile-avatar{width:34px;height:34px}.student-round-action{width:36px;height:36px}.student-primary-nav{display:none}.student-mobile-nav{grid-column:1/-1;grid-row:3;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;margin:0 -13px;padding:7px 5px max(7px,env(safe-area-inset-bottom));border-top:1px solid #f0f0f3;background:#fff}.student-mobile-nav-item{display:grid;justify-items:center;gap:4px;padding:6px 1px;border-radius:9px;color:#7c8290;text-decoration:none;font-size:9px;font-weight:700}.student-mobile-nav-item.active{background:#fff1f4;color:#a81735}.student-nav-dropdown{position:fixed;top:112px;left:12px;right:12px;width:auto}.student-profile-menu{right:0}.student-updates-popover{right:-48px;width:min(270px,calc(100vw - 24px))}.premium-page-content{width:100%;padding:22px 0 92px}}
 @media(prefers-reduced-motion:reduce){.student-topbar *{scroll-behavior:auto!important;transition:none!important}}
+
+
+/* Student portal monochrome system */
+.student-topbar{color:#111;border-bottom-color:#e5e5e5}
+.student-brand-mark,.student-profile-avatar{background:#111!important;color:#fff!important}
+.student-nav-home:hover,.student-nav-home.active,.student-nav-trigger:hover,.student-nav-trigger.active{background:#f3f3f3!important;border-color:#dedede!important;color:#111!important}
+.student-nav-option-icon{background:#f1f1f1!important;color:#111!important}
+.student-topbar-search:focus-within{border-color:#999!important;box-shadow:0 0 0 3px rgba(0,0,0,.05)!important}
+.student-search-results button{color:#222!important}
+.student-search-results button:hover{background:#f5f5f5!important}
+.student-round-action:hover,.student-round-action[aria-expanded=true]{border-color:#ccc!important;background:#f4f4f4!important;color:#111!important}
+.student-profile-menu .student-signout{color:#222!important}
+.student-mobile-nav-item.active{background:#efefef!important;color:#111!important}
