@@ -207,7 +207,7 @@ function AttendancePage() {
   }
 
   return (
-    <div className="attendance-redesign">
+    <div className={`attendance-redesign ${isStudent ? 'student-attendance' : ''}`}>
       <header className="attendance-page-header">
         <div><span className="attendance-kicker">SCHOOL OPERATIONS</span><h1>Attendance</h1><p>{isPrincipal ? 'A daily presence view for staff and students, with controlled approval for exceptions.' : 'Review and record daily attendance for your assigned students.'}</p></div>
         <div className="attendance-date-control"><CalendarDays size={17} /><div><span>Date</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></div></div>
