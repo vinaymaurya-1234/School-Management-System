@@ -53,6 +53,13 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const updateUser = (backendUser) => {
+    const safeUser = { ...backendUser, roleLabel: roleLabels[backendUser.role] || backendUser.role }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(safeUser))
+    setUser(safeUser)
+    return safeUser
+  }
+
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(STORAGE_KEY)
@@ -60,7 +67,7 @@ export function AuthProvider({ children }) {
   }
 
   const value = useMemo(
-    () => ({ user, isAuthenticated: Boolean(user), login, logout }),
+    () => ({ user, isAuthenticated: Boolean(user), login, logout, updateUser }),
     [user],
   )
 
