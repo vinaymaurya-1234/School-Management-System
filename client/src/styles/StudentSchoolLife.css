@@ -147,3 +147,65 @@
  .student-app-shell .event-calendar-page .event-page-header{padding:18px!important}
  .student-app-shell .module-page .module-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
+
+
+/* Strict monochrome finish: remove legacy red, pink and status colors on student portal pages. */
+.student-app-shell .module-page.module-profile,
+.student-app-shell .event-calendar-page{filter:grayscale(1)}
+.student-app-shell .module-page.module-profile,
+.student-app-shell .event-calendar-page,
+.student-app-shell .student-profile-workspace{font-family:'Plus Jakarta Sans',Inter,system-ui,sans-serif;letter-spacing:normal}
+.student-app-shell .module-page.module-profile .module-heading{align-items:center;padding:22px 24px!important;margin-bottom:18px!important;border:1px solid #e5e5e5!important;border-radius:20px!important;background:#fff!important}
+.student-app-shell .module-page.module-profile .module-title-line h1{font-size:clamp(30px,3vw,38px)!important;letter-spacing:-1.4px!important}
+.student-app-shell .module-page.module-profile .module-title-line p{font-size:13px!important;line-height:1.6}
+.student-app-shell .module-page.module-profile .module-stat{min-height:112px!important;padding:19px 21px!important;border-radius:17px!important;background:#fff!important}
+.student-app-shell .module-page.module-profile .module-stat span{font-size:11px!important;text-transform:uppercase;letter-spacing:.7px}
+.student-app-shell .module-page.module-profile .module-stat strong{font-size:25px!important;overflow-wrap:anywhere}
+.student-app-shell .student-profile-workspace{display:grid;gap:18px}
+.student-app-shell .student-profile-workspace .module-variant-panel{overflow:hidden;border:1px solid #e4e4e4!important;border-radius:20px!important;background:#fff!important;box-shadow:0 8px 28px rgba(0,0,0,.035)!important}
+.student-app-shell .student-profile-workspace .variant-header{padding:24px 26px!important;border-bottom:1px solid #e9e9e9!important}
+.student-app-shell .student-profile-workspace .variant-kicker{color:#666!important;letter-spacing:1.5px!important}
+.student-app-shell .student-profile-workspace .variant-header h2{font-size:clamp(23px,2.5vw,29px)!important;letter-spacing:-.9px!important;color:#111!important}
+.student-app-shell .student-profile-workspace .variant-header p{font-size:13px!important;line-height:1.65!important;color:#666!important}
+.student-app-shell .student-profile-identity{display:flex;align-items:center;gap:16px;padding:22px 26px}
+.student-app-shell .student-profile-avatar-large{width:60px;height:60px;display:grid;place-items:center;flex:0 0 60px;border-radius:18px;background:#111;color:#fff;font-size:25px;font-weight:800}
+.student-app-shell .student-profile-identity>div:nth-child(2){display:grid;gap:4px;min-width:0}
+.student-app-shell .student-profile-identity>div:nth-child(2)>strong{font-size:18px;color:#111;overflow-wrap:anywhere}
+.student-app-shell .student-profile-identity>div:nth-child(2)>span{font-size:13px;color:#444;overflow-wrap:anywhere}
+.student-app-shell .student-profile-identity>div:nth-child(2)>small{font-size:11px;color:#777}
+.student-app-shell .student-profile-secure,.student-app-shell .student-profile-role{margin-left:auto;white-space:nowrap;padding:8px 11px;border:1px solid #e1e1e1;border-radius:999px;background:#f5f5f5;color:#333;font-size:10px;font-weight:700}
+.student-app-shell .student-profile-form{padding:0 26px 24px}
+.student-app-shell .student-profile-form-section{display:grid;grid-template-columns:minmax(170px,.75fr) minmax(0,1.5fr);gap:28px;padding:24px 0;border-bottom:1px solid #ededed}
+.student-app-shell .student-profile-form-section h3{margin:0 0 6px;color:#111;font-size:15px;letter-spacing:-.3px}
+.student-app-shell .student-profile-form-section p{margin:0;color:#777;font-size:12px;line-height:1.7}
+.student-app-shell .student-profile-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.student-app-shell .student-profile-form-grid label{display:grid;align-content:start;gap:8px;color:#444;font-size:12px;font-weight:700}
+.student-app-shell .student-profile-form-grid input{width:100%;min-width:0;height:44px;padding:0 13px;border:1px solid #dedede;border-radius:11px;background:#fff;color:#111;font:inherit;font-size:13px;outline:none}
+.student-app-shell .student-profile-form-grid input::placeholder{color:#999;font-weight:400}
+.student-app-shell .student-profile-form-grid input:focus{border-color:#777!important;box-shadow:0 0 0 3px rgba(0,0,0,.06)!important}
+.student-app-shell .student-profile-form-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:22px}
+.student-app-shell .student-profile-form-footer>span{display:grid;gap:5px}
+.student-app-shell .student-profile-form-footer>span strong{font-size:12px;color:#333}
+.student-app-shell .student-profile-form-footer>span small{font-size:11px;color:#777}
+.student-app-shell .student-profile-save{height:44px;padding:0 20px;border:1px solid #111;border-radius:12px;background:#111;color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.student-app-shell .student-profile-save:hover{background:#333}
+.student-app-shell .student-profile-save:disabled{opacity:.55;cursor:wait}
+.student-app-shell .student-profile-message{margin:20px 26px 0;padding:12px 14px;border:1px solid #ddd;border-radius:12px;background:#f6f6f6;color:#222;font-size:12px;line-height:1.6}
+.student-app-shell .student-profile-security{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 24px!important}
+.student-app-shell .student-profile-security>div{display:flex;align-items:center;gap:13px}
+.student-app-shell .student-profile-security-icon{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border:1px solid #ddd;border-radius:12px;background:#f3f3f3;color:#111;font-weight:900}
+.student-app-shell .student-profile-security strong{font-size:13px;color:#111}
+.student-app-shell .student-profile-security p{margin:5px 0 0;max-width:650px;color:#777;font-size:11px;line-height:1.6}
+@media(max-width:760px){
+ .student-app-shell .student-profile-identity{align-items:flex-start;flex-wrap:wrap;padding:18px}
+ .student-app-shell .student-profile-secure{margin-left:76px}
+ .student-app-shell .student-profile-workspace .variant-header{padding:20px 18px!important}
+ .student-app-shell .student-profile-form{padding:0 18px 18px}
+ .student-app-shell .student-profile-form-section{grid-template-columns:1fr;gap:16px;padding:20px 0}
+ .student-app-shell .student-profile-form-grid{grid-template-columns:1fr}
+ .student-app-shell .student-profile-form-footer{align-items:flex-start;flex-direction:column}
+ .student-app-shell .student-profile-save{width:100%}
+ .student-app-shell .student-profile-message{margin-left:18px;margin-right:18px}
+ .student-app-shell .student-profile-security{align-items:flex-start!important;flex-direction:column!important}
+ .student-app-shell .student-profile-role{margin-left:0}
+}
