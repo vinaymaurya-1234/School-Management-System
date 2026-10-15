@@ -78,7 +78,7 @@ function StudentDashboard() {
     { title: 'Fees & receipts', description: 'Fee account and payment receipts', href: '/module/fees', Icon: WalletCards, tone: 'green' },
   ]
 
-  const firstName = String(user?.name || user?.fullName || user?.username || 'Student').trim().split(/\\s+/)[0]
+  const firstName = String(user?.name || user?.fullName || user?.username || 'Student').trim().split(/\s+/)[0]
   const attendancePercentage = Number(attendance?.percentage ?? attendance?.attendancePercentage ?? attendance?.summary?.percentage ?? 0)
   const todayName = new Intl.DateTimeFormat('en', { weekday: 'long' }).format(new Date())
   const today = useMemo(() => timetable.filter((entry) => String(entry.day || '').toLowerCase() === todayName.toLowerCase()), [timetable, todayName])
