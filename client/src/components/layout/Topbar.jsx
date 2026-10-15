@@ -42,6 +42,20 @@ const teacherCommunicationItems = [
   { label: 'Parent Communication', href: '/module/parent-communication', hint: 'Permitted parent conversations' },
 ]
 
+const studentLearningItems = [
+  { label: 'My Attendance', href: '/module/attendance', hint: 'Daily presence and attendance summary' },
+  { label: 'Class Timetable', href: '/module/timetable', hint: 'Your published weekly schedule' },
+  { label: 'Exams', href: '/module/exams', hint: 'Upcoming exam schedule' },
+  { label: 'Results', href: '/module/results', hint: 'Published marks and grades' },
+  { label: 'Assignments', href: '/module/assignments', hint: 'Homework and classwork from teachers' },
+]
+const studentLifeItems = [
+  { label: 'Notices', href: '/module/notices', hint: 'School announcements' },
+  { label: 'Events & Holidays', href: '/module/events', hint: 'School calendar and holidays' },
+  { label: 'Fees & Receipts', href: '/module/fees', hint: 'Your fee account and receipts' },
+  { label: 'My Profile', href: '/module/profile', hint: 'Your account details' },
+]
+
 const exploreItems = [
   { label: 'Subjects', href: '/module/subjects', hint: 'Curriculum mapping' },
   { label: 'Admissions', href: '/module/admissions', hint: 'Admission workflow' },
@@ -106,8 +120,13 @@ function Topbar() {
     <header className="premium-topbar" ref={rootRef}>
       <div className="premium-nav-scroll">
         <nav className="premium-nav" aria-label="Primary navigation">
-          <NavLink to={user?.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/principal'} className={({ isActive }) => `nav-pill ${isActive ? 'active' : ''}`}>Home</NavLink>
-          {user?.role === 'teacher' ? (
+          <NavLink to={user?.role === 'teacher' ? '/dashboard/teacher' : user?.role === 'student' ? '/dashboard/student' : user?.role === 'parent' ? '/dashboard/parent' : user?.role === 'accountant' ? '/dashboard/accountant' : '/dashboard/principal'} className={({ isActive }) => `nav-pill ${isActive ? 'active' : ''}`}>Home</NavLink>
+          {user?.role === 'student' ? (
+            <>
+              <Menu label="Learning" items={studentLearningItems} wide open={openMenu === 'student-learning'} onToggle={() => setOpenMenu(openMenu === 'student-learning' ? null : 'student-learning')} onClose={() => setOpenMenu(null)} />
+              <Menu label="School life" items={studentLifeItems} wide open={openMenu === 'student-life'} onToggle={() => setOpenMenu(openMenu === 'student-life' ? null : 'student-life')} onClose={() => setOpenMenu(null)} />
+            </>
+          ) : user?.role === 'teacher' ? (
             <>
               <Menu label="Teaching" items={teacherTeachingItems} wide open={openMenu === 'teaching'} onToggle={() => setOpenMenu(openMenu === 'teaching' ? null : 'teaching')} onClose={() => setOpenMenu(null)} />
               <Menu label="My Work" items={teacherWorkItems} wide open={openMenu === 'my-work'} onToggle={() => setOpenMenu(openMenu === 'my-work' ? null : 'my-work')} onClose={() => setOpenMenu(null)} />
@@ -125,7 +144,7 @@ function Topbar() {
 
       <div className="premium-search">
         <Search size={17} />
-        <input type="search" placeholder={user?.role === 'teacher' ? 'Search my classes, subjects...' : 'Search by student, teacher, class...'} aria-label="Search" />
+        <input type="search" placeholder={user?.role === 'student' ? 'Search lessons, assignments, notices...' : user?.role === 'teacher' ? 'Search my classes, subjects...' : 'Search by student, teacher, class...'} aria-label="Search" />
       </div>
 
       <div className="premium-actions">
