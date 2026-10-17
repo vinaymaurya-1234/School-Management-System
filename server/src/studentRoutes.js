@@ -50,7 +50,12 @@ function generatedEmail(loginId) {
   return `${loginId.toLowerCase()}@accounts.school.local`;
 }
 function clean(value) { return String(value ?? "").trim(); }
-function publicEmail(value) { return value && !String(value).toLowerCase().endsWith("@accounts.school.local") ? value : ""; }
+function publicEmail(value) {
+  const email = String(value || "").trim();
+  const normalized = email.toLowerCase();
+  if (!email || normalized.endsWith("@accounts.school.local") || /^[^@]+\.demo\d+@example\.com$/.test(normalized)) return "";
+  return email;
+}
 function validEmail(value) { return !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); }
 
 router.use(requireAuth);
