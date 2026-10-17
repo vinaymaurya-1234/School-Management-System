@@ -220,13 +220,20 @@ export default function PrincipalStudentsPage() {
 
   const changeYear = async (nextYearId) => {
     setForm((current) => ({ ...current, academicYearId: nextYearId, classId: '', sectionId: '' }))
+    setYearId(nextYearId)
+    if (!nextYearId) {
+      setClasses([]); setSections([]); setEnrollments([])
+      return
+    }
     try {
-      const [classResponse, sectionResponse] = await Promise.all([
+      const [classResponse, sectionResponse, enrollmentResponse] = await Promise.all([
         apiClient.get('/academic/classes', { params: { academicYear: nextYearId } }),
         apiClient.get('/academic/sections', { params: { academicYear: nextYearId } }),
+        apiClient.get('/academic/enrollments', { params: { academicYear: nextYearId } }),
       ])
       setClasses(classResponse.data.classes || [])
       setSections(sectionResponse.data.sections || [])
+      setEnrollments(enrollmentResponse.data.enrollments || [])
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Could not load classes for this academic year.')
     }
