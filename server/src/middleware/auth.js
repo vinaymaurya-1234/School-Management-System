@@ -15,7 +15,7 @@ export async function requireAuth(req, res, next) {
       return res.status(401).json({ message: "User account is inactive or missing" });
     }
 
-    if (user.mustChangePassword && !req.originalUrl.includes("/auth/first-password")) {
+    if (user.mustChangePassword && req.originalUrl.split("?")[0].endsWith("/auth/first-password") === false) {
       return res.status(403).json({
         code: "PASSWORD_CHANGE_REQUIRED",
         message: "Change your temporary password before using the school portal",
