@@ -7,7 +7,7 @@ import './LoginPremium.css'
 function Login() {
   const navigate = useNavigate()
   const { login } = useAuth()
-  const [form, setForm] = useState({ email: '', password: '' })
+  const [form, setForm] = useState({ identifier: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -22,16 +22,13 @@ function Login() {
     event.preventDefault()
     setError('')
     setLoading(true)
-
-    const result = await login(form.email, form.password)
-
+    const result = await login(form.identifier, form.password)
     if (!result.success) {
       setError(result.message)
       setLoading(false)
       return
     }
-
-    navigate(`/dashboard/${result.user.role}`, { replace: true })
+    navigate(result.user.mustChangePassword ? '/first-login-password' : `/dashboard/${result.user.role}`, { replace: true })
     setLoading(false)
   }
 
@@ -40,41 +37,33 @@ function Login() {
       <div className="premium-login__photo" aria-hidden="true" />
       <div className="premium-login__shade" aria-hidden="true" />
       <div className="premium-login__grain" aria-hidden="true" />
-
       <div className="premium-login__topline">
-        <span className="premium-login__brand">
-          <span className="premium-login__brand-mark"><GraduationCap size={15} strokeWidth={2.4} /></span>
-          School Management
-        </span>
+        <span className="premium-login__brand"><span className="premium-login__brand-mark"><GraduationCap size={15} strokeWidth={2.4} /></span>School Management</span>
         <span className="premium-login__secure">Secure school portal</span>
       </div>
-
       <section className="premium-login__card" aria-label="Sign in">
         <div className="premium-login__card-glow" aria-hidden="true" />
-
         <div className="premium-login__intro">
           <div className="premium-login__icon"><GraduationCap size={23} strokeWidth={2} /></div>
           <span className="premium-login__eyebrow">WELCOME BACK</span>
           <h1>Sign in to your account</h1>
-          <p>Use the account provided by your school administrator.</p>
+          <p>Use your school login ID or registered email address.</p>
         </div>
-
         <form onSubmit={handleSubmit} className="premium-login__form">
-          <label htmlFor="email">Email address</label>
+          <label htmlFor="identifier">Login ID or email address</label>
           <div className="premium-login__input">
             <Mail size={17} />
             <input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="you@school.com"
-              value={form.email}
+              id="identifier"
+              name="identifier"
+              type="text"
+              placeholder="STU260001 or you@school.com"
+              value={form.identifier}
               onChange={handleChange}
-              autoComplete="email"
+              autoComplete="username"
               required
             />
           </div>
-
           <label htmlFor="password">Password</label>
           <div className="premium-login__input">
             <LockKeyhole size={17} />
@@ -88,34 +77,18 @@ function Login() {
               autoComplete="current-password"
               required
             />
-            <button
-              type="button"
-              className="premium-login__password-toggle"
-              onClick={() => setShowPassword((value) => !value)}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-            >
+            <button type="button" className="premium-login__password-toggle" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
               {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
             </button>
           </div>
-
           {error && <div className="premium-login__error">{error}</div>}
-
           <button className="premium-login__submit" type="submit" disabled={loading}>
-            <span>{loading ? 'Signing in...' : 'Sign in'}</span>
-            <span className="premium-login__submit-arrow" aria-hidden="true">↗</span>
+            <span>{loading ? 'Signing in...' : 'Sign in'}</span><span className="premium-login__submit-arrow" aria-hidden="true">↗</span>
           </button>
         </form>
-
-        <div className="premium-login__security">
-          <span className="premium-login__status-dot" />
-          Protected access · Role-based permissions
-        </div>
+        <div className="premium-login__security"><span className="premium-login__status-dot" />Protected access · Role-based permissions</div>
       </section>
-
-      <div className="premium-login__bottomline">
-        <span>© 2026 School Management System</span>
-        <span>Authorized users only</span>
-      </div>
+      <div className="premium-login__bottomline"><span>© 2026 School Management System</span><span>Authorized users only</span></div>
     </main>
   )
 }
