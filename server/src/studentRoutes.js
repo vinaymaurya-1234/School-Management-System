@@ -67,7 +67,7 @@ async function createStudentRecord(input, schoolId) {
   const guardianPhone = clean(input.guardianPhone || input.parentPhone || input.parentMobile);
   const suppliedParentEmail = clean(input.parentEmail || input.guardianEmail).toLowerCase();
   // Demo/sample spreadsheet addresses are placeholders, not real parent contact details.
-  const parentEmail = /^[^@]+\\.demo\\d+@example\\.com$/.test(suppliedParentEmail) ? "" : suppliedParentEmail;
+  const parentEmail = /^[^@]+\.demo\d+@example\.com$/.test(suppliedParentEmail) ? "" : suppliedParentEmail;
   const studentEmail = clean(input.studentEmail || input.loginEmail).toLowerCase();
   const parentRelationship = clean(input.parentRelationship || input.relationship || "Parent");
   const academicYearId = clean(input.academicYear || input.academicYearId);
