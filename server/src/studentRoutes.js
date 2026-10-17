@@ -209,9 +209,9 @@ router.post("/bulk-import", async (req, res, next) => {
     for (let index = 0; index < rows.length; index += 1) {
       try {
         const result = await createStudentRecord(rows[index], req.user.school);
-        imported.push({ row: index + 2, ...result });
+        imported.push({ row: rows[index]?._sourceRow || index + 2, ...result });
       } catch (error) {
-        errors.push({ row: index + 2, admissionNumber: clean(rows[index]?.admissionNumber), message: error.message || "Unable to import this row" });
+        errors.push({ row: rows[index]?._sourceRow || index + 2, admissionNumber: clean(rows[index]?.admissionNumber), message: error.message || "Unable to import this row" });
       }
     }
     res.status(imported.length ? 201 : 400).json({
@@ -229,13 +229,21 @@ router.get("/credentials", async (req, res, next) => {
       Student.find({ school: req.user.school }).populate("user", "name email loginId role active mustChangePassword").sort({ name: 1 }),
       Parent.find({ school: req.user.school }).populate("user", "name email loginId role active mustChangePassword").populate("children", "name admissionNumber").sort({ createdAt: -1 }),
     ]);
+    for (const student of students) {
+      const account = student.user;
+      if (account && !account.loginId) { account.loginId = await uniqueLoginId(account.role); await account.save(); }
+    }
+    for (const parent of parents) {
+      const account = parent.user;
+      if (account && !account.loginId) { account.loginId = await uniqueLoginId(account.role); await account.save(); }
+    }
     res.json({
       students: students.map((student) => {
         const user = student.user || {};
-        return { studentId: student._id, name: student.name, admissionNumber: student.admissionNumber, loginId: user.loginId || null, email: user.email || "", active: user.active !== false && student.active !== false, mustChangePassword: Boolean(user.mustChangePassword), createdAt: student.createdAt };
+        return { studentId: student._id, userId: user._id, name: student.name, admissionNumber: student.admissionNumber, loginId: user.loginId || null, email: user.email || "", active: user.active !== false && student.active !== false, mustChangePassword: Boolean(user.mustChangePassword), createdAt: student.createdAt };
       }),
       parents: parents.filter((parent) => parent.user).map((parent) => ({
-        parentProfileId: parent._id, name: parent.user.name, loginId: parent.user.loginId || null,
+        parentProfileId: parent._id, userId: parent.user._id, name: parent.user.name, loginId: parent.user.loginId || null,
         email: parent.user.email || "", phone: parent.phone, active: parent.user.active !== false,
         mustChangePassword: Boolean(parent.user.mustChangePassword),
         children: (parent.children || []).map((child) => ({ name: child.name, admissionNumber: child.admissionNumber })),
