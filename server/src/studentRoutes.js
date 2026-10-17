@@ -143,9 +143,12 @@ async function createStudentRecord(input, schoolId) {
           await User.updateOne({ _id: parentUser._id, school: schoolId }, { $set: { loginId: parentUser.loginId } });
         }
         parentProfile = await Parent.findOne({ user: parentUser._id, school: schoolId });
-        if (!parentProfile) parentProfile = await Parent.create({ user: parentUser._id, school: schoolId, relationship: parentRelationship, phone: guardianPhone, children: [studentProfile._id] });
-        else await Parent.updateOne({ _id: parentProfile._id }, { $addToSet: { children: studentProfile._id }, $set: { phone: guardianPhone, relationship: parentRelationship } });
-        parentProfileCreated = !parentProfile;
+        if (!parentProfile) {
+          parentProfile = await Parent.create({ user: parentUser._id, school: schoolId, relationship: parentRelationship, phone: guardianPhone, children: [studentProfile._id] });
+          parentProfileCreated = true;
+        } else {
+          await Parent.updateOne({ _id: parentProfile._id }, { $addToSet: { children: studentProfile._id }, $set: { phone: guardianPhone, relationship: parentRelationship } });
+        }
         parentPassword = null;
       } else {
         parentUser = await User.create({
