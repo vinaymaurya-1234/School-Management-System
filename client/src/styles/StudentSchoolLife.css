@@ -209,3 +209,279 @@
  .student-app-shell .student-profile-security{align-items:flex-start!important;flex-direction:column!important}
  .student-app-shell .student-profile-role{margin-left:0}
 }
+
+
+/* Profile page layout shared by parent and student accounts. The parent portal
+   does not use .student-app-shell, so keep the profile styles scoped to its module. */
+.module-page.module-profile .student-profile-workspace {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif;
+  letter-spacing: normal;
+}
+.module-page.module-profile .student-profile-workspace .module-variant-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #e5e2df;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(30, 25, 22, .045);
+}
+.module-page.module-profile .student-profile-workspace .variant-header {
+  padding: 24px 26px;
+  border-bottom: 1px solid #efedeb;
+}
+.module-page.module-profile .student-profile-workspace .variant-kicker {
+  display: block;
+  margin-bottom: 8px;
+  color: #a52235;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 1.5px;
+}
+.module-page.module-profile .student-profile-workspace .variant-header h2 {
+  margin: 0;
+  color: #202326;
+  font-size: clamp(22px, 2.3vw, 29px);
+  line-height: 1.2;
+  letter-spacing: -.8px;
+}
+.module-page.module-profile .student-profile-workspace .variant-header p {
+  margin: 7px 0 0;
+  color: #77716c;
+  font-size: 12px;
+  line-height: 1.65;
+}
+.module-page.module-profile .student-profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 26px;
+  min-width: 0;
+}
+.module-page.module-profile .student-profile-avatar-large {
+  display: grid;
+  place-items: center;
+  flex: 0 0 60px;
+  width: 60px;
+  height: 60px;
+  border: 1px solid #f0d9de;
+  border-radius: 18px;
+  background: #fff0f2;
+  color: #a52235;
+  font-size: 25px;
+  font-weight: 850;
+}
+.module-page.module-profile .student-profile-identity > div:nth-child(2) {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.module-page.module-profile .student-profile-identity > div:nth-child(2) > strong {
+  color: #222629;
+  font-size: 18px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.module-page.module-profile .student-profile-identity > div:nth-child(2) > span {
+  color: #5e5b58;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.module-page.module-profile .student-profile-identity > div:nth-child(2) > small {
+  color: #88817c;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.module-page.module-profile .student-profile-secure,
+.module-page.module-profile .student-profile-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 8px 11px;
+  border: 1px solid #dcece3;
+  border-radius: 999px;
+  background: #f0faf4;
+  color: #23784d;
+  font-size: 10px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.module-page.module-profile .student-profile-form {
+  padding: 0 26px 24px;
+}
+.module-page.module-profile .student-profile-form-section {
+  display: grid;
+  grid-template-columns: minmax(180px, .75fr) minmax(0, 1.5fr);
+  gap: 28px;
+  padding: 24px 0;
+  border-bottom: 1px solid #efedeb;
+}
+.module-page.module-profile .student-profile-form-section h3 {
+  margin: 0 0 6px;
+  color: #262729;
+  font-size: 15px;
+  letter-spacing: -.3px;
+}
+.module-page.module-profile .student-profile-form-section p {
+  margin: 0;
+  color: #817a75;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.module-page.module-profile .student-profile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  min-width: 0;
+}
+.module-page.module-profile .student-profile-form-grid label {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  color: #494541;
+  font-size: 12px;
+  font-weight: 700;
+}
+.module-page.module-profile .student-profile-form-grid input {
+  width: 100%;
+  min-width: 0;
+  height: 46px;
+  padding: 0 13px;
+  border: 1px solid #dedad6;
+  border-radius: 11px;
+  background: #fff;
+  color: #252525;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.module-page.module-profile .student-profile-form-grid input::placeholder {
+  color: #a19a95;
+  font-weight: 400;
+}
+.module-page.module-profile .student-profile-form-grid input:focus {
+  border-color: #b74b5b;
+  box-shadow: 0 0 0 3px rgba(165, 34, 53, .09);
+}
+.module-page.module-profile .student-profile-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding-top: 22px;
+}
+.module-page.module-profile .student-profile-form-footer > span {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.module-page.module-profile .student-profile-form-footer > span strong {
+  color: #393532;
+  font-size: 12px;
+}
+.module-page.module-profile .student-profile-form-footer > span small {
+  color: #817a75;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.module-page.module-profile .student-profile-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 45px;
+  padding: 0 20px;
+  border: 1px solid #25282b;
+  border-radius: 12px;
+  background: #25282b;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background .18s ease, transform .18s ease;
+}
+.module-page.module-profile .student-profile-save:hover {
+  background: #a52235;
+  border-color: #a52235;
+}
+.module-page.module-profile .student-profile-save:active { transform: translateY(1px); }
+.module-page.module-profile .student-profile-save:disabled { opacity: .55; cursor: wait; }
+.module-page.module-profile .student-profile-message {
+  margin: 20px 26px 0;
+  padding: 12px 14px;
+  border: 1px solid #e6d8d9;
+  border-radius: 12px;
+  background: #fff7f7;
+  color: #8d2637;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.module-page.module-profile .student-profile-message.success {
+  border-color: #cce7d6;
+  background: #f2fbf5;
+  color: #216b43;
+}
+.module-page.module-profile .student-profile-security {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 24px !important;
+}
+.module-page.module-profile .student-profile-security > div {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+.module-page.module-profile .student-profile-security-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #dcece3;
+  border-radius: 12px;
+  background: #f0faf4;
+  color: #23784d;
+  font-weight: 900;
+}
+.module-page.module-profile .student-profile-security strong {
+  color: #262729;
+  font-size: 13px;
+}
+.module-page.module-profile .student-profile-security p {
+  max-width: 650px;
+  margin: 5px 0 0;
+  color: #817a75;
+  font-size: 11px;
+  line-height: 1.6;
+}
+@media (max-width: 760px) {
+  .module-page.module-profile .student-profile-identity {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: 18px;
+  }
+  .module-page.module-profile .student-profile-secure { margin-left: 76px; }
+  .module-page.module-profile .student-profile-workspace .variant-header { padding: 20px 18px; }
+  .module-page.module-profile .student-profile-form { padding: 0 18px 18px; }
+  .module-page.module-profile .student-profile-form-section {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 20px 0;
+  }
+  .module-page.module-profile .student-profile-form-grid { grid-template-columns: 1fr; }
+  .module-page.module-profile .student-profile-form-footer { align-items: stretch; flex-direction: column; }
+  .module-page.module-profile .student-profile-save { width: 100%; }
+  .module-page.module-profile .student-profile-message { margin-left: 18px; margin-right: 18px; }
+  .module-page.module-profile .student-profile-security { align-items: flex-start !important; flex-direction: column !important; }
+  .module-page.module-profile .student-profile-role { margin-left: 0; }
+}
