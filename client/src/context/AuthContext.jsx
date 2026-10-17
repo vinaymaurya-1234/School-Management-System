@@ -26,8 +26,13 @@ export function AuthProvider({ children }) {
 
   const login = async (identifier, password) => {
     try {
+      const loginValue = identifier.trim()
+      // Send both fields so this frontend remains compatible with the previous
+      // email-based login API as well as the new identifier-based API.
       const response = await apiClient.post('/auth/login', {
-        identifier: identifier.trim(),
+        identifier: loginValue,
+        email: loginValue,
+        loginId: loginValue,
         password,
       })
       const backendUser = response.data.user
