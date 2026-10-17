@@ -246,7 +246,10 @@ router.get("/credentials", async (req, res, next) => {
     }
     for (const parent of parents) {
       const account = parent.user;
-      if (account && !account.loginId) { account.loginId = await uniqueLoginId(account.role); await account.save(); }
+      if (account && !account.loginId) {
+        account.loginId = await uniqueLoginId(account.role);
+        await User.updateOne({ _id: account._id, school: req.user.school }, { $set: { loginId: account.loginId } });
+      }
     }
     res.json({
       students: students.map((student) => {
