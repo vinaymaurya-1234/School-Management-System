@@ -118,7 +118,7 @@ router.put("/me", requireAuth, async (req, res, next) => {
     if (email !== undefined) {
       const normalizedEmail = String(email).trim().toLowerCase();
       if (!normalizedEmail) return res.status(400).json({ message: "Email cannot be empty" });
-      if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(normalizedEmail)) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
         return res.status(400).json({ message: "Enter a valid email address" });
       }
       const owner = await User.findOne({ email: normalizedEmail, _id: { $ne: account._id } }).select("_id");
