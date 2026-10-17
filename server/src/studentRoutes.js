@@ -186,6 +186,7 @@ async function createStudentRecord(input, schoolId) {
     };
   } catch (error) {
     if (enrollmentCreated && studentUser) await StudentEnrollment.deleteOne({ school: schoolId, student: studentUser._id, academicYear: academicYearId }).catch(() => {});
+    if (studentProfile?._id) await Parent.updateMany({ school: schoolId, children: studentProfile._id }, { $pull: { children: studentProfile._id } }).catch(() => {});
     if (parentProfileCreated && parentProfile?._id) await Parent.deleteOne({ _id: parentProfile._id }).catch(() => {});
     if (parentCreated && parentUser?._id) {
       await Parent.deleteOne({ user: parentUser._id, school: schoolId }).catch(() => {});
