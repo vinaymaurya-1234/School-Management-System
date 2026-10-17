@@ -168,6 +168,8 @@ export default function PrincipalStudentsPage() {
   const [importBusy, setImportBusy] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const [credentials, setCredentials] = useState(null)
+  const [setupBusy, setSetupBusy] = useState(false)
+  const [setupMessage, setSetupMessage] = useState('')
   const fileRef = useRef(null)
 
   const activeYear = useMemo(() => years.find((year) => year._id === yearId) || years.find((year) => year.isActive) || years[0] || null, [years, yearId])
@@ -240,6 +242,55 @@ export default function PrincipalStudentsPage() {
   }
 
   const setField = (key, value) => setForm((current) => ({ ...current, [key]: value }))
+
+  const createAcademicYearQuick = async () => {
+    const startDate = new Date().getFullYear() + '-04-01'
+    const endDate = (new Date().getFullYear() + 1) + '-03-31'
+    const name = `${new Date().getFullYear()}-${String(new Date().getFullYear() + 1).slice(-2)}`
+    setSetupBusy(true); setSetupMessage('')
+    try {
+      const response = await apiClient.post('/academic/years', { name, startDate, endDate, isActive: true })
+      const created = response.data.year
+      setYears((current) => [created, ...current])
+      setYearId(created._id)
+      setForm((current) => ({ ...current, academicYearId: created._id, classId: '', sectionId: '' }))
+      setClasses([]); setSections([]); setEnrollments([])
+      setSetupMessage(`Academic year ${created.name} created. Next, create classes and sections below.`)
+    } catch (requestError) {
+      setSetupMessage(requestError.response?.data?.message || 'Could not create an academic year.')
+    } finally { setSetupBusy(false) }
+  }
+
+  const createClassQuick = async () => {
+    if (!form.academicYearId) {
+      setSetupMessage('Select or create an academic year first.')
+      return
+    }
+    const name = window.prompt('Enter class/standard (for example 1, 10, 11 or 12):')
+    if (!name || !name.trim()) return
+    const order = Number(name.trim())
+    if (!Number.isInteger(order) || order < 1 || order > 12) {
+      setSetupMessage('Class must be a number from 1 to 12.')
+      return
+    }
+    setSetupBusy(true); setSetupMessage('')
+    try {
+      await apiClient.post('/academic/classes', { academicYear: form.academicYearId, name: name.trim(), order })
+      const [classResponse, sectionResponse] = await Promise.all([
+        apiClient.get('/academic/classes', { params: { academicYear: form.academicYearId } }),
+        apiClient.get('/academic/sections', { params: { academicYear: form.academicYearId } }),
+      ])
+      setClasses(classResponse.data.classes || [])
+      setSections(sectionResponse.data.sections || [])
+      const createdClass = (classResponse.data.classes || []).find((item) => item.name === name.trim())
+      if (createdClass) {
+        setForm((current) => ({ ...current, classId: createdClass._id, sectionId: '' }))
+        setSetupMessage(`Class ${name.trim()} created with Section A. Select the section to continue.`)
+      }
+    } catch (requestError) {
+      setSetupMessage(requestError.response?.data?.message || 'Could not create this class.')
+    } finally { setSetupBusy(false) }
+  }
 
   const saveStudent = async () => {
     const required = ['name', 'admissionNumber', 'dateOfBirth', 'gender', 'admissionDate', 'academicYearId', 'classId', 'sectionId', 'guardianName', 'parentRelationship', 'guardianPhone']
@@ -398,16 +449,17 @@ export default function PrincipalStudentsPage() {
           <Field label="Date of birth" value={form.dateOfBirth} onChange={(v) => setField('dateOfBirth', v)} type="date" required />
           <label className="modal-field"><span>Gender *</span><select value={form.gender} onChange={(event) => setField('gender', event.target.value)} required><option value="">Select gender</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></label>
           <Field label="Admission date" value={form.admissionDate} onChange={(v) => setField('admissionDate', v)} type="date" required />
-          <label className="modal-field"><span>Academic year *</span><select value={form.academicYearId} onChange={(event) => changeYear(event.target.value)} required><option value="">Select academic year</option>{years.map((item) => <option key={item._id} value={item._id}>{item.name}{item.isActive ? ' (Active)' : ''}</option>)}</select></label>
-          <label className="modal-field"><span>Class / Standard *</span><select value={form.classId} onChange={(event) => { setField('classId', event.target.value); setField('sectionId', '') }} required><option value="">Select class</option>{classes.map((item) => <option key={item._id} value={item._id}>Class {item.name}</option>)}</select></label>
-          <label className="modal-field"><span>Division / Section *</span><select value={form.sectionId} onChange={(event) => setField('sectionId', event.target.value)} required><option value="">Select section</option>{availableSections.map((item) => <option key={item._id} value={item._id}>Section {item.name}</option>)}</select></label>
+          <label className="modal-field"><span>Academic year *</span><select value={form.academicYearId} onChange={(event) => changeYear(event.target.value)} required><option value="">Select academic year ({years.length} available)</option>{years.map((item) => <option key={item._id} value={item._id}>{item.name}{item.isActive ? ' (Active)' : ''}</option>)}</select>{years.length === 0 && <small className="setup-hint">No academic year exists for this school yet.</small>}</label>
+          <label className="modal-field"><span>Class / Standard *</span><select value={form.classId} onChange={(event) => { setField('classId', event.target.value); setField('sectionId', '') }} required disabled={!form.academicYearId || classes.length === 0}><option value="">{!form.academicYearId ? 'Select academic year first' : classes.length ? 'Select class' : 'No classes in this year'}</option>{classes.map((item) => <option key={item._id} value={item._id}>Class {item.name}</option>)}</select>{form.academicYearId && classes.length === 0 && <small className="setup-hint">Create a class to enable this list.</small>}</label>
+          <label className="modal-field"><span>Division / Section *</span><select value={form.sectionId} onChange={(event) => setField('sectionId', event.target.value)} required disabled={!form.classId || availableSections.length === 0}><option value="">{!form.classId ? 'Select class first' : availableSections.length ? 'Select section' : 'No sections in this class'}</option>{availableSections.map((item) => <option key={item._id} value={item._id}>Section {item.name}</option>)}</select>{form.classId && availableSections.length === 0 && <small className="setup-hint">No sections are configured for this class.</small>}</label>
           <Field label="Parent / guardian name" value={form.guardianName} onChange={(v) => setField('guardianName', v)} required />
           <label className="modal-field"><span>Relationship *</span><select value={form.parentRelationship} onChange={(event) => setField('parentRelationship', event.target.value)} required><option>Father</option><option>Mother</option><option>Guardian</option><option>Parent</option></select></label>
           <Field label="Parent mobile number" value={form.guardianPhone} onChange={(v) => setField('guardianPhone', v)} type="tel" required />
           <Field label="Parent email (optional)" value={form.parentEmail} onChange={(v) => setField('parentEmail', v)} type="email" />
           <label className="modal-field modal-field-wide"><span>Residential address (optional)</span><input value={form.address} onChange={(event) => setField('address', event.target.value)} /></label>
         </div>
-        <div className="modal-note">Student/parent login IDs and temporary passwords are generated automatically. No Gmail or password entry is required.</div>
+        {(years.length === 0 || (form.academicYearId && classes.length === 0)) && <div className="academic-setup-panel"><strong>Academic setup required</strong><p>{years.length === 0 ? 'Create an academic year before adding students.' : 'This academic year has no classes yet. Create a class to automatically create Section A.'}</p><div className="academic-setup-actions">{years.length === 0 && <button type="button" className="student-secondary-btn" onClick={createAcademicYearQuick} disabled={setupBusy}>{setupBusy ? 'Creating…' : 'Create academic year'}</button>}{years.length > 0 && form.academicYearId && classes.length === 0 && <button type="button" className="student-secondary-btn" onClick={createClassQuick} disabled={setupBusy}>{setupBusy ? 'Creating…' : 'Create class'}</button>}<button type="button" className="student-secondary-btn" onClick={() => window.location.assign('/module/classes')}>Open Classes page</button></div>{setupMessage && <p role="status" className="setup-message">{setupMessage}</p>}</div>}
+                <div className="modal-note">Student/parent login IDs and temporary passwords are generated automatically. No Gmail or password entry is required.</div>
         <div className="modal-footer"><button className="student-secondary-btn" onClick={() => setModal(false)} disabled={saving}>Cancel</button><button className="student-primary-btn" onClick={saveStudent} disabled={saving}>{saving ? <Loader2 className="spin" size={17} /> : <Check size={17} />}{saving ? 'Creating…' : 'Create admission'}</button></div>
       </div></div>}
 
