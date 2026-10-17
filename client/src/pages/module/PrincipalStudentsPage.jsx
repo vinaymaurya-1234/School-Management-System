@@ -40,9 +40,81 @@ function parseCsv(text) {
   })
 }
 
+async function parseXlsx(buffer) {
+  if (typeof DecompressionStream === 'undefined') throw new Error('This browser cannot read XLSX files. Please save the workbook as CSV UTF-8 and upload it again.')
+  const bytes = new Uint8Array(buffer)
+  const view = new DataView(buffer)
+  const u32 = (offset) => view.getUint32(offset, true)
+  let endRecord = -1
+  for (let offset = Math.max(0, bytes.length - 65557); offset <= bytes.length - 22; offset += 1) {
+    if (u32(offset) === 0x06054b50) endRecord = offset
+  }
+  if (endRecord < 0) throw new Error('This is not a valid XLSX workbook.')
+  const entryCount = view.getUint16(endRecord + 10, true)
+  let cursor = u32(endRecord + 16)
+  const decoder = new TextDecoder()
+  const entries = new Map()
+  for (let index = 0; index < entryCount; index += 1) {
+    if (u32(cursor) !== 0x02014b50) throw new Error('Could not read the XLSX workbook directory.')
+    const method = view.getUint16(cursor + 10, true)
+    const compressedSize = u32(cursor + 20)
+    const nameLength = view.getUint16(cursor + 28, true)
+    const extraLength = view.getUint16(cursor + 30, true)
+    const commentLength = view.getUint16(cursor + 32, true)
+    const localOffset = u32(cursor + 42)
+    const name = decoder.decode(bytes.slice(cursor + 46, cursor + 46 + nameLength))
+    entries.set(name, { method, compressedSize, localOffset })
+    cursor += 46 + nameLength + extraLength + commentLength
+  }
+  const readEntry = async (name) => {
+    const entry = entries.get(name)
+    if (!entry) return ''
+    const offset = entry.localOffset
+    const nameLength = view.getUint16(offset + 26, true)
+    const extraLength = view.getUint16(offset + 28, true)
+    const start = offset + 30 + nameLength + extraLength
+    const compressed = bytes.slice(start, start + entry.compressedSize)
+    if (entry.method === 0) return decoder.decode(compressed)
+    if (entry.method !== 8) throw new Error('This XLSX file uses an unsupported compression method.')
+    const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate-raw'))
+    return decoder.decode(await new Response(stream).arrayBuffer())
+  }
+  const parseXml = (text) => new DOMParser().parseFromString(text, 'application/xml')
+  const findAll = (node, name) => Array.from(node.getElementsByTagNameNS('*', name))
+  const sharedXml = await readEntry('xl/sharedStrings.xml')
+  const sharedStrings = sharedXml ? findAll(parseXml(sharedXml), 'si').map((item) => findAll(item, 't').map((part) => part.textContent || '').join('')) : []
+  const sheetXml = await readEntry('xl/worksheets/sheet1.xml')
+  if (!sheetXml) throw new Error('The first worksheet could not be found in this workbook.')
+  const sheet = parseXml(sheetXml)
+  const rowElements = findAll(sheet, 'row')
+  const matrix = rowElements.map((rowElement) => {
+    const cells = Array.from(rowElement.children).filter((child) => child.localName === 'c')
+    const values = []
+    cells.forEach((cell) => {
+      const ref = cell.getAttribute('r') || ''
+      const letters = ref.match(/^[A-Z]+/i)?.[0] || 'A'
+      let column = 0
+      for (const letter of letters.toUpperCase()) column = column * 26 + letter.charCodeAt(0) - 64
+      column -= 1
+      const valueNode = findAll(cell, 'v')[0]
+      let value = valueNode?.textContent || ''
+      if (cell.getAttribute('t') === 's' && value !== '') value = sharedStrings[Number(value)] ?? ''
+      else if (cell.getAttribute('t') === 'inlineStr') value = findAll(cell, 't').map((part) => part.textContent || '').join('')
+      values[column] = value
+    })
+    return values.map((value) => value ?? '')
+  })
+  const csv = matrix.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\n')
+  return parseCsv(csv)
+}
+
 function dateValue(value) {
   const input = String(value || '').trim()
   if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return input
+  if (/^\d{4,5}(\.\d+)?$/.test(input) && Number(input) > 20000 && Number(input) < 80000) {
+    const date = new Date(Date.UTC(1899, 11, 30) + Math.round(Number(input) * 86400000))
+    return date.toISOString().slice(0, 10)
+  }
   const match = input.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/)
   if (match) return `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`
   return ''
@@ -238,12 +310,13 @@ export default function PrincipalStudentsPage() {
   const chooseFile = async (file) => {
     setError(''); setImportResult(null); setImportPreview(null)
     if (!file) return
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      setError('Please save your Excel workbook as CSV UTF-8 (.csv) first. The CSV template opens and edits in Excel.')
+    const extension = file.name.toLowerCase().split('.').pop()
+    if (!['csv', 'xlsx'].includes(extension)) {
+      setError('Please upload an Excel workbook (.xlsx) or CSV file.')
       return
     }
     try {
-      const rows = parseCsv(await file.text())
+      const rows = extension === 'xlsx' ? await parseXlsx(await file.arrayBuffer()) : parseCsv(await file.text())
       const preview = validateCsvRows(rows)
       setImportPreview({ ...preview, filename: file.name, total: rows.length })
     } catch (fileError) { setError(fileError.message || 'Could not read the uploaded file.') }
@@ -333,9 +406,9 @@ export default function PrincipalStudentsPage() {
         <div className="modal-header"><div><span>BULK ADMISSION</span><h2>Import students from Excel/CSV</h2></div><button onClick={() => !importBusy && setImportOpen(false)}><X size={18} /></button></div>
         {!importResult ? <>
           <div className="import-instructions">
-            <div className="import-instruction-icon"><FileSpreadsheet size={23} /></div><div><strong>1. Download the template</strong><p>Open it in Excel, fill one student per row, then save as CSV UTF-8 (.csv).</p><button className="student-secondary-btn" onClick={() => downloadTemplate(activeYear?.name)}><Download size={16} /> Download CSV template</button></div>
+            <div className="import-instruction-icon"><FileSpreadsheet size={23} /></div><div><strong>1. Download the template</strong><p>Open it in Excel and fill one student per row. You can upload a CSV UTF-8 file or an .xlsx workbook.</p><button className="student-secondary-btn" onClick={() => downloadTemplate(activeYear?.name)}><Download size={16} /> Download CSV template</button></div>
           </div>
-          <div className="import-instructions"><div className="import-instruction-icon"><Upload size={23} /></div><div><strong>2. Upload the completed CSV</strong><p>Required: student name, admission number, DOB, gender, admission date, class, section, parent name, relationship and mobile. Parent email and address are optional.</p><input ref={fileRef} type="file" accept=".csv,text/csv" onChange={(event) => chooseFile(event.target.files?.[0])} /></div></div>
+          <div className="import-instructions"><div className="import-instruction-icon"><Upload size={23} /></div><div><strong>2. Upload the completed CSV</strong><p>Required: student name, admission number, DOB, gender, admission date, class, section, parent name, relationship and mobile. Parent email and address are optional.</p><input ref={fileRef} type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => chooseFile(event.target.files?.[0])} /></div></div>
           {importPreview && <div className="import-preview">
             <div className="import-preview-stats"><span><strong>{importPreview.total}</strong> rows</span><span><strong>{importPreview.valid.length}</strong> ready to import</span><span><strong>{importPreview.errors.length}</strong> errors</span></div>
             <p>File: {importPreview.filename}. The active selection is academic year <strong>{activeYear?.name || 'not set'}</strong>.</p>
