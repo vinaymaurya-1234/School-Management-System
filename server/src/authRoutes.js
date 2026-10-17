@@ -95,30 +95,44 @@ router.get("/me", requireAuth, async (req, res) => {
 router.put("/me", requireAuth, async (req, res, next) => {
   try {
     const { name, email, password, currentPassword } = req.body || {};
+    // Load a fresh document for the write instead of relying on the auth
+    // middleware's hydrated document. Return the persisted record after saving.
+    const account = await User.findById(req.user._id).select("+password");
+    if (!account || !account.active) {
+      return res.status(401).json({ message: "Your account could not be found. Please sign in again." });
+    }
+
     if (name !== undefined) {
       const value = String(name).trim();
       if (!value) return res.status(400).json({ message: "Name cannot be empty" });
-      req.user.name = value;
+      account.name = value;
     }
+
     if (email !== undefined) {
       const normalizedEmail = String(email).trim().toLowerCase();
       if (!normalizedEmail) return res.status(400).json({ message: "Email cannot be empty" });
-      const owner = await User.findOne({ email: normalizedEmail, _id: { $ne: req.user._id } });
+      if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(normalizedEmail)) {
+        return res.status(400).json({ message: "Enter a valid email address" });
+      }
+      const owner = await User.findOne({ email: normalizedEmail, _id: { $ne: account._id } }).select("_id");
       if (owner) return res.status(409).json({ message: "A user with this email already exists" });
-      req.user.email = normalizedEmail;
+      account.email = normalizedEmail;
     }
+
     if (password !== undefined && String(password).length) {
-      if (String(password).length < 8) return res.status(400).json({ message: "Password must be at least 8 characters" });
+      if (String(password).length < 8) return res.status(400).json({ message: "New password must be at least 8 characters" });
       if (!currentPassword) return res.status(400).json({ message: "Current password is required to change your password" });
-      const account = await User.findById(req.user._id).select("+password");
       const passwordMatches = await account.comparePassword(String(currentPassword));
       if (!passwordMatches) return res.status(401).json({ message: "Current password is incorrect" });
       account.password = String(password);
-      await account.save();
-      req.user = account;
     }
-    await req.user.save();
-    res.json({ message: "Profile updated successfully", user: serializeUser(req.user) });
+
+    await account.save();
+    const persistedAccount = await User.findById(account._id);
+    if (!persistedAccount || persistedAccount.email !== account.email) {
+      return res.status(500).json({ message: "Profile changes could not be verified after saving. Please retry." });
+    }
+    return res.json({ message: "Profile updated successfully", user: serializeUser(persistedAccount) });
   } catch (error) {
     if (error?.code === 11000) return res.status(409).json({ message: "A user with this email or login ID already exists" });
     next(error);
