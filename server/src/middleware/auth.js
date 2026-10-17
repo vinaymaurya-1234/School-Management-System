@@ -7,14 +7,19 @@ export async function requireAuth(req, res, next) {
     const token = req.headers.authorization?.startsWith("Bearer ")
       ? req.headers.authorization.slice(7)
       : null;
-
     if (!token) return res.status(401).json({ message: "Authentication required" });
 
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(payload.userId).select("-password");
-
     if (!user || !user.active) {
       return res.status(401).json({ message: "User account is inactive or missing" });
+    }
+
+    if (user.mustChangePassword && !req.originalUrl.includes("/auth/first-password")) {
+      return res.status(403).json({
+        code: "PASSWORD_CHANGE_REQUIRED",
+        message: "Change your temporary password before using the school portal",
+      });
     }
 
     req.user = user;
