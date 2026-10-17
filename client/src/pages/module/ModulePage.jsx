@@ -142,8 +142,9 @@ function ModulePage({ moduleKey }) {
     event.preventDefault()
     setProfileError('')
     setProfileSuccess('')
-    if (!profileForm.name.trim() || !profileForm.email.trim()) {
-      setProfileError('Name and email are required.')
+    const isParentProfile = user?.role === 'parent'
+    if (!profileForm.name.trim() || (!isParentProfile && !profileForm.email.trim())) {
+      setProfileError(isParentProfile ? 'Full name is required.' : 'Name and email are required.')
       return
     }
     if (profileForm.newPassword && profileForm.newPassword.length < 6) {
@@ -156,14 +157,16 @@ function ModulePage({ moduleKey }) {
     }
     setProfileSaving(true)
     try {
-      const payload = { name: profileForm.name.trim(), email: profileForm.email.trim().toLowerCase() }
+      const payload = { name: profileForm.name.trim() }
+      const enteredEmail = profileForm.email.trim().toLowerCase()
+      if (enteredEmail) payload.email = enteredEmail
       if (profileForm.newPassword) {
         payload.currentPassword = profileForm.currentPassword
         payload.password = profileForm.newPassword
       }
       const { data } = await apiClient.put('/auth/me', payload)
       const savedEmail = String(data.user?.email || '').trim().toLowerCase()
-      if (savedEmail !== payload.email) {
+      if (payload.email && savedEmail !== payload.email) {
         throw new Error('The server did not confirm the new email address. Your changes were not confirmed as saved; please retry.')
       }
       if (updateUser && data.user) updateUser(data.user)
@@ -740,7 +743,7 @@ function ModulePage({ moduleKey }) {
         <form className="student-profile-form" onSubmit={saveProfile}>
           <div className="student-profile-form-section"><div><h3>Basic information</h3><p>Use an email address you can access.</p></div><div className="student-profile-form-grid">
             <label>Full name<input autoComplete="name" value={profileForm.name} onChange={(event) => setProfileForm((current) => ({ ...current, name: event.target.value }))} required maxLength={100} /></label>
-            <label>Email address<input type="email" autoComplete="email" value={profileForm.email} onChange={(event) => setProfileForm((current) => ({ ...current, email: event.target.value }))} required maxLength={254} /></label>
+            <label>Email address{user?.role === 'parent' && <span className="profile-field-hint">Optional · add your own email if you want to use it for contact or login.</span>}<input type="email" autoComplete="email" value={profileForm.email} onChange={(event) => setProfileForm((current) => ({ ...current, email: event.target.value }))} required={user?.role !== 'parent'} maxLength={254} placeholder={user?.role === 'parent' ? 'Enter your email (optional)' : 'Enter email address'} /></label>
           </div></div>
           <div className="student-profile-form-section"><div><h3>Change password</h3><p>Leave both password fields blank if you do not want to change it. A minimum of 6 characters is required.</p></div><div className="student-profile-form-grid">
             <label>Current password<input type="password" autoComplete="current-password" value={profileForm.currentPassword} onChange={(event) => setProfileForm((current) => ({ ...current, currentPassword: event.target.value }))} placeholder="Required only for password change" /></label>
