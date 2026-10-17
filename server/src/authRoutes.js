@@ -43,10 +43,13 @@ router.post("/login", async (req, res, next) => {
     const password = String(req.body?.password || "");
     if (!identifier || !password) return res.status(400).json({ message: "Login ID or email and password are required" });
 
+    // Backward-compatible lookup: old accounts continue to use email + password,
+    // while newly generated accounts can use login ID + password.
+    const normalizedIdentifier = identifier.trim();
     const user = await User.findOne({
       $or: [
-        { email: identifier.toLowerCase() },
-        { loginId: identifier.toUpperCase() },
+        { email: normalizedIdentifier.toLowerCase() },
+        { loginId: normalizedIdentifier.toUpperCase() },
       ],
     }).select("+password");
 
