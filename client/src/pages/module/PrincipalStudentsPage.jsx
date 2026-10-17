@@ -274,7 +274,7 @@ export default function PrincipalStudentsPage() {
       const className = read('Class', 'Standard', 'Class Name')
       const sectionName = read('Section', 'Division', 'Class Section')
       const guardianName = read('Parent Name', 'Guardian Name', 'Parent/Guardian Name')
-      const parentRelationship = read('Relationship (Father/Mother/Guardian)', 'Relationship', 'Parent Relationship')
+      const parentRelationship = read('Relationship (Father/Mother/Guardian)', 'Relationship', 'Parent Relationship', 'Parent/Guardian Relationship')
       const guardianPhone = read('Parent Mobile', 'Parent Phone', 'Guardian Phone', 'Mobile Number')
       const parentEmail = read('Parent Email (optional)', 'Parent Email', 'Guardian Email')
       const address = read('Address (optional)', 'Address', 'Residential Address')
@@ -317,6 +317,7 @@ export default function PrincipalStudentsPage() {
     }
     try {
       const rows = extension === 'xlsx' ? await parseXlsx(await file.arrayBuffer()) : parseCsv(await file.text())
+      if (rows.length > 500) throw new Error('Import is limited to 500 students per batch. Split the file into smaller batches.')
       const preview = validateCsvRows(rows)
       setImportPreview({ ...preview, filename: file.name, total: rows.length })
     } catch (fileError) { setError(fileError.message || 'Could not read the uploaded file.') }
