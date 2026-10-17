@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowRight, Check, Download, FileSpreadsheet, Loader2, Plus, Search, Upload, UserRound, X, KeyRound, Copy } from 'lucide-react'
+import { ArrowRight, Check, Download, FileSpreadsheet, Loader2, Plus, Search, Upload, UserRound, X, Copy } from 'lucide-react'
 import apiClient from '../../api/client'
 import './PrincipalStudentsPage.css'
 
@@ -176,7 +176,7 @@ export default function PrincipalStudentsPage() {
         parentEmail: form.parentEmail.trim(), address: form.address.trim(),
       })
       setModal(false)
-      setCredentials({ type: 'single', ...response.data.credentials, parent: response.data.parent })
+      setCredentials({ type: 'single', student: response.data.credentials.student, parent: { ...response.data.credentials.parent, reusedExistingAccount: response.data.parent?.reusedExistingAccount } })
       setNotice('Student admission and account creation completed.')
       await load(form.academicYearId)
     } catch (requestError) {
