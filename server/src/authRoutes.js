@@ -23,11 +23,18 @@ function signToken(user) {
   );
 }
 
+function isPlaceholderParentEmail(user) {
+  if (user?.role !== ROLES.PARENT) return false;
+  const email = String(user.email || "").trim().toLowerCase();
+  return email.endsWith("@accounts.school.local") || /^[^@]+\.demo\d+@example\.com$/.test(email);
+}
+
 function serializeUser(user) {
   return {
     id: user._id,
     name: user.name,
-    email: user.email,
+    // Internal account addresses and seeded demo emails are not parent-provided contact emails.
+    email: isPlaceholderParentEmail(user) ? "" : user.email,
     loginId: user.loginId || null,
     mustChangePassword: Boolean(user.mustChangePassword),
     role: user.role,
