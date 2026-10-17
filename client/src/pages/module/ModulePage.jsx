@@ -162,11 +162,15 @@ function ModulePage({ moduleKey }) {
         payload.password = profileForm.newPassword
       }
       const { data } = await apiClient.put('/auth/me', payload)
+      const savedEmail = String(data.user?.email || '').trim().toLowerCase()
+      if (savedEmail !== payload.email) {
+        throw new Error('The server did not confirm the new email address. Your changes were not confirmed as saved; please retry.')
+      }
       if (updateUser && data.user) updateUser(data.user)
-      setProfileForm((current) => ({ ...current, name: data.user?.name || current.name, email: data.user?.email || current.email, currentPassword: '', newPassword: '' }))
-      setProfileSuccess('Your profile was saved to the school database.')
+      setProfileForm((current) => ({ ...current, name: data.user?.name || current.name, email: savedEmail, currentPassword: '', newPassword: '' }))
+      setProfileSuccess('Your profile was saved and verified in the school database.')
     } catch (error) {
-      setProfileError(error.response?.data?.message || 'Profile could not be saved. Please try again.')
+      setProfileError(error.response?.data?.message || error.message || 'Profile could not be saved. Please try again.')
     } finally {
       setProfileSaving(false)
     }
