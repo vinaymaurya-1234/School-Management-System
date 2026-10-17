@@ -122,6 +122,10 @@ async function createStudentRecord(input, schoolId) {
     parentProfile = await Parent.findOne({ school: schoolId, phone: guardianPhone }).populate("user");
     if (parentProfile?.user && parentProfile.user.role === ROLES.PARENT) {
       parentUser = parentProfile.user;
+      if (!parentUser.loginId) {
+        parentUser.loginId = await uniqueLoginId(ROLES.PARENT);
+        await User.updateOne({ _id: parentUser._id, school: schoolId }, { $set: { loginId: parentUser.loginId } });
+      }
       if (parentEmail && parentUser.email !== parentEmail && !parentUser.email.endsWith("@accounts.school.local")) {
         // Keep an existing verified login email unchanged; profile can be updated separately.
       }
@@ -134,6 +138,10 @@ async function createStudentRecord(input, schoolId) {
       if (emailOwner) {
         if (emailOwner.role !== ROLES.PARENT) throw Object.assign(new Error("Parent email is already used by another account"), { status: 409 });
         parentUser = emailOwner;
+        if (!parentUser.loginId) {
+          parentUser.loginId = await uniqueLoginId(ROLES.PARENT);
+          await User.updateOne({ _id: parentUser._id, school: schoolId }, { $set: { loginId: parentUser.loginId } });
+        }
         parentProfile = await Parent.findOne({ user: parentUser._id, school: schoolId });
         if (!parentProfile) parentProfile = await Parent.create({ user: parentUser._id, school: schoolId, relationship: parentRelationship, phone: guardianPhone, children: [studentProfile._id] });
         else await Parent.updateOne({ _id: parentProfile._id }, { $addToSet: { children: studentProfile._id }, $set: { phone: guardianPhone, relationship: parentRelationship } });
@@ -231,7 +239,10 @@ router.get("/credentials", async (req, res, next) => {
     ]);
     for (const student of students) {
       const account = student.user;
-      if (account && !account.loginId) { account.loginId = await uniqueLoginId(account.role); await account.save(); }
+      if (account && !account.loginId) {
+        account.loginId = await uniqueLoginId(account.role);
+        await User.updateOne({ _id: account._id, school: req.user.school }, { $set: { loginId: account.loginId } });
+      }
     }
     for (const parent of parents) {
       const account = parent.user;
