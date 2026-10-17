@@ -338,7 +338,8 @@ export default function PrincipalStudentsPage() {
       setImportResult({ ...response.data, localErrors: importPreview.errors })
       await load(yearId)
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Bulk import failed.')
+      if (requestError.response?.data?.errors) setImportResult({ ...requestError.response.data, localErrors: importPreview.errors })
+      else setError(requestError.response?.data?.message || 'Bulk import failed.')
     } finally { setImportBusy(false) }
   }
 
