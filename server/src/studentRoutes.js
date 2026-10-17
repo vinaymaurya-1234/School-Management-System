@@ -27,7 +27,7 @@ function serializeStudent(student) {
     admissionDate: student.admissionDate,
     active: student.active,
     loginId: user?.loginId || null,
-    loginEmail: user?.email || null,
+    loginEmail: publicEmail(user?.email) || null,
     mustChangePassword: Boolean(user?.mustChangePassword),
     createdAt: student.createdAt,
     updatedAt: student.updatedAt,
@@ -50,6 +50,7 @@ function generatedEmail(loginId) {
   return `${loginId.toLowerCase()}@accounts.school.local`;
 }
 function clean(value) { return String(value ?? "").trim(); }
+function publicEmail(value) { return value && !String(value).toLowerCase().endsWith("@accounts.school.local") ? value : ""; }
 function validEmail(value) { return !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); }
 
 router.use(requireAuth);
@@ -258,11 +259,11 @@ router.get("/credentials", async (req, res, next) => {
     res.json({
       students: students.map((student) => {
         const user = student.user || {};
-        return { studentId: student._id, userId: user._id, name: student.name, admissionNumber: student.admissionNumber, loginId: user.loginId || null, email: user.email || "", active: user.active !== false && student.active !== false, mustChangePassword: Boolean(user.mustChangePassword), createdAt: student.createdAt };
+        return { studentId: student._id, userId: user._id, name: student.name, admissionNumber: student.admissionNumber, loginId: user.loginId || null, email: publicEmail(user.email), active: user.active !== false && student.active !== false, mustChangePassword: Boolean(user.mustChangePassword), createdAt: student.createdAt };
       }),
       parents: parents.filter((parent) => parent.user).map((parent) => ({
         parentProfileId: parent._id, userId: parent.user._id, name: parent.user.name, loginId: parent.user.loginId || null,
-        email: parent.user.email || "", phone: parent.phone, active: parent.user.active !== false,
+        email: publicEmail(parent.user.email), phone: parent.phone, active: parent.user.active !== false,
         mustChangePassword: Boolean(parent.user.mustChangePassword),
         children: (parent.children || []).map((child) => ({ name: child.name, admissionNumber: child.admissionNumber })),
       })),
