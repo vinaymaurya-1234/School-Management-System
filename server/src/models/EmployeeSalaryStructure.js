@@ -33,9 +33,7 @@ const employeeSalaryStructureSchema = new mongoose.Schema(
 );
 
 employeeSalaryStructureSchema.index({ school: 1, employee: 1, effectiveFrom: -1 });
-employeeSalaryStructureSchema.index(
-  { school: 1, employee: 1 },
-  { unique: true, partialFilterExpression: { status: "active" } }
-);
+// Multiple effective-dated structures are retained so historical and future revisions
+// can coexist. Payroll selects the structure effective for the requested pay period.
 
 export default mongoose.model("EmployeeSalaryStructure", employeeSalaryStructureSchema);
