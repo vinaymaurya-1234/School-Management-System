@@ -36,6 +36,7 @@ export const ROLE_PERMISSIONS = {
     'notices.view',
     'events.view',
     'profile.manage.own',
+    'messages.view',
   ],
   [ROLES.STUDENT]: [
     'dashboard.view',
@@ -48,6 +49,7 @@ export const ROLE_PERMISSIONS = {
     'notices.view',
     'events.view',
     'profile.manage.own',
+    'messages.view',
   ],
   [ROLES.PARENT]: [
     'dashboard.view',
@@ -61,6 +63,7 @@ export const ROLE_PERMISSIONS = {
     'notices.view',
     'events.view',
     'profile.manage.own',
+    'messages.view',
   ],
   [ROLES.ACCOUNTANT]: [
     'dashboard.view',
