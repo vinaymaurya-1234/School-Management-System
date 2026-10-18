@@ -208,8 +208,15 @@ router.post("/conversations/:id/messages", async (req, res, next) => {
     const text = String(req.body?.text || "").trim().slice(0, 5000);
     const attachments = Array.isArray(req.body?.attachments) ? req.body.attachments.slice(0, 5) : [];
     if (!text && !attachments.length) return res.status(400).json({ message: "Write a message or attach a file" });
-    if (attachments.some((file) => !file?.url || !file?.name || !["image", "video", "application/pdf"].some((type) => String(file.mimeType).startsWith(type)))) {
-      return res.status(400).json({ message: "One or more attachments are invalid" });
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    if (attachments.some((file) =>
+      !file?.url || !file?.name || !file?.publicId ||
+      !["image/", "video/"].some((type) => String(file.mimeType).startsWith(type)) && file.mimeType !== "application/pdf" ||
+      !cloudName || !String(file.url).startsWith(`https://res.cloudinary.com/${cloudName}/`) ||
+      !String(file.publicId).startsWith(`school-chat/${req.user.school}/`) ||
+      !Number.isFinite(Number(file.size)) || Number(file.size) > 30 * 1024 * 1024
+    )) {
+      return res.status(400).json({ message: "One or more attachments are invalid or were not uploaded to this school's file storage" });
     }
     const message = await Message.create({
       school: req.user.school, conversation: conversation._id, sender: req.user._id,
