@@ -258,7 +258,7 @@ router.post("/upload", upload.single("file"), async (req, res, next) => {
     }
     cloudinary.config({ cloud_name: CLOUDINARY_CLOUD_NAME, api_key: CLOUDINARY_API_KEY, api_secret: CLOUDINARY_API_SECRET, secure: true });
     const resourceType = req.file.mimetype.startsWith("image/") ? "image" : req.file.mimetype.startsWith("video/") ? "video" : "raw";
-    const publicId = `school-chat/${req.user.school}/${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80)}`;
+    const publicId = `${req.user.school}/${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80)}`;
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream({
         resource_type: resourceType, public_id: publicId, type: "authenticated", overwrite: false,
