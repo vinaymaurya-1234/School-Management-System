@@ -19,7 +19,7 @@ const upload = multer({
     callback(allowed.test(file.mimetype) ? null : Object.assign(new Error("Only images, videos and PDF files are allowed"), { status: 400 }), allowed.test(file.mimetype));
   },
 });
-router.use(requireAuth);
+router.use(requireAuth, (req, res, next) => {\n  if (!["principal", "teacher", "student", "parent"].includes(req.user.role)) {\n    return res.status(403).json({ message: "Chat is available to parents, teachers, students and the principal only" });\n  }\n  next();\n});
 
 function sameId(a, b) { return String(a?._id || a) === String(b?._id || b); }
 function safeUser(user) {
