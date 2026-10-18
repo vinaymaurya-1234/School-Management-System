@@ -16,6 +16,7 @@ import eventRoutes from "./routes/events.js";
 import examRoutes from "./routes/exams.js";
 import feeRoutes from "./routes/fees.js";
 import chatRoutes from "./routes/chat.js";
+import payrollRoutes from "./routes/payroll.js";
 
 const app = express();
 app.set("trust proxy", true);
@@ -46,6 +47,7 @@ app.use("/api/events", eventRoutes);
 app.use("/api/exams", examRoutes);
 app.use("/api/fees", feeRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/payroll", payrollRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
