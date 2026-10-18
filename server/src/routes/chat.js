@@ -253,6 +253,51 @@ router.post("/conversations/:id/messages", async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+router.patch("/conversations/:conversationId/messages/:messageId", async (req, res, next) => {
+  try {
+    const conversation = await getConversationForUser(req.params.conversationId, req.user);
+    if (!conversation) return res.status(404).json({ message: "Conversation not found" });
+    if (!mongoose.isValidObjectId(req.params.messageId)) return res.status(404).json({ message: "Message not found" });
+    const message = await Message.findOne({
+      _id: req.params.messageId, school: req.user.school, conversation: conversation._id,
+      sender: req.user._id, deletedAt: null,
+    }).populate({ path: "sender", select: "name role active" });
+    if (!message) return res.status(404).json({ message: "Message not found or you cannot edit it" });
+    const text = String(req.body?.text || "").trim().slice(0, 5000);
+    if (!text && !(message.attachments || []).length) return res.status(400).json({ message: "An edited message cannot be empty" });
+    message.text = text;
+    message.editedAt = new Date();
+    await message.save();
+    const serialized = safeMessage(message);
+    emitToConversation(req, conversation._id, "message:updated", serialized);
+    res.json({ message: serialized });
+  } catch (error) { next(error); }
+});
+
+router.delete("/conversations/:conversationId/messages/:messageId", async (req, res, next) => {
+  try {
+    const conversation = await getConversationForUser(req.params.conversationId, req.user);
+    if (!conversation) return res.status(404).json({ message: "Conversation not found" });
+    if (!mongoose.isValidObjectId(req.params.messageId)) return res.status(404).json({ message: "Message not found" });
+    const message = await Message.findOne({
+      _id: req.params.messageId, school: req.user.school, conversation: conversation._id,
+      sender: req.user._id, deletedAt: null,
+    });
+    if (!message) return res.status(404).json({ message: "Message not found or you cannot delete it" });
+    message.deletedAt = new Date();
+    message.text = "";
+    message.attachments = [];
+    await message.save();
+    const payload = { id: String(message._id), conversationId: String(conversation._id), deletedAt: message.deletedAt };
+    emitToConversation(req, conversation._id, "message:deleted", payload);
+    const latest = await Message.findOne({ school: req.user.school, conversation: conversation._id, deletedAt: null }).sort({ createdAt: -1 });
+    await Conversation.updateOne({ _id: conversation._id, school: req.user.school }, {
+      $set: { lastMessageAt: latest?.createdAt || null, lastMessagePreview: latest ? (latest.text || latest.attachments?.[0]?.name || "Attachment") : "" },
+    });
+    res.json({ ok: true, message: payload });
+  } catch (error) { next(error); }
+});
+
 router.post("/conversations/:id/read", async (req, res, next) => {
   try {
     const conversation = await getConversationForUser(req.params.id, req.user);
