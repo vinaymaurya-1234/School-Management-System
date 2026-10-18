@@ -142,3 +142,10 @@
   .messages-group-fields { grid-template-columns:1fr; }
   .messages-modal { border-radius:16px; }
 }
+
+.messages-image-attachment { display:block; max-width:min(320px,65vw); overflow:hidden; border-radius:12px; background:#eee; color:#333; text-decoration:none; }
+.messages-image-attachment img { display:block; max-width:100%; max-height:300px; object-fit:contain; }
+.messages-image-attachment span { display:block; padding:6px 9px; font-size:10px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; background:#f4f4f4; }
+.messages-video-attachment { width:min(340px,65vw); overflow:hidden; border-radius:12px; background:#111; color:#fff; }
+.messages-video-attachment video { display:block; width:100%; max-height:260px; background:#111; }
+.messages-video-attachment span { display:flex; align-items:center; gap:6px; padding:8px 10px; font-size:10px; overflow-wrap:anywhere; }
