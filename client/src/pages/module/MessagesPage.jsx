@@ -19,6 +19,33 @@ const roleTabs = [
 const roleLabel = (role) => ({ principal: 'Principal', teacher: 'Teacher', student: 'Student', parent: 'Parent' }[role] || role || 'School member')
 const socketBase = () => (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')
 
+function ChatAttachment({ file }) {
+  const [url, setUrl] = useState('')
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    let active = true
+    let objectUrl = ''
+    setUrl('')
+    setFailed(false)
+    apiClient.get(file.url, { responseType: 'blob' })
+      .then((response) => {
+        objectUrl = URL.createObjectURL(response.data)
+        if (active) setUrl(objectUrl)
+        else URL.revokeObjectURL(objectUrl)
+      })
+      .catch(() => { if (active) setFailed(true) })
+    return () => {
+      active = false
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [file.url])
+  if (failed) return <div className="messages-attachment-error">File unavailable. Please sign in again or ask the sender to share it again.</div>
+  if (!url) return <div className="messages-attachment-loading"><LoaderCircle className="spin" size={16} /> Loading {file.name}…</div>
+  if (file.mimeType?.startsWith('image/')) return <a className="messages-image-attachment" href={url} target="_blank" rel="noreferrer"><img src={url} alt={file.name} loading="lazy" /><span>{file.name}</span></a>
+  if (file.mimeType?.startsWith('video/')) return <div className="messages-video-attachment"><video controls preload="metadata" src={url} /><span><Video size={14} /> {file.name} · {formatSize(file.size)}</span></div>
+  return <a className="messages-attachment" href={url} download={file.name}><FileText size={20} /><span><strong>{file.name}</strong><small>PDF · {formatSize(file.size)}</small></span><Download size={16} /></a>
+}
+
 function Avatar({ user, group = false }) {
   return <span className={`chat-avatar ${group ? 'group-avatar' : ''}`}>{group ? <Users size={19} /> : (user?.name || '?').trim().charAt(0).toUpperCase()}</span>
 }
@@ -195,7 +222,7 @@ export default function MessagesPage() {
     setError('')
     try {
       const form = new FormData()
-      form.append('file', file)
+      form.append('file', file)\n      form.append('conversationId', activeId)
       const response = await apiClient.post('/chat/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } })
       setPendingAttachments((current) => [...current, response.data.attachment].slice(0, 5))
     } catch (requestError) {
@@ -256,11 +283,7 @@ export default function MessagesPage() {
                     {!mine && activeConversation.type === 'group' && <small className="messages-sender-name">{message.sender?.name || 'Member'}</small>}
                     <div className="messages-bubble">
                       {message.text && <p>{message.text}</p>}
-                      {message.attachments?.map((file, index) => file.mimeType?.startsWith('image/')
-                        ? <a className="messages-image-attachment" key={`${message.id}-${index}`} href={file.url} target="_blank" rel="noreferrer"><img src={file.url} alt={file.name} loading="lazy" /><span>{file.name}</span></a>
-                        : file.mimeType?.startsWith('video/')
-                          ? <div className="messages-video-attachment" key={`${message.id}-${index}`}><video controls preload="metadata" src={file.url} /><span><Video size={14} /> {file.name} · {formatSize(file.size)}</span></div>
-                          : <a className="messages-attachment" key={`${message.id}-${index}`} href={file.url} target="_blank" rel="noreferrer"><FileText size={20} /><span><strong>{file.name}</strong><small>PDF · {formatSize(file.size)}</small></span><Download size={16} /></a>)}
+                      {message.attachments?.map((file, index) => <ChatAttachment key={`${message.id}-${index}`} file={file} />)}
                     </div>
                     <span className="messages-message-time">{formatTime(message.createdAt)} {mine && <CheckCheck size={14} />}</span>
                   </div>
