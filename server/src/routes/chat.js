@@ -283,7 +283,7 @@ router.post("/upload", upload.single("file"), async (req, res, next) => {
     await new Promise((resolve, reject) => {
       uploadStream.once("finish", resolve);
       uploadStream.once("error", reject);
-      Readable.from(req.file.buffer).pipe(uploadStream);
+      Readable.from([req.file.buffer]).pipe(uploadStream);
     });
     const fileId = String(uploadStream.id);
     res.status(201).json({ attachment: {
