@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { io } from 'socket.io-client'
 import {
   Search, Plus, Send, Paperclip, Image as ImageIcon, FileText, Video,
-  Users, MessageCircle, MoreVertical, ArrowLeft, X, CheckCheck, LoaderCircle,
+  Users, MessageCircle, MoreVertical, ArrowLeft, X, CheckCheck, LoaderCircle, Pencil, Trash2,
   ShieldCheck, CircleUserRound, Download, MessagesSquare,
 } from 'lucide-react'
 import apiClient from '../../api/client'
@@ -76,6 +76,10 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [showNew, setShowNew] = useState(false)
+  const [editingMessageId, setEditingMessageId] = useState('')
+  const [editingMessageText, setEditingMessageText] = useState('')
+  const [messageMenuId, setMessageMenuId] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
   const [newMode, setNewMode] = useState('direct')
   const [groupTitle, setGroupTitle] = useState('')
   const [groupType, setGroupType] = useState('custom')
@@ -136,6 +140,14 @@ export default function MessagesPage() {
     if (!token) return undefined
     const socket = io(socketBase(), { auth: { token }, transports: ['websocket', 'polling'] })
     socketRef.current = socket
+    socket.on('message:updated', (message) => {
+      setMessages((current) => current.map((item) => item.id === message.id ? message : item))
+      setConversations((current) => current.map((item) => item.id === message.conversationId ? { ...item, lastMessagePreview: message.text || message.attachments?.[0]?.name || 'Attachment' } : item))
+    })
+    socket.on('message:deleted', ({ id, conversationId }) => {
+      setMessages((current) => current.filter((item) => item.id !== id))
+      loadConversations().catch(() => {})
+    })
     socket.on('message:new', (message) => {
       setMessages((current) => {
         if (message.conversationId !== activeId || current.some((item) => item.id === message.id)) return current
@@ -147,7 +159,7 @@ export default function MessagesPage() {
       }).sort((a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0)))
     })
     return () => { socket.disconnect(); socketRef.current = null }
-  }, [activeId, user?.id])
+  }, [activeId, user?.id, loadConversations])
 
   useEffect(() => {
     if (!activeId) { setMessages([]); return }
@@ -215,6 +227,44 @@ export default function MessagesPage() {
   }
 
   const [pendingAttachments, setPendingAttachments] = useState([])
+  const beginEditMessage = (message) => {
+    setEditingMessageId(message.id)
+    setEditingMessageText(message.text || '')
+    setMessageMenuId('')
+    setError('')
+  }
+
+  const saveEditedMessage = async (message) => {
+    const nextText = editingMessageText.trim()
+    if (!nextText && !(message.attachments || []).length) {
+      setError('Message cannot be empty.')
+      return
+    }
+    setSavingEdit(true)
+    try {
+      const response = await apiClient.patch(`/chat/conversations/${activeId}/messages/${message.id}`, { text: nextText })
+      setMessages((current) => current.map((item) => item.id === message.id ? response.data.message : item))
+      setEditingMessageId('')
+      setEditingMessageText('')
+      setError('')
+      await loadConversations(activeId)
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Could not edit message.')
+    } finally { setSavingEdit(false) }
+  }
+
+  const deleteMessage = async (message) => {
+    if (!window.confirm('Delete this message for everyone?')) return
+    setMessageMenuId('')
+    try {
+      await apiClient.delete(`/chat/conversations/${activeId}/messages/${message.id}`)
+      setMessages((current) => current.filter((item) => item.id !== message.id))
+      await loadConversations(activeId)
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Could not delete message.')
+    }
+  }
+
   const uploadFile = async (file) => {
     if (!file) return
     if (file.size > 30 * 1024 * 1024) { setError('Each file must be 30 MB or smaller.'); return }
@@ -236,11 +286,6 @@ export default function MessagesPage() {
 
   return (
     <section className="messages-page">
-      <header className="messages-heading">
-        <div><span className="messages-eyebrow">SCHOOL COMMUNICATION</span><h1>Messages</h1><p>Chat with authorized parents, teachers, students and principal.</p></div>
-        <button className="messages-primary-button" type="button" onClick={() => { setShowNew(true); setNewMode('direct'); setError(''); loadPeople().catch(() => {}) }}><Plus size={18} /> New chat</button>
-      </header>
-
       {error && <div className="messages-error" role="alert">{error}<button type="button" aria-label="Dismiss error" onClick={() => setError('')}><X size={16} /></button></div>}
 
       <div className={`messages-workspace ${mobileChatOpen ? 'mobile-chat-open' : ''}`}>
@@ -250,7 +295,7 @@ export default function MessagesPage() {
             {roleTabs.filter((tab) => tab.value !== 'principal' || user?.role !== 'principal').map((tab) => <button key={tab.value || 'all'} className={filter === tab.value ? 'active' : ''} onClick={() => setFilter(tab.value)} type="button">{tab.label}</button>)}
             <button className={filter === 'group' ? 'active' : ''} onClick={() => setFilter(filter === 'group' ? '' : 'group')} type="button">Groups</button>
           </div>
-          <div className="messages-list-heading"><span>Recent conversations</span><span>{visibleConversations.length}</span></div>
+          <div className="messages-list-heading"><span>Chats</span><div className="messages-list-actions"><span>{visibleConversations.length}</span><button type="button" className="messages-new-chat-icon" title="New chat" aria-label="New chat" onClick={() => { setShowNew(true); setNewMode('direct'); setPersonSearch(''); setError(''); loadPeople().catch(() => {}) }}><MessageCircle size={19} /><Plus size={12} /></button></div></div>
           <div className="messages-conversation-list">
             {loading ? <div className="messages-empty"><LoaderCircle className="spin" size={24} /><span>Loading conversations…</span></div> : visibleConversations.length ? visibleConversations.map((item) => {
               const title = item.type === 'group' ? item.title : item.otherParticipant?.name || 'School member'
@@ -282,10 +327,21 @@ export default function MessagesPage() {
                   {!mine && <Avatar user={typeof message.sender === 'object' ? message.sender : null} />}
                   <div className="messages-message-content">
                     {!mine && activeConversation.type === 'group' && <small className="messages-sender-name">{message.sender?.name || 'Member'}</small>}
-                    <div className="messages-bubble">
+                    {mine && <div className="messages-own-actions">
+                      {message.editedAt && <small>edited</small>}
+                      <button type="button" className="messages-message-menu-trigger" aria-label="Message options" title="Message options" onClick={() => setMessageMenuId(messageMenuId === message.id ? '' : message.id)}><MoreVertical size={16} /></button>
+                      {messageMenuId === message.id && <div className="messages-message-menu">
+                        {message.text && <button type="button" onClick={() => beginEditMessage(message)}><Pencil size={14} /> Edit</button>}
+                        <button type="button" onClick={() => deleteMessage(message)}><Trash2 size={14} /> Delete for everyone</button>
+                      </div>}
+                    </div>}
+                    {editingMessageId === message.id ? <form className="messages-edit-form" onSubmit={(event) => { event.preventDefault(); saveEditedMessage(message) }}>
+                      <textarea value={editingMessageText} onChange={(event) => setEditingMessageText(event.target.value)} maxLength={5000} aria-label="Edit message" autoFocus />
+                      <div><button type="button" onClick={() => { setEditingMessageId(''); setEditingMessageText('') }}>Cancel</button><button type="submit" disabled={savingEdit}>{savingEdit ? 'Saving…' : 'Save'}</button></div>
+                    </form> : <div className="messages-bubble">
                       {message.text && <p>{message.text}</p>}
                       {message.attachments?.map((file, index) => <ChatAttachment key={`${message.id}-${index}`} file={file} />)}
-                    </div>
+                    </div>}
                     <span className="messages-message-time">{formatTime(message.createdAt)} {mine && <CheckCheck size={14} />}</span>
                   </div>
                 </div>
