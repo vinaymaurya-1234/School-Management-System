@@ -222,7 +222,8 @@ export default function MessagesPage() {
     setError('')
     try {
       const form = new FormData()
-      form.append('file', file)\n      form.append('conversationId', activeId)
+      form.append('file', file)
+      form.append('conversationId', activeId)
       const response = await apiClient.post('/chat/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } })
       setPendingAttachments((current) => [...current, response.data.attachment].slice(0, 5))
     } catch (requestError) {
