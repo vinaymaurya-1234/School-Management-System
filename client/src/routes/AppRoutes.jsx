@@ -73,10 +73,10 @@ function ModuleRoute() {
     if (moduleKey === 'notices') return <TeacherWorkspacePage mode="notices" />
     if (moduleKey === 'events') return <TeacherWorkspacePage mode="events" />
   }
-  if (moduleKey === 'messages') return <MessagesPage />
   const module = MODULES[moduleKey]
   const permission = module?.permissionByRole?.[user?.role]
   if (!module || !permission || !hasPermission(user?.role, permission)) return <Navigate to={homeRoute} replace />
+  if (moduleKey === 'messages') return <MessagesPage />
   if (moduleKey === 'timetable') return <TimetablePage />
   if (moduleKey === 'exams') return <ExamSchedulePage />
   if (moduleKey === 'results' && ['student', 'parent'].includes(user?.role)) return <ResultsPage />
