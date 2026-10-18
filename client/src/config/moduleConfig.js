@@ -182,11 +182,8 @@ export const MODULES = {
     actions: ['Create event', 'Add holiday', 'View calendar'],
   },
   payroll: {
-    title: 'Payroll', eyebrow: 'STAFF FINANCE', description: 'Track staff payroll, salary processing and payment status.', icon: ReceiptIndianRupee,
+    title: 'Payroll', eyebrow: 'STAFF FINANCE', description: 'Manage staff records and salary structures, then process monthly payroll.', icon: ReceiptIndianRupee,
     permissionByRole: { principal: 'payroll.manage', accountant: 'payroll.manage' },
-    stats: [['Monthly payroll', '₹24.8L', '+4.1%'], ['Processed', '64', '+6'], ['Pending', '4', '-2'], ['Deductions', '₹1.2L', '+1.4%']],
-    columns: ['Employee', 'Department', 'Net salary', 'Pay date', 'Status'],
-    rows: [['Priya Nair', 'Mathematics', '₹68,000', '30 Sep', 'Processed'], ['Rahul Verma', 'Science', '₹64,000', '30 Sep', 'Processed'], ['Sneha Kapoor', 'English', '₹61,000', '30 Sep', 'Processed'], ['Amit Joshi', 'Computer', '₹58,000', '30 Sep', 'Pending']],
-    actions: ['Process payroll', 'View payslips', 'Payroll report'],
+    stats: [], columns: [], rows: [], actions: [],
   },
 }
