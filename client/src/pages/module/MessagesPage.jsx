@@ -69,7 +69,7 @@ export default function MessagesPage() {
   }), [conversations, search, filter])
   const visiblePeople = useMemo(() => people.filter((person) => {
     const matches = `${person.name} ${person.role}`.toLowerCase().includes(personSearch.toLowerCase())
-    return matches && (newMode === 'group' || !selectedPeople.includes(person.id))
+    return matches && (newMode === 'group' || !selectedPeople.includes(person.id)) && !(newMode === 'group' && groupType === 'teachers' && person.role !== 'teacher')
   }), [people, personSearch, newMode, selectedPeople])
 
   const loadConversations = useCallback(async (preferId = '') => {
