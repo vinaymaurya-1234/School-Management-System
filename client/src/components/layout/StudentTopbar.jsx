@@ -59,7 +59,8 @@ function StudentTopbar() {
         <span><strong>Campus</strong><small>STUDENT PORTAL</small></span>
       </div>
       <nav className="student-primary-nav" aria-label="Student navigation">
-        <NavLink to="/dashboard/student" end className={({ isActive }) => `student-nav-home ${isActive ? 'active' : ''}`}><Home size={16} /> Home</NavLink>\n        <NavLink to="/module/messages" className={({ isActive }) => `student-nav-home ${isActive ? 'active' : ''}`}><MessageCircle size={16} /> Messages</NavLink>
+        <NavLink to="/dashboard/student" end className={({ isActive }) => `student-nav-home ${isActive ? 'active' : ''}`}><Home size={16} /> Home</NavLink>
+        <NavLink to="/module/messages" className={({ isActive }) => `student-nav-home ${isActive ? 'active' : ''}`}><MessageCircle size={16} /> Messages</NavLink>
         {studentGroups.map((group) => (
           <div className="student-nav-group" key={group.label}>
             <button type="button" className={`student-nav-trigger ${openGroup === group.label ? 'active' : ''}`} aria-expanded={openGroup === group.label} onClick={() => setOpenGroup(openGroup === group.label ? '' : group.label)}>{group.label}<ChevronDown size={15} /></button>
