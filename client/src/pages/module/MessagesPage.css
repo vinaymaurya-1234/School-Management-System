@@ -152,3 +152,29 @@
 
 .messages-attachment-loading,.messages-attachment-error { display:flex; align-items:center; gap:8px; max-width:280px; padding:10px 12px; border:1px solid #e9e9e9; border-radius:10px; color:#777; background:#fafafa; font-size:11px; overflow-wrap:anywhere; }
 .messages-attachment-error { color:#8d312b; background:#fff5f4; border-color:#f2d8d5; }
+
+/* Compact WhatsApp-style chat layout */
+.messages-page { padding-top: 12px; }
+.messages-list-heading { min-height: 49px; }
+.messages-list-actions { display:flex; align-items:center; gap:10px; }
+.messages-new-chat-icon { position:relative; display:grid; place-items:center; width:37px; height:37px; border:0; border-radius:50%; background:#171717; color:#fff; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,.12); }
+.messages-new-chat-icon:hover { background:#333; transform:translateY(-1px); }
+.messages-new-chat-icon svg:last-child { position:absolute; right:5px; bottom:5px; stroke-width:3; background:#171717; border-radius:50%; }
+.messages-own-actions { position:relative; display:flex; align-items:center; justify-content:flex-end; gap:5px; min-height:21px; }
+.messages-own-actions > small { color:#999; font-size:9px; }
+.messages-message-menu-trigger { display:grid; place-items:center; width:25px; height:23px; border:0; border-radius:7px; background:transparent; color:#888; cursor:pointer; }
+.messages-message-menu-trigger:hover { color:#111; background:#eee; }
+.messages-message-menu { position:absolute; z-index:5; top:23px; right:0; width:165px; padding:5px; border:1px solid #e8e8e8; border-radius:11px; background:#fff; box-shadow:0 12px 35px rgba(0,0,0,.14); }
+.messages-message-menu button { display:flex; align-items:center; gap:8px; width:100%; padding:10px; border:0; border-radius:7px; background:#fff; color:#333; font-size:11px; text-align:left; cursor:pointer; white-space:nowrap; }
+.messages-message-menu button:hover { background:#f3f3f3; }
+.messages-message-menu button:last-child { color:#a32b25; }
+.messages-edit-form { min-width:min(300px,65vw); padding:8px; border:1px solid #dedede; border-radius:12px; background:#fff; }
+.messages-edit-form textarea { display:block; width:100%; min-height:65px; resize:vertical; border:1px solid #ddd; border-radius:8px; padding:8px; outline-color:#777; font:inherit; font-size:12px; color:#222; }
+.messages-edit-form > div { display:flex; justify-content:flex-end; gap:6px; padding-top:7px; }
+.messages-edit-form button { border:1px solid #ddd; border-radius:7px; background:white; padding:6px 10px; color:#444; font-size:11px; cursor:pointer; }
+.messages-edit-form button[type=submit] { background:#171717; border-color:#171717; color:white; }
+.messages-edit-form button:disabled { opacity:.6; cursor:wait; }
+@media (max-width:680px) {
+  .messages-page { padding-top:8px; }
+  .messages-own-actions { min-height:20px; }
+}
