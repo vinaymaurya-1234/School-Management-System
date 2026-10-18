@@ -26,6 +26,7 @@ import TimetablePage from '../pages/module/TimetablePage'
 import ExamSchedulePage from '../pages/module/ExamSchedulePage'
 import ResultsPage from '../pages/module/ResultsPage'
 import ResultsPublicationPage from '../pages/module/ResultsPublicationPage'
+import MessagesPage from '../pages/module/MessagesPage'
 import AttendancePage from '../pages/module/AttendancePage'
 import TeacherAttendancePage from '../pages/module/TeacherAttendancePage'
 import '../pages/module/ModuleFeature.css'
@@ -72,6 +73,7 @@ function ModuleRoute() {
     if (moduleKey === 'notices') return <TeacherWorkspacePage mode="notices" />
     if (moduleKey === 'events') return <TeacherWorkspacePage mode="events" />
   }
+  if (moduleKey === 'messages') return <MessagesPage />
   const module = MODULES[moduleKey]
   const permission = module?.permissionByRole?.[user?.role]
   if (!module || !permission || !hasPermission(user?.role, permission)) return <Navigate to={homeRoute} replace />
