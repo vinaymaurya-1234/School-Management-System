@@ -24,7 +24,12 @@ function chatFileBucket() {
   return new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: "chatUploads" });
 }
 
-router.use(requireAuth, (req, res, next) => {\n  if (!["principal", "teacher", "student", "parent"].includes(req.user.role)) {\n    return res.status(403).json({ message: "Chat is available to parents, teachers, students and the principal only" });\n  }\n  next();\n});
+router.use(requireAuth, (req, res, next) => {
+  if (!["principal", "teacher", "student", "parent"].includes(req.user.role)) {
+    return res.status(403).json({ message: "Chat is available to parents, teachers, students and the principal only" });
+  }
+  next();
+});
 
 function sameId(a, b) { return String(a?._id || a) === String(b?._id || b); }
 function safeUser(user) {
