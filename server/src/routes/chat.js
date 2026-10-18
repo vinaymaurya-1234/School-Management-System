@@ -220,7 +220,7 @@ router.post("/conversations/:id/messages", async (req, res, next) => {
       });
       if (!storedFile) return res.status(400).json({ message: "An attachment is not available for this conversation" });
       storedAttachments.push({
-        url: `/api/chat/files/${storedFile._id}`,
+        url: `/chat/files/${storedFile._id}`,
         publicId: String(storedFile._id),
         name: String(storedFile.metadata?.originalName || storedFile.filename || "attachment").slice(0, 255),
         mimeType: String(storedFile.metadata?.mimeType || "application/octet-stream"),
@@ -282,7 +282,7 @@ router.post("/upload", upload.single("file"), async (req, res, next) => {
     });
     const fileId = String(uploadStream.id);
     res.status(201).json({ attachment: {
-      url: `/api/chat/files/${fileId}`,
+      url: `/chat/files/${fileId}`,
       publicId: fileId,
       name: req.file.originalname.slice(0, 255),
       mimeType: req.file.mimetype,
