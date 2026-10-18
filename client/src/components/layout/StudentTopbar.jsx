@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Bell, BookOpen, CalendarDays, ChevronDown, ClipboardCheck, FileText, GraduationCap, Home, LogOut, Search, Settings, Trophy, UserRound, WalletCards, X } from 'lucide-react'
+import { Bell, BookOpen, CalendarDays, ChevronDown, ClipboardCheck, FileText, GraduationCap, Home, LogOut, MessageCircle, Search, Settings, Trophy, UserRound, WalletCards, X } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import './StudentTopbar.css'
@@ -19,7 +19,7 @@ const studentGroups = [
     { label: 'My profile', hint: 'Your account details', href: '/module/profile', Icon: UserRound },
   ]},
 ]
-const allItems = studentGroups.flatMap((group) => group.items)
+const allItems = [{ label: 'Messages', hint: 'Chat with authorized school contacts', href: '/module/messages', Icon: MessageCircle }, ...studentGroups.flatMap((group) => group.items)]
 
 function StudentTopbar() {
   const { user, logout } = useAuth()
@@ -59,7 +59,7 @@ function StudentTopbar() {
         <span><strong>Campus</strong><small>STUDENT PORTAL</small></span>
       </div>
       <nav className="student-primary-nav" aria-label="Student navigation">
-        <NavLink to="/dashboard/student" end className={({ isActive }) => `student-nav-home ${isActive ? 'active' : ''}`}><Home size={16} /> Home</NavLink>
+        <NavLink to="/dashboard/student" end className={({ isActive }) => `student-nav-home ${isActive ? 'active' : ''}`}><Home size={16} /> Home</NavLink>\n        <NavLink to="/module/messages" className={({ isActive }) => `student-nav-home ${isActive ? 'active' : ''}`}><MessageCircle size={16} /> Messages</NavLink>
         {studentGroups.map((group) => (
           <div className="student-nav-group" key={group.label}>
             <button type="button" className={`student-nav-trigger ${openGroup === group.label ? 'active' : ''}`} aria-expanded={openGroup === group.label} onClick={() => setOpenGroup(openGroup === group.label ? '' : group.label)}>{group.label}<ChevronDown size={15} /></button>
@@ -84,7 +84,7 @@ function StudentTopbar() {
         </div>
       </div>
       <nav className="student-mobile-nav" aria-label="Quick student navigation">
-        {[{label:'Home',href:'/dashboard/student',Icon:Home},{label:'Timetable',href:'/module/timetable',Icon:BookOpen},{label:'Attendance',href:'/module/attendance',Icon:ClipboardCheck},{label:'Assignments',href:'/module/assignments',Icon:FileText},{label:'More',href:'/module/events',Icon:CalendarDays}].map(({label,href,Icon}) => <NavLink key={label} to={href} className={({isActive}) => `student-mobile-nav-item ${isActive ? 'active' : ''}`}><Icon size={19}/><span>{label}</span></NavLink>)}
+        {[{label:'Home',href:'/dashboard/student',Icon:Home},{label:'Messages',href:'/module/messages',Icon:MessageCircle},{label:'Timetable',href:'/module/timetable',Icon:BookOpen},{label:'Attendance',href:'/module/attendance',Icon:ClipboardCheck},{label:'More',href:'/module/events',Icon:CalendarDays}].map(({label,href,Icon}) => <NavLink key={label} to={href} className={({isActive}) => `student-mobile-nav-item ${isActive ? 'active' : ''}`}><Icon size={19}/><span>{label}</span></NavLink>)}
       </nav>
     </header>
   )
