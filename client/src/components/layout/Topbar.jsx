@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bell, ChevronDown, Search, LogOut, UserRound, Settings, GraduationCap, Home, BookOpen, ClipboardCheck, CalendarDays, Menu as MenuIcon } from 'lucide-react'
+import { Bell, ChevronDown, Search, LogOut, UserRound, Settings, GraduationCap, Home, BookOpen, ClipboardCheck, CalendarDays, Menu as MenuIcon, MessageCircle } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import '../../styles/PremiumProfile.css'
@@ -98,6 +98,7 @@ function Topbar() {
         <div className="premium-nav-scroll">
           <nav className="premium-nav" aria-label="Primary navigation">
             <NavLink to={homeHref} className={({ isActive }) => `nav-pill ${isActive ? 'active' : ''}`}>Home</NavLink>
+            <NavLink to="/module/messages" className={({ isActive }) => `nav-pill ${isActive ? 'active' : ''}`}><MessageCircle size={15} /> Messages</NavLink>
             {user?.role === 'student' ? <>
               <Menu label="Learning" items={studentLearningItems} wide open={openMenu === 'student-learning'} onToggle={() => setOpenMenu(openMenu === 'student-learning' ? null : 'student-learning')} onClose={() => setOpenMenu(null)} />
               <Menu label="School life" items={studentLifeItems} wide open={openMenu === 'student-life'} onToggle={() => setOpenMenu(openMenu === 'student-life' ? null : 'student-life')} onClose={() => setOpenMenu(null)} />
@@ -134,12 +135,12 @@ function Topbar() {
         {(() => {
           const role = user?.role || 'teacher'
           const items = role === 'teacher'
-            ? [{ label: 'Home', href: '/dashboard/teacher', Icon: Home }, { label: 'Classes', href: '/module/my-classes', Icon: BookOpen }, { label: 'Attendance', href: '/module/class-attendance', Icon: ClipboardCheck }, { label: 'Events', href: '/module/events', Icon: CalendarDays }, { label: 'More', href: '/module/assignments', Icon: MenuIcon }]
+            ? [{ label: 'Home', href: '/dashboard/teacher', Icon: Home }, { label: 'Classes', href: '/module/my-classes', Icon: BookOpen }, { label: 'Attendance', href: '/module/class-attendance', Icon: ClipboardCheck }, { label: 'Messages', href: '/module/messages', Icon: MessageCircle }, { label: 'More', href: '/module/assignments', Icon: MenuIcon }]
             : role === 'student'
               ? [{ label: 'Home', href: '/dashboard/student', Icon: Home }, { label: 'Classes', href: '/module/timetable', Icon: BookOpen }, { label: 'Attendance', href: '/module/attendance', Icon: ClipboardCheck }, { label: 'Events', href: '/module/events', Icon: CalendarDays }, { label: 'More', href: '/module/assignments', Icon: MenuIcon }]
               : role === 'parent'
-                ? [{ label: 'Home', href: '/dashboard/parent', Icon: Home }, { label: 'Children', href: '/module/children', Icon: BookOpen }, { label: 'Attendance', href: '/module/attendance', Icon: ClipboardCheck }, { label: 'Events', href: '/module/events', Icon: CalendarDays }, { label: 'More', href: '/module/results', Icon: MenuIcon }]
-                : [{ label: 'Home', href: role === 'accountant' ? '/dashboard/accountant' : '/dashboard/principal', Icon: Home }, { label: 'Students', href: '/module/students', Icon: BookOpen }, { label: 'Attendance', href: '/module/attendance', Icon: ClipboardCheck }, { label: 'Events', href: '/module/events', Icon: CalendarDays }, { label: 'More', href: '/module/reports', Icon: MenuIcon }]
+                ? [{ label: 'Home', href: '/dashboard/parent', Icon: Home }, { label: 'Children', href: '/module/children', Icon: BookOpen }, { label: 'Attendance', href: '/module/attendance', Icon: ClipboardCheck }, { label: 'Messages', href: '/module/messages', Icon: MessageCircle }, { label: 'More', href: '/module/results', Icon: MenuIcon }]
+                : [{ label: 'Home', href: role === 'accountant' ? '/dashboard/accountant' : '/dashboard/principal', Icon: Home }, { label: 'Students', href: '/module/students', Icon: BookOpen }, { label: 'Attendance', href: '/module/attendance', Icon: ClipboardCheck }, { label: 'Messages', href: '/module/messages', Icon: MessageCircle }, { label: 'More', href: '/module/reports', Icon: MenuIcon }]
           return items.map(({ label, href, Icon }) => <NavLink key={label} to={href} className={({ isActive }) => `mobile-app-nav-item ${isActive ? 'active' : ''}`}><Icon size={20} strokeWidth={1.9} /><span>{label}</span></NavLink>)
         })()}
       </nav>
