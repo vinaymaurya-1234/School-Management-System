@@ -7,6 +7,7 @@ import {
   FileText,
   GraduationCap,
   Megaphone,
+  MessageCircle,
   ReceiptIndianRupee,
   School,
   Settings,
@@ -150,6 +151,11 @@ export const MODULES = {
     columns: ['Student', 'Class', 'Attendance', 'Average', 'Status'],
     rows: [['Aarav Sharma', '10-A', '96%', '84%', 'Good'], ['Anaya Patel', '10-A', '92%', '81%', 'Good'], ['Vivaan Mehta', '10-B', '88%', '76%', 'Watch'], ['Diya Shah', '10-B', '79%', '68%', 'Attention']],
     actions: ['Open student', 'Attendance report', 'Academic notes'],
+  },
+  messages: {
+    title: 'Messages', eyebrow: 'SCHOOL COMMUNICATION', description: 'Chat privately with authorized school contacts and create class or staff groups.', icon: MessageCircle,
+    permissionByRole: { principal: 'messages.view', teacher: 'messages.view', student: 'messages.view', parent: 'messages.view' },
+    stats: [], columns: [], rows: [], actions: [],
   },
   profile: {
     title: 'My Profile', eyebrow: 'ACCOUNT', description: 'Manage your personal information, contact details and account preferences.', icon: Settings,
