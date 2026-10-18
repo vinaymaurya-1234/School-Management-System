@@ -1,7 +1,7 @@
 import { Router } from "express";
 import mongoose from "mongoose";
 import multer from "multer";
-import { v2 as cloudinary } from "cloudinary";
+import { Readable } from "node:stream";
 import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
@@ -19,7 +19,7 @@ const upload = multer({
     callback(allowed.test(file.mimetype) ? null : Object.assign(new Error("Only images, videos and PDF files are allowed"), { status: 400 }), allowed.test(file.mimetype));
   },
 });
-router.use(requireAuth, (req, res, next) => {\n  if (!["principal", "teacher", "student", "parent"].includes(req.user.role)) {\n    return res.status(403).json({ message: "Chat is available to parents, teachers, students and the principal only" });\n  }\n  next();\n});
+function chatFileBucket() {\n  if (!mongoose.connection.db) throw new Error("MongoDB is not connected");\n  return new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: "chatUploads" });\n}\n\nrouter.use(requireAuth, (req, res, next) => {\n  if (!["principal", "teacher", "student", "parent"].includes(req.user.role)) {\n    return res.status(403).json({ message: "Chat is available to parents, teachers, students and the principal only" });\n  }\n  next();\n});
 
 function sameId(a, b) { return String(a?._id || a) === String(b?._id || b); }
 function safeUser(user) {
@@ -208,23 +208,29 @@ router.post("/conversations/:id/messages", async (req, res, next) => {
     const text = String(req.body?.text || "").trim().slice(0, 5000);
     const attachments = Array.isArray(req.body?.attachments) ? req.body.attachments.slice(0, 5) : [];
     if (!text && !attachments.length) return res.status(400).json({ message: "Write a message or attach a file" });
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-    if (attachments.some((file) =>
-      !file?.url || !file?.name || !file?.publicId ||
-      !["image/", "video/"].some((type) => String(file.mimeType).startsWith(type)) && file.mimeType !== "application/pdf" ||
-      !cloudName || !String(file.url).startsWith(`https://res.cloudinary.com/${cloudName}/`) ||
-      !String(file.publicId).startsWith(`school-chat/${req.user.school}/`) ||
-      !Number.isFinite(Number(file.size)) || Number(file.size) > 30 * 1024 * 1024
-    )) {
-      return res.status(400).json({ message: "One or more attachments are invalid or were not uploaded to this school's file storage" });
+    const bucket = chatFileBucket();
+    const storedAttachments = [];
+    for (const attachment of attachments) {
+      const fileId = String(attachment?.publicId || "");
+      if (!mongoose.isValidObjectId(fileId)) return res.status(400).json({ message: "An attachment was not uploaded to MongoDB yet" });
+      const storedFile = await mongoose.connection.db.collection("chatUploads.files").findOne({
+        _id: new mongoose.Types.ObjectId(fileId),
+        "metadata.schoolId": String(req.user.school),
+        "metadata.conversationId": String(conversation._id),
+      });
+      if (!storedFile) return res.status(400).json({ message: "An attachment is not available for this conversation" });
+      storedAttachments.push({
+        url: `/api/chat/files/${storedFile._id}`,
+        publicId: String(storedFile._id),
+        name: String(storedFile.metadata?.originalName || storedFile.filename || "attachment").slice(0, 255),
+        mimeType: String(storedFile.metadata?.mimeType || "application/octet-stream"),
+        size: Number(storedFile.length) || 0,
+        resourceType: String(storedFile.metadata?.resourceType || "raw"),
+      });
     }
     const message = await Message.create({
       school: req.user.school, conversation: conversation._id, sender: req.user._id,
-      text, attachments: attachments.map((file) => ({
-        url: String(file.url), publicId: String(file.publicId || ""), name: String(file.name).slice(0, 255),
-        mimeType: String(file.mimeType), size: Math.max(0, Number(file.size) || 0),
-        resourceType: file.mimeType.startsWith("image/") ? "image" : file.mimeType.startsWith("video/") ? "video" : "raw",
-      })),
+      text, attachments: storedAttachments,
       readBy: [req.user._id],
     });
     await Conversation.updateOne({ _id: conversation._id, school: req.user.school }, {
@@ -252,25 +258,61 @@ router.post("/conversations/:id/read", async (req, res, next) => {
 router.post("/upload", upload.single("file"), async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ message: "Choose an image, video or PDF file" });
-    const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
-    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
-      return res.status(503).json({ message: "File sharing is not configured yet. Add the free Cloudinary credentials to the server environment." });
-    }
-    cloudinary.config({ cloud_name: CLOUDINARY_CLOUD_NAME, api_key: CLOUDINARY_API_KEY, api_secret: CLOUDINARY_API_SECRET, secure: true });
+    const conversationId = String(req.body?.conversationId || "");
+    const conversation = await getConversationForUser(conversationId, req.user);
+    if (!conversation) return res.status(404).json({ message: "Choose a conversation before uploading a file" });
     const resourceType = req.file.mimetype.startsWith("image/") ? "image" : req.file.mimetype.startsWith("video/") ? "video" : "raw";
-    const publicId = `${req.user.school}/${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80)}`;
-    const result = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream({
-        resource_type: resourceType, public_id: publicId, type: "authenticated", overwrite: false,
-        folder: "school-chat", tags: [String(req.user.school)],
-      }, (error, uploaded) => error ? reject(error) : resolve(uploaded));
-      stream.end(req.file.buffer);
+    const safeName = req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120) || "attachment";
+    const bucket = chatFileBucket();
+    const uploadStream = bucket.openUploadStream(safeName, {
+      contentType: req.file.mimetype,
+      metadata: {
+        schoolId: String(req.user.school),
+        conversationId: String(conversation._id),
+        uploadedBy: String(req.user._id),
+        originalName: req.file.originalname.slice(0, 255),
+        mimeType: req.file.mimetype,
+        resourceType,
+      },
     });
-    const signedUrl = cloudinary.url(result.public_id, { resource_type: resourceType, type: "authenticated", sign_url: true, secure: true, format: result.format });
+    await new Promise((resolve, reject) => {
+      uploadStream.once("finish", resolve);
+      uploadStream.once("error", reject);
+      Readable.from(req.file.buffer).pipe(uploadStream);
+    });
+    const fileId = String(uploadStream.id);
     res.status(201).json({ attachment: {
-      url: signedUrl, publicId: result.public_id, name: req.file.originalname.slice(0, 255),
-      mimeType: req.file.mimetype, size: req.file.size, resourceType,
+      url: `/api/chat/files/${fileId}`,
+      publicId: fileId,
+      name: req.file.originalname.slice(0, 255),
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      resourceType,
     } });
+  } catch (error) { next(error); }
+});
+
+router.get("/files/:id", async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: "File not found" });
+    const fileId = new mongoose.Types.ObjectId(req.params.id);
+    const file = await mongoose.connection.db.collection("chatUploads.files").findOne({
+      _id: fileId,
+      "metadata.schoolId": String(req.user.school),
+    });
+    if (!file || !mongoose.isValidObjectId(file.metadata?.conversationId)) return res.status(404).json({ message: "File not found" });
+    const conversation = await Conversation.findOne({
+      _id: file.metadata.conversationId,
+      school: req.user.school,
+      participants: req.user._id,
+      isActive: true,
+    }).select("_id");
+    if (!conversation) return res.status(403).json({ message: "You do not have access to this file" });
+    res.setHeader("Content-Type", file.metadata?.mimeType || file.contentType || "application/octet-stream");
+    res.setHeader("Content-Length", String(file.length));
+    res.setHeader("Content-Disposition", `inline; filename*=UTF-8''${encodeURIComponent(file.metadata?.originalName || file.filename || "attachment")}`);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    chatFileBucket().openDownloadStream(fileId).on("error", next).pipe(res);
   } catch (error) { next(error); }
 });
 
