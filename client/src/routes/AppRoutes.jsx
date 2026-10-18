@@ -27,6 +27,7 @@ import ExamSchedulePage from '../pages/module/ExamSchedulePage'
 import ResultsPage from '../pages/module/ResultsPage'
 import ResultsPublicationPage from '../pages/module/ResultsPublicationPage'
 import MessagesPage from '../pages/module/MessagesPage'
+import PayrollPage from '../pages/module/PayrollPage'
 import AttendancePage from '../pages/module/AttendancePage'
 import TeacherAttendancePage from '../pages/module/TeacherAttendancePage'
 import '../pages/module/ModuleFeature.css'
@@ -76,6 +77,7 @@ function ModuleRoute() {
   const module = MODULES[moduleKey]
   const permission = module?.permissionByRole?.[user?.role]
   if (!module || !permission || !hasPermission(user?.role, permission)) return <Navigate to={homeRoute} replace />
+  if (moduleKey === 'payroll' && ['principal', 'accountant'].includes(user?.role)) return <PayrollPage />
   if (moduleKey === 'messages') return <MessagesPage />
   if (moduleKey === 'timetable') return <TimetablePage />
   if (moduleKey === 'exams') return <ExamSchedulePage />
