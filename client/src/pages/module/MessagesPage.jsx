@@ -256,10 +256,11 @@ export default function MessagesPage() {
                     {!mine && activeConversation.type === 'group' && <small className="messages-sender-name">{message.sender?.name || 'Member'}</small>}
                     <div className="messages-bubble">
                       {message.text && <p>{message.text}</p>}
-                      {message.attachments?.map((file, index) => <a className="messages-attachment" key={`${message.id}-${index}`} href={file.url} target="_blank" rel="noreferrer">
-                        {file.mimeType?.startsWith('image/') ? <ImageIcon size={20} /> : file.mimeType?.startsWith('video/') ? <Video size={20} /> : <FileText size={20} />}
-                        <span><strong>{file.name}</strong><small>{file.mimeType?.split('/').pop()?.toUpperCase()} · {formatSize(file.size)}</small></span><Download size={16} />
-                      </a>)}
+                      {message.attachments?.map((file, index) => file.mimeType?.startsWith('image/')
+                        ? <a className="messages-image-attachment" key={`${message.id}-${index}`} href={file.url} target="_blank" rel="noreferrer"><img src={file.url} alt={file.name} loading="lazy" /><span>{file.name}</span></a>
+                        : file.mimeType?.startsWith('video/')
+                          ? <div className="messages-video-attachment" key={`${message.id}-${index}`}><video controls preload="metadata" src={file.url} /><span><Video size={14} /> {file.name} · {formatSize(file.size)}</span></div>
+                          : <a className="messages-attachment" key={`${message.id}-${index}`} href={file.url} target="_blank" rel="noreferrer"><FileText size={20} /><span><strong>{file.name}</strong><small>PDF · {formatSize(file.size)}</small></span><Download size={16} /></a>)}
                     </div>
                     <span className="messages-message-time">{formatTime(message.createdAt)} {mine && <CheckCheck size={14} />}</span>
                   </div>
