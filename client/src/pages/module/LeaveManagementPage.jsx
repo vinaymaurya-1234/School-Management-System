@@ -22,6 +22,7 @@ export default function LeaveManagementPage() {
   const [policy, setPolicy] = useState({ casual: 0, sick: 0, earned: 0 })
   const [filter, setFilter] = useState('pending')
   const [form, setForm] = useState(blankForm)
+  const [showApplicationForm, setShowApplicationForm] = useState(false)
   const [reviewNotes, setReviewNotes] = useState({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -54,6 +55,7 @@ export default function LeaveManagementPage() {
       const response = await apiClient.post('/leave', { ...form, totalDays: daysFor(form) })
       setNotice(response.data?.message || 'Leave application submitted.')
       setForm(blankForm())
+      setShowApplicationForm(false)
       await load()
     } catch (err) { setError(err.response?.data?.message || 'Could not submit leave application.') }
     finally { setSaving(false) }
@@ -95,7 +97,7 @@ export default function LeaveManagementPage() {
   return <main className="leave-page">
     <header className="leave-hero">
       <div><span className="leave-eyebrow">{isPrincipal ? 'STAFF OPERATIONS' : 'YOUR STAFF BENEFITS'}</span><h1>{isPrincipal ? 'Leave Management' : 'My Leave'}</h1><p>{isPrincipal ? 'Review staff leave requests, manage annual quotas and keep decisions transparent.' : 'Apply for leave, track the principal’s decision and review your remaining leave balance.'}</p></div>
-      <button type="button" className="leave-secondary" onClick={load} disabled={loading || saving}><RefreshCw size={16} className={loading ? 'leave-spin' : ''}/> Refresh</button>
+      {!isPrincipal && <button type="button" className="leave-primary" onClick={() => setShowApplicationForm((open) => !open)} aria-expanded={showApplicationForm}><Send size={16}/>{showApplicationForm ? 'Close form' : 'Leave'}</button>}
     </header>
     {error && <div className="leave-alert error"><AlertCircle size={17}/><span>{error}</span><button type="button" onClick={() => setError('')} aria-label="Dismiss error">×</button></div>}
     {notice && <div className="leave-alert success"><CheckCircle2 size={17}/><span>{notice}</span><button type="button" onClick={() => setNotice('')} aria-label="Dismiss message">×</button></div>}
@@ -126,7 +128,7 @@ export default function LeaveManagementPage() {
         {['casual','sick','earned'].map((type) => <article className="leave-balance-card" key={type}><span className="leave-balance-icon"><CalendarDays size={19}/></span><div><small>{labels[type]}</small><strong>{balance?.leaveTypes?.[type]?.remaining ?? '—'} <span>days left</span></strong><p>{balance?.leaveTypes?.[type]?.used ?? 0} used of {balance?.leaveTypes?.[type]?.quota ?? 0} days</p></div></article>)}
       </section>
       {balance && !balance.policyConfigured && <div className="leave-alert info"><ShieldCheck size={17}/><span>Leave quotas have not been configured yet. You can submit requests, but the principal must configure quotas before approving Casual, Sick or Earned Leave.</span></div>}
-      <section className="leave-panel">
+      {showApplicationForm && <section className="leave-panel leave-application-panel">
         <div className="leave-panel-head"><div><span className="leave-eyebrow">NEW APPLICATION</span><h2>Apply for leave</h2><p>Past-date requests require an emergency or medical reason. Duplicate and overlapping pending/approved requests are blocked.</p></div><Send size={22}/></div>
         <form className="leave-application-form" onSubmit={submit}>
           <label>Leave type<select value={form.leaveType} onChange={(event) => setForm((current) => ({ ...current, leaveType: event.target.value }))}>{Object.entries(labels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
@@ -137,7 +139,7 @@ export default function LeaveManagementPage() {
           <label className="leave-reason-field">Reason<textarea required minLength={5} maxLength={1000} value={form.reason} onChange={(event) => setForm((current) => ({ ...current, reason: event.target.value }))} placeholder="Explain why you need leave. For past-date requests, mention the medical/emergency reason." /></label>
           <div className="leave-form-footer"><span>Submitting sends this application to your principal. Leave balance changes only after approval.</span><button className="leave-primary" type="submit" disabled={saving}>{saving ? 'Submitting…' : 'Submit application'} <Send size={16}/></button></div>
         </form>
-      </section>
+      </section>}
       <section className="leave-panel">
         <div className="leave-panel-head"><div><span className="leave-eyebrow">YOUR HISTORY</span><h2>My applications</h2><p>Track every application and the principal’s decision.</p></div><span className="leave-count">{requests.length} records</span></div>
         <div className="leave-request-list">
