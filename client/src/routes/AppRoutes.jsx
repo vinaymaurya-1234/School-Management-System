@@ -15,6 +15,7 @@ import PrincipalSubjectsPage from '../pages/module/PrincipalSubjectsPage'
 import TeacherAssignmentsPage from '../pages/module/TeacherAssignmentsPage'
 import EventCalendarPage from '../pages/module/EventCalendarPage'
 import TeacherDashboard from '../pages/teacher/TeacherDashboard'
+import TeacherProfilePage from '../pages/teacher/TeacherProfilePage'
 import TeacherWorkspacePage from '../pages/teacher/TeacherWorkspacePage'
 import StudentDashboard from '../pages/student/StudentDashboard'
 import StudentAssignmentsPage from '../pages/student/StudentAssignmentsPage'
@@ -64,6 +65,7 @@ function ModuleRoute() {
   if (user?.role === 'principal' && moduleKey === 'login-credentials') return <PrincipalCredentialsPage />
   if (user?.role === 'student' && moduleKey === 'assignments') return <StudentAssignmentsPage />
   if (user?.role === 'student' && moduleKey === 'profile') return <StudentProfilePage />
+  if (user?.role === 'teacher' && moduleKey === 'profile') return <TeacherProfilePage />
   if (['student', 'parent'].includes(user?.role) && moduleKey === 'notices') return <TeacherWorkspacePage mode="notices" />
   if (user?.role === 'teacher') {
     if (moduleKey === 'exam-schedule') return <ExamSchedulePage mode="schedule" />
