@@ -6,6 +6,7 @@ import DashboardLayout from '../layouts/DashboardLayout'
 import Login from '../pages/auth/Login'
 import FirstLoginPasswordPage from '../pages/auth/FirstLoginPasswordPage'
 import PrincipalDashboard from '../pages/principal/PrincipalDashboard'
+import PrincipalProfilePage from '../pages/principal/PrincipalProfilePage'
 import PrincipalModulePage from '../pages/module/PrincipalModulePage'
 import PrincipalStudentsPage from '../pages/module/PrincipalStudentsPage'
 import PrincipalCredentialsPage from '../pages/module/PrincipalCredentialsPage'
@@ -65,6 +66,7 @@ function ModuleRoute() {
   if (user?.role === 'principal' && moduleKey === 'login-credentials') return <PrincipalCredentialsPage />
   if (user?.role === 'student' && moduleKey === 'assignments') return <StudentAssignmentsPage />
   if (user?.role === 'student' && moduleKey === 'profile') return <StudentProfilePage />
+  if (user?.role === 'principal' && moduleKey === 'profile') return <PrincipalProfilePage />
   if (user?.role === 'teacher' && moduleKey === 'profile') return <TeacherProfilePage />
   if (['student', 'parent'].includes(user?.role) && moduleKey === 'notices') return <TeacherWorkspacePage mode="notices" />
   if (user?.role === 'teacher') {
