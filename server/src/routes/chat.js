@@ -169,11 +169,11 @@ async function syncClassGroupsForUser(user) {
     const parentDocs = studentDocs.length ? await Parent.find({ children: { $in: studentDocs.map((item) => item._id) }, school: user.school }).select("user children") : [];
     const parentIds = [...new Set(parentDocs.map((item) => String(item.user)))];
     const teachers = await User.find({ _id: { $in: [...assignments.map((item) => item.teacher), section.classTeacher].filter(Boolean) }, school: user.school, role: "teacher", active: true }).select("_id role");
-    const principal = await User.find({ school: user.school, role: "principal", active: true }).select("_id role").limit(1);
     const parents = await User.find({ _id: { $in: parentIds }, school: user.school, role: "parent", active: true }).select("_id role");
+    // Principals are not members of automatic student or parent class groups.
     const definitions = [
-      { groupType: "class", title: `Class ${klass.name} - ${section.name}`, members: [...students, ...teachers, ...principal] },
-      { groupType: "parent-class", title: `Class ${klass.name} - ${section.name} Parents`, members: [...parents, ...teachers, ...principal] },
+      { groupType: "class", title: `Class ${klass.name} - ${section.name}`, members: [...students, ...teachers] },
+      { groupType: "parent-class", title: `Class ${klass.name} - ${section.name} Parents`, members: [...parents, ...teachers] },
     ];
     for (const definition of definitions) {
       const ids = [...new Map(definition.members.map((item) => [String(item._id), item])).values()];
@@ -186,7 +186,7 @@ async function syncClassGroupsForUser(user) {
         conversation = await Conversation.create({
           school: user.school, type: "group", groupType: definition.groupType,
           title: definition.title, academicYear: enrollment.academicYear, class: enrollment.class,
-          section: enrollment.section, participants: ids.map((item) => item._id), createdBy: principal[0]?._id || user._id,
+          section: enrollment.section, participants: ids.map((item) => item._id), createdBy: user._id,
         });
       } else {
         const nextIds = ids.map((item) => String(item._id));
