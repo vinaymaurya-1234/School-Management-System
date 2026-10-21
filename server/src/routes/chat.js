@@ -138,8 +138,85 @@ router.get("/users", async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+
+async function syncClassGroupsForUser(user) {
+  if (!["student", "parent", "teacher"].includes(user.role)) return;
+  let enrollments = [];
+  if (user.role === "student") {
+    enrollments = await StudentEnrollment.find({ school: user.school, student: user._id, status: "active" });
+  } else if (user.role === "parent") {
+    const parent = await Parent.findOne({ user: user._id, school: user.school }).select("children");
+    const children = parent?.children?.length ? await Student.find({ _id: { $in: parent.children }, school: user.school, active: true }).select("user") : [];
+    enrollments = children.length ? await StudentEnrollment.find({ school: user.school, student: { $in: children.map((child) => child.user) }, status: "active" }) : [];
+  } else {
+    const assignments = await TeacherAssignment.find({ school: user.school, teacher: user._id, status: "active" }).select("academicYear class section");
+    const sectionIds = assignments.map((item) => item.section).filter(Boolean);
+    const classIds = assignments.map((item) => item.class).filter(Boolean);
+    enrollments = await StudentEnrollment.find({ school: user.school, status: "active", $or: [{ section: { $in: sectionIds } }, { class: { $in: classIds } }] });
+  }
+  const enrollmentKeys = [...new Map(enrollments.map((item) => [String(item.section), item])).values()];
+  for (const enrollment of enrollmentKeys) {
+    const [section, klass, classEnrollments, assignments] = await Promise.all([
+      Section.findOne({ _id: enrollment.section, school: user.school }),
+      SchoolClass.findOne({ _id: enrollment.class, school: user.school }),
+      StudentEnrollment.find({ school: user.school, academicYear: enrollment.academicYear, class: enrollment.class, section: enrollment.section, status: "active" }).select("student"),
+      TeacherAssignment.find({ school: user.school, academicYear: enrollment.academicYear, status: "active", $or: [{ class: enrollment.class }, { section: enrollment.section }] }).select("teacher"),
+    ]);
+    if (!section || !klass || !classEnrollments.length) continue;
+    const studentIds = [...new Set(classEnrollments.map((row) => String(row.student)))];
+    const students = await User.find({ _id: { $in: studentIds }, school: user.school, role: "student", active: true }).select("_id role");
+    const studentDocs = await Student.find({ user: { $in: students.map((item) => item._id) }, school: user.school, active: true }).select("_id user");
+    const parentDocs = studentDocs.length ? await Parent.find({ children: { $in: studentDocs.map((item) => item._id) }, school: user.school }).select("user children") : [];
+    const parentIds = [...new Set(parentDocs.map((item) => String(item.user)))];
+    const teachers = await User.find({ _id: { $in: [...assignments.map((item) => item.teacher), section.classTeacher].filter(Boolean) }, school: user.school, role: "teacher", active: true }).select("_id role");
+    const principal = await User.find({ school: user.school, role: "principal", active: true }).select("_id role").limit(1);
+    const parents = await User.find({ _id: { $in: parentIds }, school: user.school, role: "parent", active: true }).select("_id role");
+    const definitions = [
+      { groupType: "class", title: `Class ${klass.name} - ${section.name}`, members: [...students, ...teachers, ...principal] },
+      { groupType: "parent-class", title: `Class ${klass.name} - ${section.name} Parents`, members: [...parents, ...teachers, ...principal] },
+    ];
+    for (const definition of definitions) {
+      const ids = [...new Map(definition.members.map((item) => [String(item._id), item])).values()];
+      if (!ids.some((item) => sameId(item, user))) continue;
+      let conversation = await Conversation.findOne({
+        school: user.school, type: "group", groupType: definition.groupType,
+        academicYear: enrollment.academicYear, section: enrollment.section, isActive: true,
+      });
+      if (!conversation) {
+        conversation = await Conversation.create({
+          school: user.school, type: "group", groupType: definition.groupType,
+          title: definition.title, academicYear: enrollment.academicYear, class: enrollment.class,
+          section: enrollment.section, participants: ids.map((item) => item._id), createdBy: principal[0]?._id || user._id,
+        });
+      } else {
+        const nextIds = ids.map((item) => String(item._id));
+        const previousIds = (conversation.participants || []).map(String);
+        for (const oldId of previousIds.filter((id) => !nextIds.includes(id))) {
+          await ConversationMember.updateOne({ conversation: conversation._id, user: oldId, leftAt: null }, { $set: { leftAt: new Date() } });
+        }
+        for (const person of ids) {
+          await ConversationMember.updateOne({ conversation: conversation._id, user: person._id }, {
+            $setOnInsert: { school: user.school, joinedAt: new Date(), roleAtJoin: person.role },
+            $set: { leftAt: null },
+          }, { upsert: true });
+        }
+        conversation.participants = ids.map((item) => item._id);
+        conversation.title = definition.title;
+        await conversation.save();
+      }
+      for (const person of ids) {
+        await ConversationMember.updateOne({ conversation: conversation._id, user: person._id }, {
+          $setOnInsert: { school: user.school, joinedAt: new Date(), roleAtJoin: person.role },
+          $set: { leftAt: null },
+        }, { upsert: true });
+      }
+    }
+  }
+}
+
 router.get("/conversations", async (req, res, next) => {
   try {
+    await syncClassGroupsForUser(req.user);
     const conversations = await Conversation.find({
       school: req.user.school, participants: req.user._id, isActive: true,
     }).populate({ path: "participants", select: "name role active" }).sort({ lastMessageAt: -1 }).limit(100);
