@@ -280,7 +280,8 @@ router.post("/conversations/group", async (req, res, next) => {
   try {
     if (!["principal", "teacher"].includes(req.user.role)) return res.status(403).json({ message: "Only the principal or a teacher can create a group" });
     const title = String(req.body?.title || "").trim();
-    const type = ["custom", "teachers"].includes(req.body?.groupType) ? req.body.groupType : "custom";
+    const type = String(req.body?.groupType || "custom");
+    if (!["custom", "teachers"].includes(type)) return res.status(400).json({ message: "Class and parent groups are created automatically from active school records" });
     const ids = Array.isArray(req.body?.participantIds) ? [...new Set(req.body.participantIds.map(String))] : [];
     if (!title || title.length > 100) return res.status(400).json({ message: "Group name is required (maximum 100 characters)" });
     if (!ids.includes(String(req.user._id))) ids.push(String(req.user._id));
@@ -289,6 +290,7 @@ router.post("/conversations/group", async (req, res, next) => {
     if (type !== "custom" && type !== "teachers") return res.status(400).json({ message: "Class and school groups are managed automatically from school records" });
     if (participants.length !== ids.length) return res.status(400).json({ message: "Every group member must be an active user from your school" });
     if (type === "teachers" && participants.some((person) => person.role !== "teacher" && !sameId(person, req.user))) return res.status(400).json({ message: "A teachers group can contain teachers and its creator only" });
+    if (type === "custom" && participants.some((person) => !["teacher", "principal"].includes(person.role))) return res.status(400).json({ message: "Custom groups may only contain teachers and the principal. Class and parent groups are managed automatically." });
     const conversation = await Conversation.create({
       school: req.user.school, type: "group", title, groupType: type,
       participants: participants.map((person) => person._id), createdBy: req.user._id,
