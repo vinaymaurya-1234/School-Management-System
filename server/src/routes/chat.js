@@ -251,11 +251,20 @@ router.get("/conversations", async (req, res, next) => {
     // Legacy memberships start at migration time; older history is not exposed to newly
     // registered members and is not included in unread counters or inbox previews.
     for (const conversation of conversations) {
-      await ConversationMember.updateOne(
-        { conversation: conversation._id, user: req.user._id },
-        { $setOnInsert: { school: req.user.school, joinedAt: new Date(), roleAtJoin: req.user.role } },
-        { upsert: true },
-      );
+      if (conversation.type === "direct") {
+        // Direct chats retain their complete history; migration must not hide older messages.
+        await ConversationMember.updateOne(
+          { conversation: conversation._id, user: req.user._id },
+          { $set: { school: req.user.school, joinedAt: conversation.createdAt || new Date(), leftAt: null, roleAtJoin: req.user.role } },
+          { upsert: true },
+        );
+      } else {
+        await ConversationMember.updateOne(
+          { conversation: conversation._id, user: req.user._id },
+          { $setOnInsert: { school: req.user.school, joinedAt: new Date(), roleAtJoin: req.user.role } },
+          { upsert: true },
+        );
+      }
     }
     const memberships = ids.length ? await ConversationMember.find({
       school: req.user.school, user: req.user._id, conversation: { $in: ids }, leftAt: null,
@@ -331,7 +340,7 @@ router.get("/conversations/:id/messages", async (req, res, next) => {
     const before = req.query.before && !Number.isNaN(Date.parse(req.query.before)) ? new Date(req.query.before) : null;
     const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 40, 1), 100);
     const membership = await ConversationMember.findOne({ conversation: conversation._id, user: req.user._id, school: req.user.school, leftAt: null }).select("joinedAt");
-    const joinedAt = membership?.joinedAt || new Date();
+    const joinedAt = conversation.type === "direct" ? (conversation.createdAt || new Date(0)) : (membership?.joinedAt || new Date());
     const filter = { school: req.user.school, conversation: conversation._id, deletedAt: null, createdAt: { $gte: joinedAt } };
     if (before) filter.createdAt.$lt = before;
     const messages = await Message.find(filter).populate({ path: "sender", select: "name role active" }).sort({ createdAt: -1 }).limit(limit);
