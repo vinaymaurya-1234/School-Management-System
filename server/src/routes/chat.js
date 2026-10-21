@@ -140,6 +140,25 @@ router.get("/users", async (req, res, next) => {
 
 
 async function syncClassGroupsForUser(user) {
+  // A principal should never be a member of automatically managed student/parent class groups.
+  // Reconcile existing groups even when the principal is the account opening the inbox.
+  if (user.role === "principal") {
+    const classGroups = await Conversation.find({
+      school: user.school,
+      type: "group",
+      groupType: { $in: ["class", "parent-class"] },
+      participants: user._id,
+    }).select("_id participants");
+    for (const conversation of classGroups) {
+      conversation.participants = conversation.participants.filter((participant) => !sameId(participant, user._id));
+      await conversation.save();
+      await ConversationMember.updateOne(
+        { school: user.school, conversation: conversation._id, user: user._id, leftAt: null },
+        { $set: { leftAt: new Date() } },
+      );
+    }
+    return;
+  }
   if (!["student", "parent", "teacher"].includes(user.role)) return;
   let enrollments = [];
   if (user.role === "student") {
