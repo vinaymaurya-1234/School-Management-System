@@ -195,10 +195,18 @@ async function syncClassGroupsForUser(user) {
           await ConversationMember.updateOne({ conversation: conversation._id, user: oldId, leftAt: null }, { $set: { leftAt: new Date() } });
         }
         for (const person of ids) {
-          await ConversationMember.updateOne({ conversation: conversation._id, user: person._id }, {
-            $setOnInsert: { school: user.school, joinedAt: new Date(), roleAtJoin: person.role },
-            $set: { leftAt: null },
-          }, { upsert: true });
+          const existingMembership = await ConversationMember.findOne({ conversation: conversation._id, user: person._id });
+          if (existingMembership?.leftAt) {
+            existingMembership.joinedAt = new Date();
+            existingMembership.leftAt = null;
+            existingMembership.roleAtJoin = person.role;
+            await existingMembership.save();
+          } else {
+            await ConversationMember.updateOne({ conversation: conversation._id, user: person._id }, {
+              $setOnInsert: { school: user.school, joinedAt: new Date(), roleAtJoin: person.role },
+              $set: { leftAt: null },
+            }, { upsert: true });
+          }
         }
         conversation.participants = ids.map((item) => item._id);
         conversation.title = definition.title;
