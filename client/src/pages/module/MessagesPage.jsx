@@ -53,9 +53,23 @@ function formatTime(value) {
   if (!value) return ''
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleDateString() === new Date().toLocaleDateString()
-    ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : date.toLocaleDateString([], { day: '2-digit', month: 'short' })
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).toLowerCase()
+}
+function dateKey(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+function formatDaySeparator(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(today.getDate() - 1)
+  if (dateKey(date) === dateKey(today)) return 'Today'
+  if (dateKey(date) === dateKey(yesterday)) return 'Yesterday'
+  const sameYear = date.getFullYear() === today.getFullYear()
+  return date.toLocaleDateString([], { day: 'numeric', month: 'long', ...(sameYear ? {} : { year: 'numeric' }) })
 }
 function formatSize(bytes) {
   if (!bytes) return ''
@@ -321,29 +335,34 @@ export default function MessagesPage() {
             </header>
             <div className="messages-thread">
               <div className="messages-thread-security"><ShieldCheck size={14} /> School account conversation</div>
-              {messages.map((message) => {
+              {messages.map((message, index) => {
                 const senderId = typeof message.sender === 'string' ? message.sender : message.sender?.id
                 const mine = senderId === user?.id
-                return <div key={message.id} className={`messages-message-row ${mine ? 'mine' : ''}`}>
-                  {!mine && <Avatar user={typeof message.sender === 'object' ? message.sender : null} />}
-                  <div className="messages-message-content">
-                    {!mine && activeConversation.type === 'group' && <small className="messages-sender-name">{message.sender?.name || 'Member'}</small>}
-                    {mine && <div className="messages-own-actions">
-                      {message.editedAt && <small>edited</small>}
-                      <button type="button" className="messages-message-menu-trigger" aria-label="Message options" title="Message options" onClick={() => setMessageMenuId(messageMenuId === message.id ? '' : message.id)}><MoreVertical size={16} /></button>
-                      {messageMenuId === message.id && <div className="messages-message-menu">
-                        {message.text && <button type="button" onClick={() => beginEditMessage(message)}><Pencil size={14} /> Edit</button>}
-                        <button type="button" onClick={() => deleteMessage(message)}><Trash2 size={14} /> Delete for everyone</button>
+                const previousMessage = messages[index - 1]
+                const showDateSeparator = !previousMessage || dateKey(previousMessage.createdAt) !== dateKey(message.createdAt)
+                return <div key={message.id} className="messages-message-group">
+                  {showDateSeparator && <div className="messages-day-separator"><span>{formatDaySeparator(message.createdAt)}</span></div>}
+                  <div className={`messages-message-row ${mine ? 'mine' : ''}`}>
+                    {!mine && <Avatar user={typeof message.sender === 'object' ? message.sender : null} />}
+                    <div className="messages-message-content">
+                      {!mine && activeConversation.type === 'group' && <small className="messages-sender-name">{message.sender?.name || 'Member'}</small>}
+                      {mine && <div className="messages-own-actions">
+                        {message.editedAt && <small>edited</small>}
+                        <button type="button" className="messages-message-menu-trigger" aria-label="Message options" title="Message options" onClick={() => setMessageMenuId(messageMenuId === message.id ? '' : message.id)}><MoreVertical size={16} /></button>
+                        {messageMenuId === message.id && <div className="messages-message-menu">
+                          {message.text && <button type="button" onClick={() => beginEditMessage(message)}><Pencil size={14} /> Edit</button>}
+                          <button type="button" onClick={() => deleteMessage(message)}><Trash2 size={14} /> Delete for everyone</button>
+                        </div>}
                       </div>}
-                    </div>}
-                    {editingMessageId === message.id ? <form className="messages-edit-form" onSubmit={(event) => { event.preventDefault(); saveEditedMessage(message) }}>
-                      <textarea value={editingMessageText} onChange={(event) => setEditingMessageText(event.target.value)} maxLength={5000} aria-label="Edit message" autoFocus />
-                      <div><button type="button" onClick={() => { setEditingMessageId(''); setEditingMessageText('') }}>Cancel</button><button type="submit" disabled={savingEdit}>{savingEdit ? 'Saving…' : 'Save'}</button></div>
-                    </form> : <div className="messages-bubble">
-                      {message.text && <p>{message.text}</p>}
-                      {message.attachments?.map((file, index) => <ChatAttachment key={`${message.id}-${index}`} file={file} />)}
-                    </div>}
-                    <span className="messages-message-time">{formatTime(message.createdAt)} {mine && <CheckCheck size={14} />}</span>
+                      {editingMessageId === message.id ? <form className="messages-edit-form" onSubmit={(event) => { event.preventDefault(); saveEditedMessage(message) }}>
+                        <textarea value={editingMessageText} onChange={(event) => setEditingMessageText(event.target.value)} maxLength={5000} aria-label="Edit message" autoFocus />
+                        <div><button type="button" onClick={() => { setEditingMessageId(''); setEditingMessageText('') }}>Cancel</button><button type="submit" disabled={savingEdit}>{savingEdit ? 'Saving…' : 'Save'}</button></div>
+                      </form> : <div className="messages-bubble">
+                        {message.text && <p>{message.text}</p>}
+                        {message.attachments?.map((file, fileIndex) => <ChatAttachment key={`${message.id}-${fileIndex}`} file={file} />)}
+                        <span className="messages-message-time">{formatTime(message.createdAt)} {mine && <CheckCheck size={14} />}</span>
+                      </div>}
+                    </div>
                   </div>
                 </div>
               })}
