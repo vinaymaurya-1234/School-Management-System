@@ -3,6 +3,7 @@ import {
   BookOpen,
   CalendarDays,
   ClipboardCheck,
+  ClipboardList,
   CreditCard,
   FileText,
   GraduationCap,
@@ -184,6 +185,11 @@ export const MODULES = {
   payroll: {
     title: 'Payroll', eyebrow: 'STAFF FINANCE', description: 'Manage staff records and salary structures, then process monthly payroll.', icon: ReceiptIndianRupee,
     permissionByRole: { principal: 'payroll.manage', accountant: 'payroll.manage' },
+    stats: [], columns: [], rows: [], actions: [],
+  },
+  leave: {
+    title: 'Leave Management', eyebrow: 'STAFF OPERATIONS', description: 'Apply for staff leave, review applications and manage annual leave quotas.', icon: ClipboardList,
+    permissionByRole: { principal: 'leave.manage', teacher: 'leave.manage' },
     stats: [], columns: [], rows: [], actions: [],
   },
 }
