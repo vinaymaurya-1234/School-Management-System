@@ -20,6 +20,7 @@ const operationsItems = [
   { label: 'Notices', href: '/module/notices', hint: 'Announcements' },
   { label: 'Events', href: '/module/events', hint: 'School events' },
   { label: 'Payroll', href: '/module/payroll', hint: 'Staff payroll' },
+  { label: 'Leave Management', href: '/module/leave', hint: 'Review staff leave and annual quotas' },
 ]
 const teacherTeachingItems = [
   { label: 'My Classes', href: '/module/my-classes', hint: 'Your assigned classes and students' },
@@ -33,6 +34,7 @@ const teacherWorkItems = [
   { label: 'Enter Marks', href: '/module/enter-marks', hint: 'Save and submit student marks' },
   { label: 'Marks Review Status', href: '/module/marks-review', hint: 'Track principal review and publishing' },
   { label: 'Student Performance', href: '/module/student-performance', hint: 'Progress for your assigned students' },
+  { label: 'My Leave', href: '/module/leave', hint: 'Apply for leave and track approval status' },
 ]
 const teacherCommunicationItems = [
   { label: 'Notices', href: '/module/notices', hint: 'School announcements' },
