@@ -37,6 +37,7 @@ export const ROLE_PERMISSIONS = {
     'events.view',
     'profile.manage.own',
     'messages.view',
+    'leave.manage',
   ],
   [ROLES.STUDENT]: [
     'dashboard.view',
