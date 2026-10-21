@@ -178,3 +178,15 @@
   .messages-page { padding-top:8px; }
   .messages-own-actions { min-height:20px; }
 }
+
+
+/* WhatsApp-style day labels and inline message timestamps */
+.messages-message-group { display:flex; flex-direction:column; gap:7px; width:100%; }
+.messages-day-separator { position:sticky; top:0; z-index:1; align-self:center; margin:0 0 5px; }
+.messages-day-separator span { display:inline-block; padding:6px 12px; border:1px solid #ededed; border-radius:9px; background:#f4f4f4; color:#777; box-shadow:0 1px 2px rgba(0,0,0,.035); font-size:10px; font-weight:600; }
+.messages-bubble { padding:8px 10px 7px; }
+.messages-bubble p { display:inline; white-space:pre-wrap; }
+.messages-message-time { display:inline-flex; vertical-align:baseline; align-items:center; gap:3px; margin-left:9px; padding:0; color:#a4a4a4; font-size:9px; white-space:nowrap; }
+.messages-message-row.mine .messages-message-time { justify-content:flex-end; }
+.messages-message-row.mine .messages-message-time svg { color:#a4a4a4; }
+.messages-message-content { max-width:100%; }
