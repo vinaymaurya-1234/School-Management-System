@@ -74,6 +74,7 @@ export const ROLE_PERMISSIONS = {
     'financialReports.view',
     'payroll.manage',
     'profile.manage.own',
+    'messages.view',
   ],
 }
 
