@@ -43,7 +43,7 @@ function serializeRequest(item) {
 }
 async function getBalance(school, teacherId) {
   const policy = await LeavePolicy.findOne({ school }).lean();
-  const currentYear = new Date().getFullYear();
+  const currentYear = schoolToday().getUTCFullYear();
   const bounds = yearBounds(currentYear);
   const approved = await LeaveRequest.find({ school, teacher: teacherId, status: "approved", leaveType: { $in: [...BALANCE_TYPES] }, startDate: { $gte: bounds.start, $lt: bounds.end } }).select("leaveType totalDays").lean();
   const used = { casual: 0, sick: 0, earned: 0 };
