@@ -30,6 +30,7 @@ import MessagesPage from '../pages/module/MessagesPage'
 import PayrollPage from '../pages/module/PayrollPage'
 import AttendancePage from '../pages/module/AttendancePage'
 import TeacherAttendancePage from '../pages/module/TeacherAttendancePage'
+import LeaveManagementPage from '../pages/module/LeaveManagementPage'
 import '../pages/module/ModuleFeature.css'
 
 const PRINCIPAL_OPERATIONS = new Set(['fees', 'notices', 'payroll'])
@@ -78,6 +79,7 @@ function ModuleRoute() {
   const permission = module?.permissionByRole?.[user?.role]
   if (!module || !permission || !hasPermission(user?.role, permission)) return <Navigate to={homeRoute} replace />
   if (moduleKey === 'payroll' && ['principal', 'accountant'].includes(user?.role)) return <PayrollPage />
+  if (moduleKey === 'leave' && ['principal', 'teacher'].includes(user?.role)) return <LeaveManagementPage />
   if (moduleKey === 'messages') return <MessagesPage />
   if (moduleKey === 'timetable') return <TimetablePage />
   if (moduleKey === 'exams') return <ExamSchedulePage />
