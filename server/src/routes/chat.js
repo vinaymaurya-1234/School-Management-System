@@ -9,6 +9,7 @@ import Parent from "../models/Parent.js";
 import Student from "../models/Student.js";
 import { StudentEnrollment, TeacherAssignment, Section } from "../models/Academic.js";
 import { requireAuth } from "../middleware/auth.js";
+import ConversationMember from "../models/ConversationMember.js";
 
 const router = Router();
 const upload = multer({
@@ -25,8 +26,8 @@ function chatFileBucket() {
 }
 
 router.use(requireAuth, (req, res, next) => {
-  if (!["principal", "teacher", "student", "parent"].includes(req.user.role)) {
-    return res.status(403).json({ message: "Chat is available to parents, teachers, students and the principal only" });
+  if (!["principal", "teacher", "student", "parent", "accountant"].includes(req.user.role)) {
+    return res.status(403).json({ message: "Chat is available to authorized school accounts only" });
   }
   next();
 });
@@ -69,6 +70,10 @@ function conversationSummary(conversation, currentUserId) {
 async function canDirectMessage(sender, recipient) {
   if (sameId(sender, recipient)) return false;
   if (sender.role === "principal" || recipient.role === "principal") return true;
+  if (sender.role === "parent" && recipient.role === "accountant" || sender.role === "accountant" && recipient.role === "parent") {
+    const parentUser = sender.role === "parent" ? sender : recipient;
+    return Boolean(await Parent.exists({ user: parentUser._id, school: parentUser.school, children: { $exists: true, $ne: [] } }));
+  }
   const pair = [sender.role, recipient.role].sort().join(":");
   if (!["parent:teacher", "student:teacher", "teacher:teacher"].includes(pair)) return false;
 
@@ -119,7 +124,7 @@ function emitToConversation(req, conversationId, event, payload) {
 router.get("/users", async (req, res, next) => {
   try {
     const q = String(req.query.q || "").trim().slice(0, 80);
-    const roles = ["principal", "teacher", "student", "parent"];
+    const roles = req.user.role === "parent" ? ["principal", "teacher", "accountant"] : ["principal", "teacher", "student", "parent"];
     const requestedRole = String(req.query.role || "");
     const filter = { school: req.user.school, active: true, role: { $in: roles }, _id: { $ne: req.user._id } };
     if (roles.includes(requestedRole)) filter.role = requestedRole;
@@ -139,6 +144,15 @@ router.get("/conversations", async (req, res, next) => {
       school: req.user.school, participants: req.user._id, isActive: true,
     }).populate({ path: "participants", select: "name role active" }).sort({ lastMessageAt: -1 }).limit(100);
     const ids = conversations.map((item) => item._id);
+    // Legacy conversations are migrated conservatively: existing users start at migration time,
+    // so joining does not grant access to older messages.
+    for (const conversation of conversations) {
+      await ConversationMember.updateOne(
+        { conversation: conversation._id, user: req.user._id },
+        { $setOnInsert: { school: req.user.school, joinedAt: new Date(), roleAtJoin: req.user.role } },
+        { upsert: true },
+      );
+    }
     const latestMessages = ids.length ? await Message.aggregate([
       { $match: { school: req.user.school, conversation: { $in: ids }, deletedAt: null } },
       { $sort: { createdAt: -1 } },
@@ -204,8 +218,10 @@ router.get("/conversations/:id/messages", async (req, res, next) => {
     if (!conversation) return res.status(404).json({ message: "Conversation not found" });
     const before = req.query.before && !Number.isNaN(Date.parse(req.query.before)) ? new Date(req.query.before) : null;
     const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 40, 1), 100);
-    const filter = { school: req.user.school, conversation: conversation._id, deletedAt: null };
-    if (before) filter.createdAt = { $lt: before };
+    const membership = await ConversationMember.findOne({ conversation: conversation._id, user: req.user._id, school: req.user.school, leftAt: null }).select("joinedAt");
+    const joinedAt = membership?.joinedAt || new Date();
+    const filter = { school: req.user.school, conversation: conversation._id, deletedAt: null, createdAt: { $gte: joinedAt } };
+    if (before) filter.createdAt.$lt = before;
     const messages = await Message.find(filter).populate({ path: "sender", select: "name role active" }).sort({ createdAt: -1 }).limit(limit);
     res.json({ messages: messages.reverse().map(safeMessage), hasMore: messages.length === limit });
   } catch (error) { next(error); }
@@ -238,6 +254,8 @@ router.post("/conversations/:id/messages", async (req, res, next) => {
         resourceType: String(storedFile.metadata?.resourceType || "raw"),
       });
     }
+    const membership = await ConversationMember.findOne({ conversation: conversation._id, user: req.user._id, school: req.user.school, leftAt: null });
+    if (!membership) return res.status(403).json({ message: "You are not an active member of this conversation" });
     const message = await Message.create({
       school: req.user.school, conversation: conversation._id, sender: req.user._id,
       text, attachments: storedAttachments,
