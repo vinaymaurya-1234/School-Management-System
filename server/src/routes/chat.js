@@ -229,8 +229,8 @@ router.get("/conversations", async (req, res, next) => {
       school: req.user.school, participants: req.user._id, isActive: true,
     }).populate({ path: "participants", select: "name role active" }).sort({ lastMessageAt: -1 }).limit(100);
     const ids = conversations.map((item) => item._id);
-    // Legacy conversations are migrated conservatively: existing users start at migration time,
-    // so joining does not grant access to older messages.
+    // Legacy memberships start at migration time; older history is not exposed to newly
+    // registered members and is not included in unread counters or inbox previews.
     for (const conversation of conversations) {
       await ConversationMember.updateOne(
         { conversation: conversation._id, user: req.user._id },
@@ -238,14 +238,18 @@ router.get("/conversations", async (req, res, next) => {
         { upsert: true },
       );
     }
-    const latestMessages = ids.length ? await Message.aggregate([
-      { $match: { school: req.user.school, conversation: { $in: ids }, deletedAt: null } },
+    const memberships = ids.length ? await ConversationMember.find({
+      school: req.user.school, user: req.user._id, conversation: { $in: ids }, leftAt: null,
+    }).select("conversation joinedAt") : [];
+    const visibleHistory = memberships.map((membership) => ({ conversation: membership.conversation, createdAt: { $gte: membership.joinedAt } }));
+    const latestMessages = visibleHistory.length ? await Message.aggregate([
+      { $match: { school: req.user.school, deletedAt: null, $or: visibleHistory } },
       { $sort: { createdAt: -1 } },
       { $group: { _id: "$conversation", message: { $first: "$$ROOT" } } },
     ]) : [];
     const latestByConversation = new Map(latestMessages.map((row) => [String(row._id), row.message]));
-    const unread = ids.length ? await Message.aggregate([
-      { $match: { school: req.user.school, conversation: { $in: ids }, sender: { $ne: req.user._id }, readBy: { $ne: req.user._id }, deletedAt: null } },
+    const unread = visibleHistory.length ? await Message.aggregate([
+      { $match: { school: req.user.school, sender: { $ne: req.user._id }, readBy: { $ne: req.user._id }, deletedAt: null, $or: visibleHistory } },
       { $group: { _id: "$conversation", count: { $sum: 1 } } },
     ]) : [];
     const unreadByConversation = new Map(unread.map((row) => [String(row._id), row.count]));
