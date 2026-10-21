@@ -7,7 +7,7 @@ import Message from "../models/Message.js";
 import User from "../models/User.js";
 import Parent from "../models/Parent.js";
 import Student from "../models/Student.js";
-import { StudentEnrollment, TeacherAssignment, Section } from "../models/Academic.js";
+import { StudentEnrollment, TeacherAssignment, Section, SchoolClass } from "../models/Academic.js";
 import { requireAuth } from "../middleware/auth.js";
 import ConversationMember from "../models/ConversationMember.js";
 
@@ -195,18 +195,20 @@ router.post("/conversations/group", async (req, res, next) => {
   try {
     if (!["principal", "teacher"].includes(req.user.role)) return res.status(403).json({ message: "Only the principal or a teacher can create a group" });
     const title = String(req.body?.title || "").trim();
-    const type = ["custom", "class", "teachers", "school"].includes(req.body?.groupType) ? req.body.groupType : "custom";
+    const type = ["custom", "teachers"].includes(req.body?.groupType) ? req.body.groupType : "custom";
     const ids = Array.isArray(req.body?.participantIds) ? [...new Set(req.body.participantIds.map(String))] : [];
     if (!title || title.length > 100) return res.status(400).json({ message: "Group name is required (maximum 100 characters)" });
     if (!ids.includes(String(req.user._id))) ids.push(String(req.user._id));
     if (ids.length < 2 || ids.length > 100 || ids.some((id) => !mongoose.isValidObjectId(id))) return res.status(400).json({ message: "Choose between 2 and 100 valid group members" });
     const participants = await User.find({ _id: { $in: ids }, school: req.user.school, active: true }).select("_id role");
+    if (type !== "custom" && type !== "teachers") return res.status(400).json({ message: "Class and school groups are managed automatically from school records" });
     if (participants.length !== ids.length) return res.status(400).json({ message: "Every group member must be an active user from your school" });
     if (type === "teachers" && participants.some((person) => person.role !== "teacher" && !sameId(person, req.user))) return res.status(400).json({ message: "A teachers group can contain teachers and its creator only" });
     const conversation = await Conversation.create({
       school: req.user.school, type: "group", title, groupType: type,
       participants: participants.map((person) => person._id), createdBy: req.user._id,
     });
+    await Promise.all(participants.map((person) => ConversationMember.updateOne({ conversation: conversation._id, user: person._id }, { $setOnInsert: { school: req.user.school, joinedAt: new Date(), roleAtJoin: person.role } }, { upsert: true })));
     const populated = await Conversation.findById(conversation._id).populate({ path: "participants", select: "name role active" });
     res.status(201).json({ conversation: conversationSummary(populated, req.user._id) });
   } catch (error) { next(error); }
