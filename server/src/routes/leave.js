@@ -19,6 +19,12 @@ const dateOnly = (value) => {
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? date : null;
 };
 const daysBetween = (start, end) => Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+const yearBounds = (year) => ({ start: new Date(Date.UTC(year, 0, 1)), end: new Date(Date.UTC(year + 1, 0, 1)) });
+const schoolToday = () => {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return new Date(Date.UTC(Number(values.year), Number(values.month) - 1, Number(values.day)));
+};
 const errorResponse = (res, status, message) => res.status(status).json({ message });
 
 async function teacherProfile(req) {
@@ -37,7 +43,9 @@ function serializeRequest(item) {
 }
 async function getBalance(school, teacherId) {
   const policy = await LeavePolicy.findOne({ school }).lean();
-  const approved = await LeaveRequest.find({ school, teacher: teacherId, status: "approved", leaveType: { $in: [...BALANCE_TYPES] } }).select("leaveType totalDays").lean();
+  const currentYear = new Date().getFullYear();
+  const bounds = yearBounds(currentYear);
+  const approved = await LeaveRequest.find({ school, teacher: teacherId, status: "approved", leaveType: { $in: [...BALANCE_TYPES] }, startDate: { $gte: bounds.start, $lt: bounds.end } }).select("leaveType totalDays").lean();
   const used = { casual: 0, sick: 0, earned: 0 };
   for (const item of approved) used[item.leaveType] += Number(item.totalDays || 0);
   const quotas = policy?.quotas || { casual: 0, sick: 0, earned: 0 };
@@ -75,8 +83,7 @@ router.post("/", async (req, res, next) => {
     if (!startDate || !endDate || endDate < startDate) return errorResponse(res, 400, "Enter valid leave dates; end date cannot be before start date");
     if (halfDay && startDate.getTime() !== endDate.getTime()) return errorResponse(res, 400, "Half-day leave must be for a single date");
     if (reason.length < 5 || reason.length > 1000) return errorResponse(res, 400, "Reason must be between 5 and 1000 characters");
-    const today = new Date();
-    const todayUtc = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+    const todayUtc = schoolToday();
     if (startDate < todayUtc && !(["emergency", "sick"].includes(leaveType) && /emergency|medical|hospital|illness|sick|fever|urgent/i.test(reason))) {
       return errorResponse(res, 400, "Past-date leave is allowed only for emergency or medical reasons. Mention the emergency/medical reason.");
     }
@@ -165,7 +172,9 @@ router.post("/:id/decision", async (req, res, next) => {
         const policy = await LeavePolicy.findOne({ school: req.user.school }).lean();
         if (!policy) return errorResponse(res, 409, "Configure Casual, Sick and Earned leave quotas before approving balance-based leave");
         const quota = Number(policy.quotas?.[request.leaveType] || 0);
-        const usedRows = await LeaveRequest.find({ school: req.user.school, teacher: request.teacher, leaveType: request.leaveType, status: "approved", _id: { $ne: request._id } }).select("totalDays").lean();
+        const leaveYear = new Date(request.startDate).getUTCFullYear();
+        const bounds = yearBounds(leaveYear);
+        const usedRows = await LeaveRequest.find({ school: req.user.school, teacher: request.teacher, leaveType: request.leaveType, status: "approved", startDate: { $gte: bounds.start, $lt: bounds.end }, _id: { $ne: request._id } }).select("totalDays").lean();
         const used = usedRows.reduce((sum, row) => sum + Number(row.totalDays || 0), 0);
         if (used + request.totalDays > quota) return errorResponse(res, 409, `Insufficient ${request.leaveType} leave balance. Available: ${Math.max(0, quota - used)} day(s)`);
       }
