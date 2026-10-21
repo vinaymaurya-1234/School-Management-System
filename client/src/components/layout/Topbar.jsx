@@ -35,6 +35,7 @@ const teacherWorkItems = [
   { label: 'Marks Review Status', href: '/module/marks-review', hint: 'Track principal review and publishing' },
   { label: 'Student Performance', href: '/module/student-performance', hint: 'Progress for your assigned students' },
   { label: 'My Leave', href: '/module/leave', hint: 'Apply for leave and track approval status' },
+  { label: 'My Profile', href: '/module/profile', hint: 'Personal details, employment and account security' },
 ]
 const teacherCommunicationItems = [
   { label: 'Notices', href: '/module/notices', hint: 'School announcements' },
