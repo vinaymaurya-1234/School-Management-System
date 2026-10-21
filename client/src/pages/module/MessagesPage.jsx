@@ -16,7 +16,7 @@ const roleTabs = [
   { label: 'Parents', value: 'parent' },
   { label: 'Principal', value: 'principal' },
 ]
-const roleLabel = (role) => ({ principal: 'Principal', teacher: 'Teacher', student: 'Student', parent: 'Parent' }[role] || role || 'School member')
+const roleLabel = (role) => ({ principal: 'Principal', teacher: 'Teacher', student: 'Student', parent: 'Parent', accountant: 'Accountant' }[role] || role || 'School member')
 const socketBase = () => (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '')
 
 function ChatAttachment({ file }) {
@@ -91,6 +91,7 @@ export default function MessagesPage() {
   const fileRef = useRef(null)
 
   const activeConversation = useMemo(() => conversations.find((item) => item.id === activeId) || null, [conversations, activeId])
+  const canManageGroups = ['principal', 'teacher'].includes(user?.role)
   const activePerson = activeConversation?.otherParticipant
   const visibleConversations = useMemo(() => conversations.filter((item) => {
     const title = item.type === 'group' ? item.title : item.otherParticipant?.name
@@ -365,8 +366,8 @@ export default function MessagesPage() {
       {showNew && <div className="messages-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowNew(false) }}>
         <section className="messages-modal" role="dialog" aria-modal="true" aria-labelledby="new-chat-title">
           <header><div><span className="messages-eyebrow">NEW CONVERSATION</span><h2 id="new-chat-title">{newMode === 'group' ? 'Create a group' : 'Start a chat'}</h2></div><button className="messages-icon-button" type="button" aria-label="Close" onClick={() => setShowNew(false)}><X size={20} /></button></header>
-          <div className="messages-modal-tabs"><button type="button" className={newMode === 'direct' ? 'active' : ''} onClick={() => { setNewMode('direct'); setSelectedPeople([]); setError('') }}>Direct message</button><button type="button" className={newMode === 'group' ? 'active' : ''} onClick={() => { setNewMode('group'); setSelectedPeople([]); setError(''); loadPeople().catch(() => {}) }}>Create group</button></div>
-          {newMode === 'group' && <div className="messages-group-fields"><label>Group name<input value={groupTitle} onChange={(event) => setGroupTitle(event.target.value)} placeholder="e.g. Class 10-A Parents" maxLength={100} /></label><label>Group type<select value={groupType} onChange={(event) => setGroupType(event.target.value)}><option value="custom">Custom group</option><option value="class">Class group</option><option value="teachers">Teachers group</option><option value="school">School group</option></select></label></div>}
+          <div className="messages-modal-tabs"><button type="button" className={newMode === 'direct' ? 'active' : ''} onClick={() => { setNewMode('direct'); setSelectedPeople([]); setError('') }}>Direct message</button>{canManageGroups && <button type="button" className={newMode === 'group' ? 'active' : ''} onClick={() => { setNewMode('group'); setSelectedPeople([]); setError(''); loadPeople().catch(() => {}) }}>Create group</button>}</div>
+          {newMode === 'group' && <div className="messages-group-fields"><label>Group name<input value={groupTitle} onChange={(event) => setGroupTitle(event.target.value)} placeholder="e.g. Class 10-A Parents" maxLength={100} /></label><label>Group type<select value={groupType} onChange={(event) => setGroupType(event.target.value)}><option value="custom">Custom group</option><option value="teachers">Teachers group</option></select></label></div>}
           <div className="messages-search modal-search"><Search size={17} /><input value={personSearch} onChange={(event) => setPersonSearch(event.target.value)} placeholder="Find a school contact" /></div>
           {newMode === 'group' && <p className="messages-selected-count">{selectedPeople.length} member(s) selected · you will be added automatically</p>}
           <div className="messages-people-list">{visiblePeople.map((person) => <button key={person.id} type="button" className={selectedPeople.includes(person.id) ? 'selected' : ''} onClick={() => newMode === 'group' ? togglePerson(person.id) : startDirect(person.id)}><Avatar user={person} /><span><strong>{person.name}</strong><small>{roleLabel(person.role)}</small></span>{newMode === 'group' ? <span className="messages-select-indicator">{selectedPeople.includes(person.id) ? '✓' : '+'}</span> : <MessageCircle size={18} />}</button>)}{visiblePeople.length === 0 && <div className="messages-empty"><CircleUserRound size={24} /><span>No authorized contacts found.</span></div>}</div>
