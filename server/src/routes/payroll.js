@@ -168,16 +168,6 @@ router.get("/staff/candidates", requirePayrollAdmin, async (req, res, next) => {
   try {
     const search = String(req.query.q || "").trim();
     const filter = { school: req.user.school };
-    if (search) {
-      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\// Create a staff record. Existing user and teacher links are optional; no duplicate login is created.
-router.post("/staff", requirePayrollAdmin, async (req, res, next) => {");
-      filter.$or = [
-        { employeeId: { $regex: escaped, $options: "i" } },
-        { designation: { $regex: escaped, $options: "i" } },
-        { department: { $regex: escaped, $options: "i" } },
-        { specialization: { $regex: escaped, $options: "i" } },
-      ];
-    }
     const teachers = await Teacher.find(filter).populate("user", "name email role active").sort({ employeeId: 1 }).lean();
     const linkedIds = await Employee.find({ school: req.user.school, $or: [
       { teacher: { $in: teachers.map((teacher) => teacher._id) } },
