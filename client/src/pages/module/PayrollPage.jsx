@@ -28,6 +28,9 @@ function PayrollPage() {
   const [salaryForm, setSalaryForm] = useState(blankSalary)
   const [staffOpen, setStaffOpen] = useState(false)
   const [staffForm, setStaffForm] = useState(blankStaff)
+  const [staffCandidates, setStaffCandidates] = useState([])
+  const [staffCandidateQuery, setStaffCandidateQuery] = useState('')
+  const [selectedCandidate, setSelectedCandidate] = useState(null)
   const [paymentTarget, setPaymentTarget] = useState(null)
   const [paymentForm, setPaymentForm] = useState({ amount: '', method: 'bank_transfer', date: isoToday(), reference: '' })
 
@@ -86,15 +89,40 @@ function PayrollPage() {
     })
   }
 
-  const createStaff = async (event) => {
-    event.preventDefault(); setSaving(true); setError(''); setNotice('')
+  const loadStaffCandidates = async () => {
+    setError('')
     try {
-      const payload = { ...staffForm }
-      if (!payload.userId) delete payload.userId
-      if (!payload.teacherId) delete payload.teacherId
-      await apiClient.post('/payroll/staff', payload)
-      setStaffOpen(false); setStaffForm(blankStaff); setNotice('Staff profile created. Set their salary structure before generating payroll.'); await load()
-    } catch (err) { setError(err.response?.data?.message || 'Could not create staff profile.') }
+      const response = await apiClient.get('/payroll/staff/candidates', { params: { q: staffCandidateQuery.trim() || undefined } })
+      setStaffCandidates(response.data?.candidates || [])
+    } catch (err) { setError(err.response?.data?.message || 'Could not load staff list.') }
+  }
+
+  const selectStaffCandidate = (candidate) => {
+    setSelectedCandidate(candidate)
+    setStaffForm({
+      employeeId: candidate.employeeId || '',
+      name: candidate.name || '',
+      email: candidate.email || '',
+      phone: candidate.phone || '',
+      designation: candidate.designation || 'Teacher',
+      department: candidate.department || '',
+      category: candidate.category || 'teaching',
+      employmentType: 'full_time',
+      joiningDate: candidate.joiningDate ? String(candidate.joiningDate).slice(0, 10) : isoToday(),
+      userId: candidate.userId || '',
+      teacherId: candidate.teacherId || '',
+    })
+  }
+
+  const createStaff = async (event) => {
+    event.preventDefault()
+    if (!selectedCandidate) { setError('Please select a teacher or staff member first.'); return }
+    setSaving(true); setError(''); setNotice('')
+    try {
+      await apiClient.post('/payroll/staff', { ...staffForm, userId: selectedCandidate.userId, teacherId: selectedCandidate.teacherId })
+      setStaffOpen(false); setSelectedCandidate(null); setStaffForm(blankStaff); setStaffCandidates([])
+      setNotice('Selected staff member added to payroll. Now set their salary structure.'); await load()
+    } catch (err) { setError(err.response?.data?.message || 'Could not add selected staff member.') }
     finally { setSaving(false) }
   }
 
@@ -139,7 +167,7 @@ function PayrollPage() {
   return <main className="payroll-page">
     <header className="payroll-page-header">
       <div><span className="payroll-eyebrow">STAFF FINANCE · PAYROLL OPERATIONS</span><h1>Salary & Payroll</h1><p>Set salary structures, review attendance and approved leave, calculate monthly pay, and track payments in one place.</p></div>
-      <div className="payroll-header-actions"><button type="button" className="payroll-secondary-button" onClick={load} disabled={loading}><RefreshCw size={16}/> Refresh</button>{isPrincipal && <button type="button" className="payroll-primary-button" onClick={() => setStaffOpen(x => !x)}><Plus size={16}/> Add staff</button>}</div>
+      <div className="payroll-header-actions"><button type="button" className="payroll-secondary-button" onClick={load} disabled={loading}><RefreshCw size={16}/> Refresh</button>{isPrincipal && <button type="button" className="payroll-primary-button" onClick={() => { const next = !staffOpen; setStaffOpen(next); if (next) { setSelectedCandidate(null); setStaffForm(blankStaff); loadStaffCandidates() } }}><Plus size={16}/> Add staff</button>}</div>
     </header>
 
     {error && <div className="payroll-alert payroll-alert-error" role="alert"><CircleAlert size={18}/><span>{error}</span></div>}
@@ -159,20 +187,34 @@ function PayrollPage() {
     </section>
 
     {staffOpen && isPrincipal && <section className="payroll-panel">
-      <div className="payroll-panel-heading"><div><span className="payroll-eyebrow">STAFF RECORD</span><h2>Add staff profile</h2><p>Link the existing teacher account so attendance and leave can be matched correctly.</p></div><button className="payroll-icon-button" type="button" onClick={() => setStaffOpen(false)} aria-label="Close"><X size={18}/></button></div>
-      <form className="payroll-form-grid" onSubmit={createStaff}>
-        <label>Employee ID *<input value={staffForm.employeeId} onChange={e => setStaffForm({ ...staffForm, employeeId: e.target.value })} required maxLength={40}/></label>
-        <label>Full name *<input value={staffForm.name} onChange={e => setStaffForm({ ...staffForm, name: e.target.value })} required maxLength={120}/></label>
-        <label>Designation *<input value={staffForm.designation} onChange={e => setStaffForm({ ...staffForm, designation: e.target.value })} required/></label>
-        <label>Category<select value={staffForm.category} onChange={e => setStaffForm({ ...staffForm, category: e.target.value })}><option value="teaching">Teaching</option><option value="administration">Administration</option><option value="finance">Finance</option><option value="support">Support</option><option value="other">Other</option></select></label>
-        <label>Department<input value={staffForm.department} onChange={e => setStaffForm({ ...staffForm, department: e.target.value })}/></label>
-        <label>Email<input type="email" value={staffForm.email} onChange={e => setStaffForm({ ...staffForm, email: e.target.value })}/></label>
-        <label>Phone<input value={staffForm.phone} onChange={e => setStaffForm({ ...staffForm, phone: e.target.value })}/></label>
-        <label>Joining date<input type="date" value={staffForm.joiningDate} onChange={e => setStaffForm({ ...staffForm, joiningDate: e.target.value })}/></label>
-        <label>Linked login user ID<input value={staffForm.userId} onChange={e => setStaffForm({ ...staffForm, userId: e.target.value })} placeholder="MongoDB User ID"/></label>
-        <label>Teacher profile ID<input value={staffForm.teacherId} onChange={e => setStaffForm({ ...staffForm, teacherId: e.target.value })} placeholder="MongoDB Teacher ID"/></label>
-        <div className="payroll-form-footer"><span>Login credentials are not created by this form.</span><button className="payroll-primary-button" disabled={saving}>{saving ? 'Saving…' : 'Create staff'}</button></div>
-      </form>
+      <div className="payroll-panel-heading"><div><span className="payroll-eyebrow">STAFF RECORD</span><h2>Add existing staff to payroll</h2><p>Select a teacher from the school list. Available profile details will fill automatically.</p></div><button className="payroll-icon-button" type="button" onClick={() => { setStaffOpen(false); setSelectedCandidate(null) }} aria-label="Close"><X size={18}/></button></div>
+      <div className="payroll-staff-picker">
+        <label className="payroll-search"><Search size={17}/><input value={staffCandidateQuery} onChange={e => setStaffCandidateQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); loadStaffCandidates() } }} placeholder="Search teachers by name, employee ID or subject…"/></label>
+        <button type="button" className="payroll-secondary-button" onClick={loadStaffCandidates} disabled={saving}><RefreshCw size={15}/> Search</button>
+      </div>
+      <div className="payroll-staff-candidate-list">
+        {staffCandidates.length ? staffCandidates.map(candidate => <button type="button" key={candidate.teacherId} className={selectedCandidate?.teacherId === candidate.teacherId ? 'payroll-staff-candidate is-selected' : 'payroll-staff-candidate'} onClick={() => selectStaffCandidate(candidate)}>
+          <span className="payroll-staff-avatar">{(candidate.name || 'S').trim().charAt(0).toUpperCase()}</span><span className="payroll-staff-candidate-copy"><strong>{candidate.name}</strong><small>{candidate.employeeId} · {candidate.designation || 'Teacher'}{candidate.department ? ` · ${candidate.department}` : ''}</small><small>{candidate.email || 'No email'}{candidate.phone ? ` · ${candidate.phone}` : ''}</small></span><span className="payroll-staff-select-mark">{selectedCandidate?.teacherId === candidate.teacherId ? 'Selected' : 'Select'}</span>
+        </button>) : <div className="payroll-empty"><Users size={22}/><strong>No available staff found</strong><span>They may already be linked to payroll, or try another search.</span></div>}
+      </div>
+      {selectedCandidate && <form className="payroll-form-grid payroll-selected-staff-form" onSubmit={createStaff}>
+        <div className="payroll-staff-section-title"><h3>Selected staff details</h3><p>Fetched from the existing teacher and login records. Confirm the details below.</p></div>
+        <label>Employee ID<input value={staffForm.employeeId} readOnly/></label>
+        <label>Full name<input value={staffForm.name} readOnly/></label>
+        <label>Designation<input value={staffForm.designation} readOnly/></label>
+        <label>Department<input value={staffForm.department} readOnly/></label>
+        <label>Email<input value={staffForm.email} readOnly/></label>
+        <label>Phone<input value={staffForm.phone} readOnly/></label>
+        <label>Joining date<input type="date" value={staffForm.joiningDate} readOnly/></label>
+        <label>Qualification<input value={selectedCandidate.qualification || 'Not provided'} readOnly/></label>
+        <label>Specialization / subject<input value={selectedCandidate.specialization || 'Not provided'} readOnly/></label>
+        <label>Gender<input value={selectedCandidate.gender || 'Not provided'} readOnly/></label>
+        <label>Date of birth<input value={selectedCandidate.dateOfBirth ? String(selectedCandidate.dateOfBirth).slice(0, 10) : 'Not provided'} readOnly/></label>
+        <label>Address<input value={selectedCandidate.address || 'Not provided'} readOnly/></label>
+        <label>Employment type<select value={staffForm.employmentType} onChange={e => setStaffForm({ ...staffForm, employmentType: e.target.value })}><option value="full_time">Full-time</option><option value="part_time">Part-time</option><option value="contract">Contract</option></select></label>
+        <label>Payroll category<select value={staffForm.category} onChange={e => setStaffForm({ ...staffForm, category: e.target.value })}><option value="teaching">Teaching</option><option value="administration">Administration</option><option value="finance">Finance</option><option value="support">Support</option><option value="other">Other</option></select></label>
+        <div className="payroll-form-footer"><span>Login credentials are not created or changed. Salary is set in the next step.</span><button className="payroll-primary-button" disabled={saving}>{saving ? 'Adding…' : 'Add selected staff'}</button></div>
+      </form>}
     </section>}
 
     <section className="payroll-panel">
