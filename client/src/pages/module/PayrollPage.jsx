@@ -168,7 +168,7 @@ function PayrollPage() {
         <label>Department<input value={staffForm.department} onChange={e => setStaffForm({ ...staffForm, department: e.target.value })}/></label>
         <label>Email<input type="email" value={staffForm.email} onChange={e => setStaffForm({ ...staffForm, email: e.target.value })}/></label>
         <label>Phone<input value={staffForm.phone} onChange={e => setStaffForm({ ...staffForm, phone: e.target.value })}/></label>
-        <label>Joining date<input type="date" value={staffForm.joiningDate} onChange={e => setStaffForm({ ...staffForm, joiningDate: e.target.value}/></label>
+        <label>Joining date<input type="date" value={staffForm.joiningDate} onChange={e => setStaffForm({ ...staffForm, joiningDate: e.target.value })}/></label>
         <label>Linked login user ID<input value={staffForm.userId} onChange={e => setStaffForm({ ...staffForm, userId: e.target.value })} placeholder="MongoDB User ID"/></label>
         <label>Teacher profile ID<input value={staffForm.teacherId} onChange={e => setStaffForm({ ...staffForm, teacherId: e.target.value })} placeholder="MongoDB Teacher ID"/></label>
         <div className="payroll-form-footer"><span>Login credentials are not created by this form.</span><button className="payroll-primary-button" disabled={saving}>{saving ? 'Saving…' : 'Create staff'}</button></div>
