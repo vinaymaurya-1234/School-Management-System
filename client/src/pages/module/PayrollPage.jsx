@@ -86,7 +86,7 @@ function PayrollPage() {
       ...blankSalary, basicSalary: current?.basicSalary ?? '',
       allowances: current?.allowances?.length ? current.allowances.map(x => ({ name: x.name, amount: String(x.amount) })) : [{ name: 'HRA', amount: '' }],
       recurringDeductions: current?.recurringDeductions?.filter(x => !/^pf$|^provident fund$/i.test(x.name.trim())).map(x => ({ name: x.name, amount: String(x.amount) })) || [],
-      pfEnabled: current?.statutorySettings?.pfEnabled !== false, pfRate: String(current?.statutorySettings?.pfRate ?? 12),
+      pfEnabled: true, pfRate: String(current?.statutorySettings?.pfRate ?? 12),
       effectiveFrom: isoToday(),
     })
   }
