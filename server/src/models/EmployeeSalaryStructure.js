@@ -17,7 +17,8 @@ const employeeSalaryStructureSchema = new mongoose.Schema(
     allowances: { type: [salaryComponentSchema], default: [] },
     recurringDeductions: { type: [salaryComponentSchema], default: [] },
     statutorySettings: {
-      pfEnabled: { type: Boolean, default: false },
+      pfEnabled: { type: Boolean, default: true },
+      pfRate: { type: Number, min: 0, max: 100, default: 12 },
       esicEnabled: { type: Boolean, default: false },
       professionalTaxEnabled: { type: Boolean, default: false },
       tdsEnabled: { type: Boolean, default: false },
