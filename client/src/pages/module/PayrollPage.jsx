@@ -1,202 +1,205 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BadgeIndianRupee, CircleAlert, CircleCheck, Plus, RefreshCw, Search, Users, Wallet } from 'lucide-react'
+import { BadgeIndianRupee, CalendarDays, Check, CircleAlert, Clock3, Download, RefreshCw, Search, Users, Wallet, Plus, X } from 'lucide-react'
 import apiClient from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import './PayrollPage.css'
 
 const money = (value) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(Number(value || 0))
-const dateInput = () => new Date().toISOString().slice(0, 10)
-const blankStaff = { employeeId: '', name: '', email: '', phone: '', designation: '', department: '', category: 'teaching', employmentType: 'full_time', joiningDate: dateInput(), userId: '', teacherId: '' }
-const blankSalary = { basicSalary: '', allowances: [{ name: 'HRA', amount: '' }], recurringDeductions: [], effectiveFrom: dateInput(), pfEnabled: false, esicEnabled: false, professionalTaxEnabled: false, tdsEnabled: false, notes: '' }
+const today = new Date()
+const defaultMonth = String(today.getMonth() + 1)
+const defaultYear = String(today.getFullYear())
+const isoToday = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+const blankStaff = { employeeId: '', name: '', email: '', phone: '', designation: 'Teacher', department: '', category: 'teaching', employmentType: 'full_time', joiningDate: isoToday(), userId: '', teacherId: '' }
+const blankSalary = { basicSalary: '', allowances: [{ name: 'HRA', amount: '' }], recurringDeductions: [], effectiveFrom: isoToday() }
 
 function PayrollPage() {
   const { user } = useAuth()
   const isPrincipal = user?.role === 'principal'
+  const [month, setMonth] = useState(defaultMonth)
+  const [year, setYear] = useState(defaultYear)
+  const [data, setData] = useState(null)
   const [employees, setEmployees] = useState([])
   const [query, setQuery] = useState('')
-  const [activeFilter, setActiveFilter] = useState('true')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [staffFormOpen, setStaffFormOpen] = useState(false)
-  const [staffForm, setStaffForm] = useState(blankStaff)
-  const [salaryEmployee, setSalaryEmployee] = useState(null)
+  const [salaryTarget, setSalaryTarget] = useState(null)
   const [salaryForm, setSalaryForm] = useState(blankSalary)
-  const [salaryHistory, setSalaryHistory] = useState([])
+  const [staffOpen, setStaffOpen] = useState(false)
+  const [staffForm, setStaffForm] = useState(blankStaff)
+  const [paymentTarget, setPaymentTarget] = useState(null)
+  const [paymentForm, setPaymentForm] = useState({ amount: '', method: 'bank_transfer', date: isoToday(), reference: '' })
 
-  const loadEmployees = useCallback(async () => {
-    setLoading(true)
-    setError('')
+  const load = useCallback(async () => {
+    setLoading(true); setError('')
     try {
-      const response = await apiClient.get('/payroll/staff', { params: { active: activeFilter, q: query.trim() || undefined } })
-      setEmployees(response.data?.employees || [])
+      const [payrollResponse, staffResponse] = await Promise.all([
+        apiClient.get('/payroll/monthly', { params: { month, year } }),
+        apiClient.get('/payroll/staff', { params: { active: true, q: query.trim() || undefined } }),
+      ])
+      setData(payrollResponse.data)
+      setEmployees(staffResponse.data?.employees || [])
     } catch (err) {
-      setError(err.response?.data?.message || 'Could not load staff records. Check the server and database connection.')
-      setEmployees([])
-    } finally {
-      setLoading(false)
+      setError(err.response?.data?.message || 'Could not load payroll. Please check your connection and try again.')
+    } finally { setLoading(false) }
+  }, [month, year, query])
+
+  useEffect(() => { load() }, [load])
+  const run = data?.run
+  const items = run?.items || data?.items || []
+  const preview = !run
+  const totals = useMemo(() => items.reduce((acc, item) => {
+    if (item.needsSalarySetup) acc.missing += 1
+    else {
+      acc.gross += Number(item.grossSalary || 0)
+      acc.deductions += Number(item.totalDeductions || 0)
+      acc.net += Number(item.netPayable || 0)
+      acc.paid += Number(item.paidAmount || 0)
     }
-  }, [activeFilter, query])
+    return acc
+  }, { gross: 0, deductions: 0, net: 0, paid: 0, missing: 0 }), [items])
 
-  useEffect(() => { loadEmployees() }, [loadEmployees])
-
-  const configuredCount = useMemo(() => employees.filter((item) => item.currentSalaryStructure).length, [employees])
-  const grossFor = (structure) => Number(structure?.basicSalary || 0) + (structure?.allowances || []).reduce((sum, item) => sum + Number(item.amount || 0), 0)
-  const totals = useMemo(() => employees.reduce((sum, item) => {
-    sum.gross += grossFor(item.currentSalaryStructure)
-    sum.configured += item.currentSalaryStructure ? 1 : 0
-    return sum
-  }, { gross: 0, configured: 0 }), [employees])
-
-  const openSalary = async (employee) => {
-    setSalaryEmployee(employee)
-    setError('')
-    setNotice('')
-    setSalaryHistory([])
-    setSalaryForm({
-      ...blankSalary,
-      basicSalary: employee.currentSalaryStructure?.basicSalary ?? '',
-      allowances: employee.currentSalaryStructure?.allowances?.length ? employee.currentSalaryStructure.allowances.map((item) => ({ name: item.name, amount: String(item.amount) })) : [{ name: 'HRA', amount: '' }],
-      recurringDeductions: employee.currentSalaryStructure?.recurringDeductions?.map((item) => ({ name: item.name, amount: String(item.amount) })) || [],
-      effectiveFrom: dateInput(),
-      pfEnabled: employee.currentSalaryStructure?.statutorySettings?.pfEnabled === true,
-      esicEnabled: employee.currentSalaryStructure?.statutorySettings?.esicEnabled === true,
-      professionalTaxEnabled: employee.currentSalaryStructure?.statutorySettings?.professionalTaxEnabled === true,
-      tdsEnabled: employee.currentSalaryStructure?.statutorySettings?.tdsEnabled === true,
-      notes: employee.currentSalaryStructure?.statutorySettings?.notes || '',
-    })
+  const saveSalary = async (event) => {
+    event.preventDefault(); if (!salaryTarget) return
+    setSaving(true); setError(''); setNotice('')
     try {
-      const response = await apiClient.get(`/payroll/staff/${employee.id}/salary-structures`)
-      setSalaryHistory(response.data?.history || [])
-    } catch (err) {
-      setError(err.response?.data?.message || 'Could not load salary history.')
-    }
+      const payload = {
+        basicSalary: Number(salaryForm.basicSalary), effectiveFrom: salaryForm.effectiveFrom,
+        allowances: salaryForm.allowances.filter(x => x.name.trim() && x.amount !== '').map(x => ({ name: x.name.trim(), amount: Number(x.amount) })),
+        recurringDeductions: salaryForm.recurringDeductions.filter(x => x.name.trim() && x.amount !== '').map(x => ({ name: x.name.trim(), amount: Number(x.amount) })),
+      }
+      await apiClient.put(`/payroll/staff/${salaryTarget.id}/salary-structure`, payload)
+      setSalaryTarget(null); setNotice(`Salary structure saved for ${salaryTarget.name}.`); await load()
+    } catch (err) { setError(err.response?.data?.message || 'Could not save salary structure.') }
+    finally { setSaving(false) }
   }
 
-  const saveStaff = async (event) => {
-    event.preventDefault()
-    setSaving(true)
-    setError('')
-    setNotice('')
+  const openSalary = (employee) => {
+    setSalaryTarget(employee)
+    const current = employee.currentSalaryStructure
+    setSalaryForm({
+      ...blankSalary, basicSalary: current?.basicSalary ?? '',
+      allowances: current?.allowances?.length ? current.allowances.map(x => ({ name: x.name, amount: String(x.amount) })) : [{ name: 'HRA', amount: '' }],
+      recurringDeductions: current?.recurringDeductions?.map(x => ({ name: x.name, amount: String(x.amount) })) || [],
+      effectiveFrom: isoToday(),
+    })
+  }
+
+  const createStaff = async (event) => {
+    event.preventDefault(); setSaving(true); setError(''); setNotice('')
     try {
       const payload = { ...staffForm }
       if (!payload.userId) delete payload.userId
       if (!payload.teacherId) delete payload.teacherId
-      if (!payload.joiningDate) delete payload.joiningDate
       await apiClient.post('/payroll/staff', payload)
-      setStaffForm(blankStaff)
-      setStaffFormOpen(false)
-      setNotice('Staff profile created successfully.')
-      await loadEmployees()
-    } catch (err) {
-      setError(err.response?.data?.message || 'Could not save staff profile.')
-    } finally {
-      setSaving(false)
-    }
+      setStaffOpen(false); setStaffForm(blankStaff); setNotice('Staff profile created. Set their salary structure before generating payroll.'); await load()
+    } catch (err) { setError(err.response?.data?.message || 'Could not create staff profile.') }
+    finally { setSaving(false) }
   }
 
-  const updateComponent = (field, index, key, value) => setSalaryForm((current) => ({
-    ...current,
-    [field]: current[field].map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item),
-  }))
-
-  const saveSalary = async (event) => {
-    event.preventDefault()
-    if (!salaryEmployee) return
-    setSaving(true)
-    setError('')
-    setNotice('')
+  const generate = async () => {
+    if (!window.confirm(`Generate draft payroll for ${month}/${year}? Review the preview before continuing.`)) return
+    setSaving(true); setError(''); setNotice('')
     try {
-      const payload = {
-        basicSalary: Number(salaryForm.basicSalary),
-        effectiveFrom: salaryForm.effectiveFrom,
-        allowances: salaryForm.allowances.filter((item) => item.name.trim() && item.amount !== '').map((item) => ({ name: item.name.trim(), amount: Number(item.amount) })),
-        recurringDeductions: salaryForm.recurringDeductions.filter((item) => item.name.trim() && item.amount !== '').map((item) => ({ name: item.name.trim(), amount: Number(item.amount) })),
-        statutorySettings: {
-          pfEnabled: salaryForm.pfEnabled,
-          esicEnabled: salaryForm.esicEnabled,
-          professionalTaxEnabled: salaryForm.professionalTaxEnabled,
-          tdsEnabled: salaryForm.tdsEnabled,
-          notes: salaryForm.notes,
-        },
-      }
-      await apiClient.put(`/payroll/staff/${salaryEmployee.id}/salary-structure`, payload)
-      setNotice(`Salary structure saved for ${salaryEmployee.name}.`)
-      setSalaryEmployee(null)
-      await loadEmployees()
-    } catch (err) {
-      setError(err.response?.data?.message || 'Could not save salary structure.')
-    } finally {
-      setSaving(false)
-    }
+      const response = await apiClient.post('/payroll/monthly/generate', { month: Number(month), year: Number(year) })
+      setData({ run: response.data.run, preview: false }); setNotice('Monthly payroll generated as a draft. Review it and approve when ready.')
+    } catch (err) { setError(err.response?.data?.message || 'Could not generate payroll.') ; if (err.response?.data?.run) setData({ run: err.response.data.run, preview: false }) }
+    finally { setSaving(false) }
   }
 
-  return (
-    <main className="payroll-page">
-      <header className="payroll-page-header">
-        <div><span className="payroll-eyebrow">STAFF FINANCE</span><h1>Payroll</h1><p>Manage staff records and effective-dated salary structures. Monthly processing and payments will build on these verified records.</p></div>
-        <div className="payroll-header-actions"><button type="button" className="payroll-secondary-button" onClick={loadEmployees}><RefreshCw size={16} /> Refresh</button>{isPrincipal && <button type="button" className="payroll-primary-button" onClick={() => { setStaffFormOpen((open) => !open); setSalaryEmployee(null); setError(''); setNotice('') }}><Plus size={17} /> Add staff</button>}</div>
-      </header>
+  const approve = async () => {
+    if (!run?._id || !window.confirm('Approve this payroll? After approval, the snapshot is locked and payments can be recorded.')) return
+    setSaving(true); setError(''); setNotice('')
+    try { const response = await apiClient.post(`/payroll/monthly/${run._id}/approve`); setData({ run: response.data.run, preview: false }); setNotice('Payroll approved successfully.') }
+    catch (err) { setError(err.response?.data?.message || 'Could not approve payroll.') }
+    finally { setSaving(false) }
+  }
 
-      {error && <div className="payroll-alert payroll-alert-error" role="alert"><CircleAlert size={18} />{error}</div>}
-      {notice && <div className="payroll-alert payroll-alert-success" role="status"><CircleCheck size={18} />{notice}</div>}
+  const recordPayment = async (event) => {
+    event.preventDefault(); if (!paymentTarget || !run?._id) return
+    setSaving(true); setError(''); setNotice('')
+    try {
+      const response = await apiClient.post(`/payroll/monthly/${run._id}/items/${paymentTarget._id}/payment`, { ...paymentForm, amount: Number(paymentForm.amount) })
+      setData({ run: response.data.run, preview: false }); setPaymentTarget(null); setNotice('Payment recorded successfully.')
+    } catch (err) { setError(err.response?.data?.message || 'Could not record payment.') }
+    finally { setSaving(false) }
+  }
 
-      <section className="payroll-metrics">
-        <article><span className="payroll-metric-icon"><Users size={19} /></span><div><small>Staff shown</small><strong>{employees.length}</strong><span>Current filter</span></div></article>
-        <article><span className="payroll-metric-icon"><CircleCheck size={19} /></span><div><small>Salary configured</small><strong>{configuredCount}</strong><span>Effective today</span></div></article>
-        <article><span className="payroll-metric-icon"><CircleAlert size={19} /></span><div><small>Needs salary setup</small><strong>{employees.length - configuredCount}</strong><span>Requires review</span></div></article>
-        <article><span className="payroll-metric-icon"><Wallet size={19} /></span><div><small>Monthly gross estimate</small><strong>{money(totals.gross)}</strong><span>Configured staff in this view</span></div></article>
-      </section>
+  const csvExport = () => {
+    const rows = [['Employee ID', 'Employee', 'Gross', 'Present', 'Paid leave', 'Unpaid leave', 'Absent', 'Deductions', 'Net payable', 'Paid', 'Payment status'], ...items.map(x => [x.employeeId, x.name, x.grossSalary ?? '', x.presentDays ?? '', x.paidLeaveDays ?? '', x.unpaidLeaveDays ?? '', x.absentDays ?? '', x.totalDeductions ?? '', x.netPayable ?? '', x.paidAmount ?? 0, x.paymentStatus || (preview ? 'Preview' : 'unpaid')])]
+    const csv = rows.map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n')
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
+    const link = document.createElement('a'); link.href = url; link.download = `payroll-${year}-${month.padStart(2, '0')}.csv`; link.click(); URL.revokeObjectURL(url)
+  }
 
-      {staffFormOpen && isPrincipal && <section className="payroll-panel">
-        <div className="payroll-panel-heading"><div><h2>Add staff profile</h2><p>Link an existing login or teacher profile when applicable. This form does not create login credentials.</p></div><button type="button" className="payroll-text-button" onClick={() => setStaffFormOpen(false)}>Cancel</button></div>
-        <form className="payroll-form-grid" onSubmit={saveStaff}>
-          <label>Employee ID *<input value={staffForm.employeeId} onChange={(e) => setStaffForm({ ...staffForm, employeeId: e.target.value })} required maxLength={40} /></label>
-          <label>Full name *<input value={staffForm.name} onChange={(e) => setStaffForm({ ...staffForm, name: e.target.value })} required maxLength={120} /></label>
-          <label>Designation *<input value={staffForm.designation} onChange={(e) => setStaffForm({ ...staffForm, designation: e.target.value })} required maxLength={100} placeholder="e.g. Teacher, Accountant" /></label>
-          <label>Department<input value={staffForm.department} onChange={(e) => setStaffForm({ ...staffForm, department: e.target.value })} /></label>
-          <label>Email<input type="email" value={staffForm.email} onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })} /></label>
-          <label>Phone<input value={staffForm.phone} onChange={(e) => setStaffForm({ ...staffForm, phone: e.target.value })} /></label>
-          <label>Staff category<select value={staffForm.category} onChange={(e) => setStaffForm({ ...staffForm, category: e.target.value })}><option value="teaching">Teaching</option><option value="administration">Administration</option><option value="finance">Finance</option><option value="support">Support</option><option value="other">Other</option></select></label>
-          <label>Employment type<select value={staffForm.employmentType} onChange={(e) => setStaffForm({ ...staffForm, employmentType: e.target.value })}><option value="full_time">Full-time</option><option value="part_time">Part-time</option><option value="contract">Contract</option></select></label>
-          <label>Joining date<input type="date" value={staffForm.joiningDate} onChange={(e) => setStaffForm({ ...staffForm, joiningDate: e.target.value })} /></label>
-          <label>Existing user ID (optional)<input value={staffForm.userId} onChange={(e) => setStaffForm({ ...staffForm, userId: e.target.value })} placeholder="MongoDB User ID" /></label>
-          <label>Teacher profile ID (optional)<input value={staffForm.teacherId} onChange={(e) => setStaffForm({ ...staffForm, teacherId: e.target.value })} placeholder="MongoDB Teacher ID" /></label>
-          <div className="payroll-form-footer"><span>Required fields are marked with *.</span><button className="payroll-primary-button" disabled={saving}>{saving ? 'Saving…' : 'Create staff profile'}</button></div>
-        </form>
-      </section>}
+  const changeComponent = (field, index, key, value) => setSalaryForm(old => ({ ...old, [field]: old[field].map((x, i) => i === index ? { ...x, [key]: value } : x) }))
+  const monthLabel = new Date(Number(year), Number(month) - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 
-      <section className="payroll-panel">
-        <div className="payroll-toolbar"><div><h2>Staff & salary structures</h2><p>Salary values are shown only for the effective structure.</p></div><div className="payroll-filters"><label className="payroll-search"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, ID, department…" /></label><select aria-label="Staff status" value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}><option value="true">Active staff</option><option value="false">Inactive staff</option></select></div></div>
-        <div className="payroll-table-wrap"><table className="payroll-table"><thead><tr><th>Employee</th><th>Designation / Department</th><th>Basic salary</th><th>Allowances</th><th>Gross monthly</th><th>Salary setup</th>{isPrincipal && <th>Action</th>}</tr></thead>
-          <tbody>{loading ? <tr><td colSpan={isPrincipal ? 7 : 6} className="payroll-table-state">Loading staff records…</td></tr> : employees.length ? employees.map((employee) => {
-            const salary = employee.currentSalaryStructure
-            const allowanceTotal = (salary?.allowances || []).reduce((sum, item) => sum + Number(item.amount || 0), 0)
-            return <tr key={employee.id}><td><strong>{employee.name}</strong><span className="payroll-table-subtext">{employee.employeeId}{employee.user?.role ? ` · ${employee.user.role}` : ''}</span></td><td>{employee.designation}<span className="payroll-table-subtext">{employee.department || employee.category}</span></td><td>{salary ? money(salary.basicSalary) : '—'}</td><td>{salary ? money(allowanceTotal) : '—'}</td><td><strong>{salary ? money(grossFor(salary)) : '—'}</strong></td><td><span className={salary ? 'payroll-status payroll-status-ready' : 'payroll-status payroll-status-missing'}>{salary ? 'Configured' : 'Needs setup'}</span></td>{isPrincipal && <td><button type="button" className="payroll-row-action" onClick={() => openSalary(employee)}>{salary ? 'Revise salary' : 'Set salary'}</button></td>}</tr>
-          }) : <tr><td colSpan={isPrincipal ? 7 : 6} className="payroll-table-state">{error ? 'Staff could not be loaded.' : 'No staff records match this filter. Add staff profiles to begin.'}</td></tr>}</tbody>
-        </table></div>
-        <div className="payroll-table-footer">{employees.length} staff record{employees.length === 1 ? '' : 's'} · Monthly gross is an estimate from configured fixed components, not a processed payroll total.</div>
-      </section>
+  return <main className="payroll-page">
+    <header className="payroll-page-header">
+      <div><span className="payroll-eyebrow">STAFF FINANCE · PAYROLL OPERATIONS</span><h1>Salary & Payroll</h1><p>Set salary structures, review attendance and approved leave, calculate monthly pay, and track payments in one place.</p></div>
+      <div className="payroll-header-actions"><button type="button" className="payroll-secondary-button" onClick={load} disabled={loading}><RefreshCw size={16}/> Refresh</button>{isPrincipal && <button type="button" className="payroll-primary-button" onClick={() => setStaffOpen(x => !x)}><Plus size={16}/> Add staff</button>}</div>
+    </header>
 
-      {salaryEmployee && isPrincipal && <section className="payroll-panel payroll-salary-editor">
-        <div className="payroll-panel-heading"><div><span className="payroll-eyebrow">SALARY SETUP</span><h2>{salaryEmployee.name}</h2><p>Employee ID {salaryEmployee.employeeId} · Previous structures are retained for history.</p></div><button type="button" className="payroll-text-button" onClick={() => setSalaryEmployee(null)}>Close</button></div>
-        <form onSubmit={saveSalary}>
-          <div className="payroll-form-grid payroll-salary-grid">
-            <label>Basic monthly salary (₹) *<input type="number" min="0" step="0.01" value={salaryForm.basicSalary} onChange={(e) => setSalaryForm({ ...salaryForm, basicSalary: e.target.value })} required /></label>
-            <label>Effective from *<input type="date" value={salaryForm.effectiveFrom} onChange={(e) => setSalaryForm({ ...salaryForm, effectiveFrom: e.target.value })} required /></label>
-          </div>
-          <div className="payroll-component-columns">
-            {['allowances', 'recurringDeductions'].map((field) => <div className="payroll-component-box" key={field}><div className="payroll-component-heading"><h3>{field === 'allowances' ? 'Monthly allowances' : 'Recurring deductions'}</h3><button type="button" className="payroll-text-button" onClick={() => setSalaryForm((current) => ({ ...current, [field]: [...current[field], { name: '', amount: '' }] }))}>+ Add row</button></div>{salaryForm[field].map((item, index) => <div className="payroll-component-row" key={index}><input aria-label={`${field} name ${index + 1}`} placeholder="Component name" value={item.name} onChange={(e) => updateComponent(field, index, 'name', e.target.value)} /><input aria-label={`${field} amount ${index + 1}`} type="number" min="0" step="0.01" placeholder="Amount ₹" value={item.amount} onChange={(e) => updateComponent(field, index, 'amount', e.target.value)} /><button type="button" className="payroll-remove-row" aria-label="Remove component" onClick={() => setSalaryForm((current) => ({ ...current, [field]: current[field].filter((_, rowIndex) => rowIndex !== index) }))}>×</button></div>)}{!salaryForm[field].length && <p className="payroll-muted">No components added.</p>}</div>)}
-          </div>
-          <div className="payroll-statutory-box"><h3>Statutory calculation flags</h3><p>These flags record whether the item should be assessed. They do not calculate statutory amounts yet.</p><div className="payroll-checkboxes">{[['pfEnabled', 'PF'], ['esicEnabled', 'ESIC'], ['professionalTaxEnabled', 'Professional tax'], ['tdsEnabled', 'TDS']].map(([field, label]) => <label key={field}><input type="checkbox" checked={salaryForm[field]} onChange={(e) => setSalaryForm({ ...salaryForm, [field]: e.target.checked })} />{label}</label>)}</div><label className="payroll-notes-label">Payroll notes<textarea rows="2" maxLength={1000} value={salaryForm.notes} onChange={(e) => setSalaryForm({ ...salaryForm, notes: e.target.value })} placeholder="Eligibility or review notes (do not store bank passwords or sensitive credentials)" /></label></div>
-          <div className="payroll-form-footer"><span>Monthly gross estimate: <strong>{money(Number(salaryForm.basicSalary || 0) + salaryForm.allowances.reduce((sum, item) => sum + Number(item.amount || 0), 0))}</strong></span><button className="payroll-primary-button" disabled={saving}>{saving ? 'Saving…' : 'Save salary structure'}</button></div>
-        </form>
-        <div className="payroll-history"><h3>Salary structure history</h3>{salaryHistory.length ? salaryHistory.map((item) => <div className="payroll-history-row" key={item._id}><span><strong>{money(item.basicSalary + (item.allowances || []).reduce((sum, component) => sum + Number(component.amount || 0), 0))}</strong><small>Effective {new Date(item.effectiveFrom).toLocaleDateString('en-IN')} {item.effectiveTo ? `– ${new Date(item.effectiveTo).toLocaleDateString('en-IN')}` : 'onward'}</small></span><span className="payroll-status">{item.status}</span></div>) : <p className="payroll-muted">No salary structure history loaded.</p>}</div>
-      </section>}
-      <p className="payroll-privacy-note"><BadgeIndianRupee size={15} /> Payroll records are school-scoped. This initial step manages staff and salary structures; it does not yet calculate monthly payable salary or record payments.</p>
-    </main>
-  )
+    {error && <div className="payroll-alert payroll-alert-error" role="alert"><CircleAlert size={18}/><span>{error}</span></div>}
+    {notice && <div className="payroll-alert payroll-alert-success" role="status"><Check size={18}/><span>{notice}</span></div>}
+
+    <section className="payroll-period-panel">
+      <div className="payroll-period-copy"><span className="payroll-eyebrow">PAY PERIOD</span><h2>{monthLabel}</h2><p>{preview ? 'Live preview from current salary, attendance and approved leave records.' : `Saved payroll snapshot · ${run.status}`}</p></div>
+      <div className="payroll-period-controls"><label>Month<select value={month} onChange={e => setMonth(e.target.value)}>{Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={String(i + 1)}>{new Date(2026, i, 1).toLocaleDateString('en-IN', { month: 'long' })}</option>)}</select></label><label>Year<select value={year} onChange={e => setYear(e.target.value)}>{Array.from({ length: 7 }, (_, i) => Number(defaultYear) - 3 + i).map(y => <option key={y} value={String(y)}>{y}</option>)}</select></label></div>
+      <div className="payroll-period-actions"><button type="button" className="payroll-secondary-button" onClick={csvExport} disabled={!items.length}><Download size={15}/> Export CSV</button>{isPrincipal && preview && <button type="button" className="payroll-primary-button" onClick={generate} disabled={saving || loading || !items.length || totals.missing > 0}>{saving ? 'Processing…' : 'Generate payroll'}</button>}{isPrincipal && run?.status === 'draft' && <button type="button" className="payroll-primary-button" onClick={approve} disabled={saving}>{saving ? 'Processing…' : 'Approve payroll'}</button>}</div>
+    </section>
+
+    <section className="payroll-metrics">
+      <article><span className="payroll-metric-icon"><Users size={19}/></span><div><small>Staff in payroll</small><strong>{items.length}</strong><span>{totals.missing ? `${totals.missing} need salary setup` : 'Based on active staff'}</span></div></article>
+      <article><span className="payroll-metric-icon"><Wallet size={19}/></span><div><small>Gross salary</small><strong>{money(totals.gross)}</strong><span>Before deductions</span></div></article>
+      <article><span className="payroll-metric-icon"><CircleAlert size={19}/></span><div><small>Total deductions</small><strong>{money(totals.deductions)}</strong><span>Attendance, unpaid leave and recurring</span></div></article>
+      <article><span className="payroll-metric-icon"><BadgeIndianRupee size={19}/></span><div><small>Net payable</small><strong>{money(totals.net)}</strong><span>{money(totals.paid)} paid so far</span></div></article>
+    </section>
+
+    {staffOpen && isPrincipal && <section className="payroll-panel">
+      <div className="payroll-panel-heading"><div><span className="payroll-eyebrow">STAFF RECORD</span><h2>Add staff profile</h2><p>Link the existing teacher account so attendance and leave can be matched correctly.</p></div><button className="payroll-icon-button" type="button" onClick={() => setStaffOpen(false)} aria-label="Close"><X size={18}/></button></div>
+      <form className="payroll-form-grid" onSubmit={createStaff}>
+        <label>Employee ID *<input value={staffForm.employeeId} onChange={e => setStaffForm({ ...staffForm, employeeId: e.target.value })} required maxLength={40}/></label>
+        <label>Full name *<input value={staffForm.name} onChange={e => setStaffForm({ ...staffForm, name: e.target.value })} required maxLength={120}/></label>
+        <label>Designation *<input value={staffForm.designation} onChange={e => setStaffForm({ ...staffForm, designation: e.target.value })} required/></label>
+        <label>Category<select value={staffForm.category} onChange={e => setStaffForm({ ...staffForm, category: e.target.value })}><option value="teaching">Teaching</option><option value="administration">Administration</option><option value="finance">Finance</option><option value="support">Support</option><option value="other">Other</option></select></label>
+        <label>Department<input value={staffForm.department} onChange={e => setStaffForm({ ...staffForm, department: e.target.value })}/></label>
+        <label>Email<input type="email" value={staffForm.email} onChange={e => setStaffForm({ ...staffForm, email: e.target.value })}/></label>
+        <label>Phone<input value={staffForm.phone} onChange={e => setStaffForm({ ...staffForm, phone: e.target.value })}/></label>
+        <label>Joining date<input type="date" value={staffForm.joiningDate} onChange={e => setStaffForm({ ...staffForm, joiningDate: e.target.value}/></label>
+        <label>Linked login user ID<input value={staffForm.userId} onChange={e => setStaffForm({ ...staffForm, userId: e.target.value })} placeholder="MongoDB User ID"/></label>
+        <label>Teacher profile ID<input value={staffForm.teacherId} onChange={e => setStaffForm({ ...staffForm, teacherId: e.target.value })} placeholder="MongoDB Teacher ID"/></label>
+        <div className="payroll-form-footer"><span>Login credentials are not created by this form.</span><button className="payroll-primary-button" disabled={saving}>{saving ? 'Saving…' : 'Create staff'}</button></div>
+      </form>
+    </section>}
+
+    <section className="payroll-panel">
+      <div className="payroll-toolbar"><div><span className="payroll-eyebrow">MONTHLY REGISTER</span><h2>Salary calculation</h2><p>Per-day rate uses monthly gross divided by calendar days in the selected month. Missing attendance is flagged, not automatically deducted.</p></div><label className="payroll-search"><Search size={17}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Filter staff by name or employee ID…"/></label></div>
+      {loading ? <div className="payroll-empty"><RefreshCw size={22}/><strong>Loading payroll…</strong></div> : !items.length ? <div className="payroll-empty"><CalendarDays size={24}/><strong>No staff records found</strong><span>Add staff profiles and set salary structures to start.</span></div> : <div className="payroll-table-wrap"><table className="payroll-table"><thead><tr><th>Employee</th><th>Gross</th><th>Attendance</th><th>Paid / unpaid leave</th><th>Absence</th><th>Deductions</th><th>Net payable</th><th>Status / action</th></tr></thead><tbody>
+        {items.filter(x => !query.trim() || `${x.name} ${x.employeeId}`.toLowerCase().includes(query.trim().toLowerCase())).map((item, index) => {
+          const staff = employees.find(x => String(x.id) === String(item.employee))
+          const isMissing = item.needsSalarySetup
+          const paymentStatus = item.paymentStatus || (preview ? 'Preview' : 'unpaid')
+          return <tr key={item._id || item.employee || index}><td><strong>{item.name}</strong><span className="payroll-table-subtext">{item.employeeId} · {item.designation || 'Staff'}</span>{item.calculationNotes?.length > 0 && <details className="payroll-row-notes"><summary>Calculation notes</summary>{item.calculationNotes.map((note, i) => <p key={i}>{note}</p>)}</details>}</td><td>{isMissing ? '—' : money(item.grossSalary)}</td><td><span className="payroll-count">{item.presentDays ?? '—'} present</span><span className="payroll-table-subtext">{item.absentDays ?? '—'} absent · {item.lateDays ?? '—'} late</span></td><td><span className="payroll-count">{item.paidLeaveDays ?? '—'} paid</span><span className="payroll-table-subtext">{item.unpaidLeaveDays ?? '—'} unpaid</span></td><td>{isMissing ? '—' : money(item.attendanceDeduction + item.unpaidLeaveDeduction)}</td><td>{isMissing ? '—' : money(item.totalDeductions)}</td><td><strong>{isMissing ? 'Salary setup needed' : money(item.netPayable)}</strong><span className="payroll-table-subtext">{!preview && `${money(item.paidAmount)} paid`}</span></td><td><span className={`payroll-status ${isMissing ? 'payroll-status-missing' : paymentStatus === 'paid' ? 'payroll-status-ready' : ''}`}>{isMissing ? 'Needs setup' : paymentStatus}</span>{isPrincipal && preview && staff && <button className="payroll-row-action" type="button" onClick={() => openSalary(staff)}>{staff.currentSalaryStructure ? 'Revise salary' : 'Set salary'}</button>}{isPrincipal && run?.status === 'approved' && item._id && item.paymentStatus !== 'paid' && <button className="payroll-row-action" type="button" onClick={() => { setPaymentTarget(item); setPaymentForm({ amount: String(Math.max(0, Number(item.netPayable || 0) - Number(item.paidAmount || 0))), method: 'bank_transfer', date: isoToday(), reference: '' }) }}>Record payment</button>}</td></tr>
+        })}
+      </tbody></table></div>}
+      {totals.missing > 0 && <p className="payroll-inline-warning"><CircleAlert size={16}/> {totals.missing} staff member(s) need a salary structure effective for this month before payroll can be generated.</p>}
+      <div className="payroll-table-footer">Attendance is linked through each employee’s teacher profile. Approved casual/sick/earned leave is treated as paid; approved emergency/other leave as unpaid. PF/ESIC/PT/TDS amounts are not automatically computed.</div>
+    </section>
+
+    {salaryTarget && <section className="payroll-panel payroll-editor"><div className="payroll-panel-heading"><div><span className="payroll-eyebrow">SALARY STRUCTURE</span><h2>{salaryTarget.name}</h2><p>Monthly salary components. Changes are effective-dated and do not rewrite past payroll snapshots.</p></div><button className="payroll-icon-button" type="button" onClick={() => setSalaryTarget(null)} aria-label="Close"><X size={18}/></button></div>
+      <form onSubmit={saveSalary}><div className="payroll-form-grid payroll-salary-grid"><label>Basic monthly salary (₹) *<input type="number" min="0" step="0.01" value={salaryForm.basicSalary} onChange={e => setSalaryForm({ ...salaryForm, basicSalary: e.target.value })} required/></label><label>Effective from *<input type="date" value={salaryForm.effectiveFrom} onChange={e => setSalaryForm({ ...salaryForm, effectiveFrom: e.target.value })} required/></label></div>
+      <div className="payroll-component-columns">{['allowances', 'recurringDeductions'].map(field => <div className="payroll-component-box" key={field}><div className="payroll-component-heading"><h3>{field === 'allowances' ? 'Monthly allowances' : 'Recurring deductions'}</h3><button type="button" className="payroll-text-button" onClick={() => setSalaryForm(old => ({ ...old, [field]: [...old[field], { name: '', amount: '' }] }))}><Plus size={14}/> Add</button></div>{salaryForm[field].map((item, i) => <div className="payroll-component-row" key={i}><input aria-label="Component name" placeholder="Component name" value={item.name} onChange={e => changeComponent(field, i, 'name', e.target.value)}/><input aria-label="Component amount" type="number" min="0" step="0.01" placeholder="Amount ₹" value={item.amount} onChange={e => changeComponent(field, i, 'amount', e.target.value)}/><button className="payroll-remove-row" type="button" onClick={() => setSalaryForm(old => ({ ...old, [field]: old[field].filter((_, j) => i !== j) }))} aria-label="Remove component"><X size={15}/></button></div>)}</div>)}</div>
+      <div className="payroll-form-footer"><span>Estimated full-month gross: <strong>{money(Number(salaryForm.basicSalary || 0) + salaryForm.allowances.reduce((sum, x) => sum + Number(x.amount || 0), 0))}</strong></span><button className="payroll-primary-button" disabled={saving}>{saving ? 'Saving…' : 'Save salary structure'}</button></div></form>
+    </section>}
+
+    {paymentTarget && <section className="payroll-panel payroll-editor"><div className="payroll-panel-heading"><div><span className="payroll-eyebrow">PAYMENT ENTRY</span><h2>{paymentTarget.name}</h2><p>Record the actual payment made. The remaining balance cannot exceed the approved net salary.</p></div><button className="payroll-icon-button" type="button" onClick={() => setPaymentTarget(null)} aria-label="Close"><X size={18}/></button></div>
+      <form className="payroll-form-grid" onSubmit={recordPayment}><label>Amount (₹) *<input type="number" min="0.01" step="0.01" max={Math.max(0, paymentTarget.netPayable - paymentTarget.paidAmount)} value={paymentForm.amount} onChange={e => setPaymentForm({ ...paymentForm, amount: e.target.value })} required/></label><label>Payment method<select value={paymentForm.method} onChange={e => setPaymentForm({ ...paymentForm, method: e.target.value })}><option value="bank_transfer">Bank transfer</option><option value="upi">UPI</option><option value="cash">Cash</option><option value="cheque">Cheque</option><option value="other">Other</option></select></label><label>Payment date<input type="date" value={paymentForm.date} onChange={e => setPaymentForm({ ...paymentForm, date: e.target.value })} required/></label><label>Reference / transaction ID<input value={paymentForm.reference} onChange={e => setPaymentForm({ ...paymentForm, reference: e.target.value })} maxLength={120}/></label><div className="payroll-form-footer"><span>Remaining: <strong>{money(paymentTarget.netPayable - paymentTarget.paidAmount)}</strong></span><button className="payroll-primary-button" disabled={saving}>{saving ? 'Saving…' : 'Save payment'}</button></div></form>
+    </section>}
+    <p className="payroll-privacy-note"><Clock3 size={15}/> Payroll is school-scoped. Preview values use current approved records; generated payroll is a saved snapshot, and payment status changes only when a payment is recorded.</p>
+  </main>
 }
 
 export default PayrollPage
