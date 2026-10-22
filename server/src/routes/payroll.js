@@ -431,7 +431,7 @@ async function calculatePayrollPreview(schoolId, year, month) {
     if (!employee.teacher) notes.push("No linked teacher profile; teacher attendance was not applied.");
     for (let day = 1; day <= periodDays; day += 1) {
       const date = new Date(Date.UTC(year, month - 1, day));
-      if (date < structureStart || date > structureEnd) continue;
+      if (date.getUTCDay() === 0 || date < structureStart || date > structureEnd) continue;
       const key = dayKey(date);
       const leave = employee.user ? leaveByUserDate.get(`${String(employee.user)}:${key}`) : null;
       if (leave) {
