@@ -349,6 +349,10 @@ router.put("/staff/:id/salary-structure", requirePayrollAdmin, async (req, res, 
         return res.status(400).json({ message: `${field} must be a boolean` });
       }
     }
+    const pfRate = statutorySettings.pfRate === undefined ? 12 : Number(statutorySettings.pfRate);
+    if (!Number.isFinite(pfRate) || pfRate < 0 || pfRate > 100) {
+      return res.status(400).json({ message: "pfRate must be between 0 and 100" });
+    }
     const existingSameDate = await EmployeeSalaryStructure.findOne({
       school: req.user.school,
       employee: employee._id,
@@ -371,7 +375,8 @@ router.put("/staff/:id/salary-structure", requirePayrollAdmin, async (req, res, 
       allowances,
       recurringDeductions,
       statutorySettings: {
-        pfEnabled: statutorySettings.pfEnabled === true,
+        pfEnabled: statutorySettings.pfEnabled !== false,
+        pfRate,
         esicEnabled: statutorySettings.esicEnabled === true,
         professionalTaxEnabled: statutorySettings.professionalTaxEnabled === true,
         tdsEnabled: statutorySettings.tdsEnabled === true,
@@ -465,10 +470,10 @@ async function calculatePayrollPreview(schoolId, year, month) {
     const basicSalary = Number(structure.basicSalary || 0);
     const allowances = (structure.allowances || []).map((item) => ({ name: item.name, amount: Number(item.amount || 0) }));
     const configuredDeductions = (structure.recurringDeductions || []).map((item) => ({ name: item.name, amount: Number(item.amount || 0) }));
-    // If PF is configured on this salary structure, calculate the employee PF share at 12% of basic
-    // instead of using a manually entered fixed amount. This is a simplified default and may need
-    // adjustment for the employee's EPF eligibility, applicable PF wage ceiling, and school policy.
-    const pfConfigured = configuredDeductions.some((item) => /^pf$/i.test(item.name.trim()) || /^provident fund$/i.test(item.name.trim()));
+    const pfEnabled = structure.statutorySettings?.pfEnabled !== false;
+    const pfRate = Number(structure.statutorySettings?.pfRate ?? 12);
+    // PF is calculated from this salary structure's configured percentage, not a fixed amount.
+    // Confirm employee EPF eligibility and applicable wage ceiling before approving payroll.
     const recurringDeductions = configuredDeductions.filter((item) => !(/^pf$/i.test(item.name.trim()) || /^provident fund$/i.test(item.name.trim())));
     const fullGross = basicSalary + allowances.reduce((sum, item) => sum + item.amount, 0);
     const grossSalary = roundMoney(fullGross * eligibleDays / periodDays);
@@ -498,10 +503,10 @@ async function calculatePayrollPreview(schoolId, year, month) {
     notes.push("Late attendance counts as present; statutory flags are not automatically calculated.");
     const attendanceDeduction = roundMoney(absentDays * perDayRate);
     const unpaidLeaveDeduction = roundMoney(unpaidLeaveDays * perDayRate);
-    const pfDeduction = pfConfigured ? roundMoney(basicSalary * 0.12 * eligibleDays / periodDays) : 0;
+    const pfDeduction = pfEnabled ? roundMoney(basicSalary * (pfRate / 100) * eligibleDays / periodDays) : 0;
     const otherDeductions = roundMoney(recurringDeductions.reduce((sum, item) => sum + item.amount, 0) * eligibleDays / periodDays);
     const totalDeductions = roundMoney(attendanceDeduction + unpaidLeaveDeduction + pfDeduction + otherDeductions);
-    if (pfConfigured) notes.push(`Employee PF calculated at 12% of basic salary, prorated for ${eligibleDays} eligible calendar day(s); verify EPF eligibility and applicable wage ceiling before payroll approval.`);
+    if (pfEnabled) notes.push(`Employee PF calculated at ${pfRate}% of basic salary, prorated for ${eligibleDays} eligible calendar day(s); verify EPF eligibility and applicable wage ceiling before payroll approval.`);
     return {
       employee: employee._id, employeeId: employee.employeeId, name: employee.name, designation: employee.designation,
       salaryStructure: structure._id, basicSalary: roundMoney(basicSalary * eligibleDays / periodDays),
