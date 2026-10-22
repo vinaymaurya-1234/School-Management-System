@@ -10,7 +10,7 @@ const defaultMonth = String(today.getMonth() + 1)
 const defaultYear = String(today.getFullYear())
 const isoToday = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)
 const blankStaff = { employeeId: '', name: '', email: '', phone: '', designation: 'Teacher', department: '', category: 'teaching', employmentType: 'full_time', joiningDate: isoToday(), userId: '', teacherId: '' }
-const blankSalary = { basicSalary: '', allowances: [{ name: 'HRA', amount: '' }], recurringDeductions: [], effectiveFrom: isoToday() }
+const blankSalary = { basicSalary: '', allowances: [{ name: 'HRA', amount: '' }], recurringDeductions: [], pfEnabled: true, pfRate: '12', effectiveFrom: isoToday() }
 
 function PayrollPage() {
   const { user } = useAuth()
@@ -71,6 +71,7 @@ function PayrollPage() {
         basicSalary: Number(salaryForm.basicSalary), effectiveFrom: salaryForm.effectiveFrom,
         allowances: salaryForm.allowances.filter(x => x.name.trim() && x.amount !== '').map(x => ({ name: x.name.trim(), amount: Number(x.amount) })),
         recurringDeductions: salaryForm.recurringDeductions.filter(x => x.name.trim() && x.amount !== '').map(x => ({ name: x.name.trim(), amount: Number(x.amount) })),
+        statutorySettings: { pfEnabled: salaryForm.pfEnabled, pfRate: Number(salaryForm.pfRate) },
       }
       await apiClient.put(`/payroll/staff/${salaryTarget.id}/salary-structure`, payload)
       setSalaryTarget(null); setNotice(`Salary structure saved for ${salaryTarget.name}.`); await load()
@@ -84,7 +85,8 @@ function PayrollPage() {
     setSalaryForm({
       ...blankSalary, basicSalary: current?.basicSalary ?? '',
       allowances: current?.allowances?.length ? current.allowances.map(x => ({ name: x.name, amount: String(x.amount) })) : [{ name: 'HRA', amount: '' }],
-      recurringDeductions: current?.recurringDeductions?.map(x => ({ name: x.name, amount: String(x.amount) })) || [],
+      recurringDeductions: current?.recurringDeductions?.filter(x => !/^pf$|^provident fund$/i.test(x.name.trim())).map(x => ({ name: x.name, amount: String(x.amount) })) || [],
+      pfEnabled: current?.statutorySettings?.pfEnabled !== false, pfRate: String(current?.statutorySettings?.pfRate ?? 12),
       effectiveFrom: isoToday(),
     })
   }
@@ -233,6 +235,11 @@ function PayrollPage() {
 
     {salaryTarget && <section className="payroll-panel payroll-editor"><div className="payroll-panel-heading"><div><span className="payroll-eyebrow">SALARY STRUCTURE</span><h2>{salaryTarget.name}</h2><p>Monthly salary components. Changes are effective-dated and do not rewrite past payroll snapshots.</p></div><button className="payroll-icon-button" type="button" onClick={() => setSalaryTarget(null)} aria-label="Close"><X size={18}/></button></div>
       <form onSubmit={saveSalary}><div className="payroll-form-grid payroll-salary-grid"><label>Basic monthly salary (₹) *<input type="number" min="0" step="0.01" value={salaryForm.basicSalary} onChange={e => setSalaryForm({ ...salaryForm, basicSalary: e.target.value })} required/></label><label>Effective from *<input type="date" value={salaryForm.effectiveFrom} onChange={e => setSalaryForm({ ...salaryForm, effectiveFrom: e.target.value })} required/></label></div>
+      <div className="payroll-component-box payroll-pf-settings">
+        <div className="payroll-component-heading"><h3>Provident Fund (PF)</h3><label className="payroll-pf-toggle"><input type="checkbox" checked={salaryForm.pfEnabled} onChange={e => setSalaryForm({ ...salaryForm, pfEnabled: e.target.checked })}/> Calculate PF automatically</label></div>
+        <label className="payroll-pf-rate">Employee PF rate (%)<input type="number" min="0" max="100" step="0.01" value={salaryForm.pfRate} onChange={e => setSalaryForm({ ...salaryForm, pfRate: e.target.value })} disabled={!salaryForm.pfEnabled} required={salaryForm.pfEnabled}/></label>
+        <p>Default 12% of basic salary. Confirm EPF eligibility and applicable wage ceiling before approving payroll.</p>
+      </div>
       <div className="payroll-component-columns">{['allowances', 'recurringDeductions'].map(field => <div className="payroll-component-box" key={field}><div className="payroll-component-heading"><h3>{field === 'allowances' ? 'Monthly allowances' : 'Recurring deductions'}</h3><button type="button" className="payroll-text-button" onClick={() => setSalaryForm(old => ({ ...old, [field]: [...old[field], { name: '', amount: '' }] }))}><Plus size={14}/> Add</button></div>{salaryForm[field].map((item, i) => <div className="payroll-component-row" key={i}><input aria-label="Component name" placeholder="Component name" value={item.name} onChange={e => changeComponent(field, i, 'name', e.target.value)}/><input aria-label="Component amount" type="number" min="0" step="0.01" placeholder="Amount ₹" value={item.amount} onChange={e => changeComponent(field, i, 'amount', e.target.value)}/><button className="payroll-remove-row" type="button" onClick={() => setSalaryForm(old => ({ ...old, [field]: old[field].filter((_, j) => i !== j) }))} aria-label="Remove component"><X size={15}/></button></div>)}</div>)}</div>
       <div className="payroll-form-footer"><span>Estimated full-month gross: <strong>{money(Number(salaryForm.basicSalary || 0) + salaryForm.allowances.reduce((sum, x) => sum + Number(x.amount || 0), 0))}</strong></span><button className="payroll-primary-button" disabled={saving}>{saving ? 'Saving…' : 'Save salary structure'}</button></div></form>
     </section>}
