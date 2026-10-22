@@ -163,6 +163,58 @@ router.get("/staff", requirePayrollReader, async (req, res, next) => {
   }
 });
 
+// List active teacher profiles not yet linked to a payroll employee record.
+router.get("/staff/candidates", requirePayrollAdmin, async (req, res, next) => {
+  try {
+    const search = String(req.query.q || "").trim();
+    const filter = { school: req.user.school };
+    if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\// Create a staff record. Existing user and teacher links are optional; no duplicate login is created.
+router.post("/staff", requirePayrollAdmin, async (req, res, next) => {");
+      filter.$or = [
+        { employeeId: { $regex: escaped, $options: "i" } },
+        { designation: { $regex: escaped, $options: "i" } },
+        { department: { $regex: escaped, $options: "i" } },
+        { specialization: { $regex: escaped, $options: "i" } },
+      ];
+    }
+    const teachers = await Teacher.find(filter).populate("user", "name email role active").sort({ employeeId: 1 }).lean();
+    const linkedIds = await Employee.find({ school: req.user.school, $or: [
+      { teacher: { $in: teachers.map((teacher) => teacher._id) } },
+      { user: { $in: teachers.map((teacher) => teacher.user?._id).filter(Boolean) } },
+    ] }).select("teacher user").lean();
+    const linkedTeachers = new Set(linkedIds.map((item) => String(item.teacher || "")));
+    const linkedUsers = new Set(linkedIds.map((item) => String(item.user || "")));
+    const candidates = teachers.filter((teacher) =>
+      teacher.user?.active !== false &&
+      !linkedTeachers.has(String(teacher._id)) &&
+      !linkedUsers.has(String(teacher.user?._id || ""))
+    ).filter((teacher) => {
+      if (!search) return true;
+      const haystack = [teacher.user?.name, teacher.employeeId, teacher.designation, teacher.department, teacher.specialization, teacher.user?.email, teacher.phone].join(" ").toLowerCase();
+      return haystack.includes(search.toLowerCase());
+    }).map((teacher) => ({
+      teacherId: String(teacher._id),
+      userId: String(teacher.user?._id || teacher.user || ""),
+      employeeId: teacher.employeeId,
+      name: teacher.user?.name || "",
+      email: teacher.user?.email || "",
+      phone: teacher.phone || "",
+      designation: teacher.designation || "Teacher",
+      department: teacher.department || "",
+      category: "teaching",
+      joiningDate: teacher.joiningDate || null,
+      gender: teacher.gender || "",
+      dateOfBirth: teacher.dateOfBirth || null,
+      qualification: teacher.qualification || "",
+      specialization: teacher.specialization || "",
+      address: teacher.address || "",
+      emergencyContact: teacher.emergencyContact || {},
+    }));
+    res.json({ candidates, count: candidates.length });
+  } catch (error) { next(error); }
+});
+
 // Create a staff record. Existing user and teacher links are optional; no duplicate login is created.
 router.post("/staff", requirePayrollAdmin, async (req, res, next) => {
   try {
