@@ -128,3 +128,14 @@
  .teacher-home-copy h1{font-size:27px;letter-spacing:-.7px}
  .teacher-home-copy p{font-size:13px}
 }
+
+/* Teacher self-attendance shortcut restored on the dashboard */
+.teacher-self-attendance{display:flex;align-items:center;gap:17px;margin:22px 0 14px;padding:20px 22px;border:1px solid #dededb;border-radius:18px;background:#fff;box-shadow:0 8px 24px rgba(0,0,0,.025)}
+.teacher-self-attendance-icon{width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border:1px solid #e5e5e2;border-radius:14px;background:#f5f5f3;color:#171717}
+.teacher-self-attendance-copy{flex:1;min-width:0}
+.teacher-self-attendance-copy>span{font-size:10px;font-weight:800;letter-spacing:1.6px;color:#777}
+.teacher-self-attendance-copy h2{margin:5px 0;font-size:18px;letter-spacing:-.35px;color:#171717}
+.teacher-self-attendance-copy p{margin:0;font-size:12px;line-height:1.5;color:#737373}
+.teacher-self-attendance-link{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 14px;border-radius:10px;background:#171717;color:#fff;text-decoration:none;font-size:12px;font-weight:750;white-space:nowrap}
+.teacher-self-attendance-link:hover{background:#333}
+@media(max-width:700px){.teacher-self-attendance{align-items:flex-start;flex-wrap:wrap;padding:17px}.teacher-self-attendance-copy{flex-basis:calc(100% - 70px)}.teacher-self-attendance-link{margin-left:65px}}
