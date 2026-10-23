@@ -8,3 +8,36 @@
 .payroll-pf-rate input{width:100%;min-height:39px;padding:8px 10px;border:1px solid #dedede;border-radius:8px;background:#fff}
 .payroll-pf-rate input:disabled{background:#f5f5f5}
 .payroll-pf-settings p{margin:10px 0 0;color:#777;font-size:11px;line-height:1.5}
+
+/* Compact employee register with expandable salary slips */
+.payroll-compact-table th:last-child,.payroll-compact-table td:last-child{width:112px;text-align:right}
+.payroll-employee-row td{vertical-align:middle;padding-top:17px;padding-bottom:17px}
+.payroll-employee-row.is-expanded td{background:#fafafa;border-bottom-color:#fafafa}
+.payroll-slip-toggle{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 10px;border:1px solid #dedede;border-radius:9px;background:#fff;color:#222;font-size:11px;font-weight:750;cursor:pointer}
+.payroll-slip-toggle:hover{border-color:#999;background:#f5f5f5}
+.payroll-chevron{font-size:19px;line-height:1;transform:translateY(-2px)}
+.payroll-slip-detail-row>td{padding:0!important;background:#fafafa;border-bottom:1px solid #e6e6e6!important;white-space:normal}
+.payroll-slip-details{padding:22px 24px 24px;border-top:1px solid #ededed}
+.payroll-slip-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding-bottom:18px;border-bottom:1px solid #e7e7e7}
+.payroll-slip-heading h3{margin:6px 0 4px;font-size:20px;letter-spacing:-.035em;color:#171717}
+.payroll-slip-heading p{margin:0;color:#777;font-size:11px;text-transform:capitalize}
+.payroll-slip-net{display:grid;gap:5px;text-align:right}
+.payroll-slip-net span{color:#777;font-size:11px}
+.payroll-slip-net strong{font-size:21px;letter-spacing:-.035em;color:#171717}
+.payroll-slip-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding-top:16px}
+.payroll-slip-section{min-width:0;padding:15px;border:1px solid #e5e5e5;border-radius:10px;background:#fff}
+.payroll-slip-section h4{margin:0 0 12px;font-size:12px;font-weight:800;color:#222}
+.payroll-slip-section dl{display:grid;gap:0;margin:0}
+.payroll-slip-section dl>div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #f0f0f0;font-size:11px}
+.payroll-slip-section dl>div:first-child{padding-top:0}
+.payroll-slip-section dl>div:last-child{padding-bottom:0;border-bottom:0}
+.payroll-slip-section dt{color:#777}
+.payroll-slip-section dd{margin:0;text-align:right;color:#222;font-weight:750;overflow-wrap:anywhere}
+.payroll-slip-section .payroll-slip-total{margin-top:2px;padding-top:12px;border-top:1px solid #ddd;border-bottom:0}
+.payroll-slip-section .payroll-slip-total dt,.payroll-slip-section .payroll-slip-total dd{color:#111;font-weight:850}
+.payroll-slip-notes{margin-top:14px;padding:12px 14px;border:1px solid #e5e5e5;border-radius:9px;background:#fff;color:#555;font-size:11px}
+.payroll-slip-notes strong{color:#222}
+.payroll-slip-notes p{margin:7px 0 0;line-height:1.5}
+.payroll-slip-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:16px}
+@media(max-width:850px){.payroll-slip-grid{grid-template-columns:1fr}.payroll-slip-details{padding:16px}}
+@media(max-width:520px){.payroll-compact-table{min-width:610px}.payroll-slip-heading{flex-direction:column}.payroll-slip-net{text-align:left}.payroll-slip-toggle{padding:0 8px}.payroll-slip-actions>*{flex:1}}
