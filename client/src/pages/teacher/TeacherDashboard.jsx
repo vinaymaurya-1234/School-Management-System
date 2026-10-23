@@ -4,6 +4,7 @@ import {
   BookOpen,
   CalendarDays,
   ClipboardList,
+  Clock3,
   FileText,
   GraduationCap,
   Users,
@@ -97,6 +98,16 @@ function TeacherDashboard() {
       </section>
 
       {error && <div className="teacher-dashboard-alert">{error}</div>}
+
+      <section className="teacher-self-attendance">
+        <div className="teacher-self-attendance-icon"><Clock3 size={22} /></div>
+        <div className="teacher-self-attendance-copy">
+          <span>STAFF ATTENDANCE</span>
+          <h2>Mark your own attendance</h2>
+          <p>Check in when you arrive at school and check out before leaving. View today's status and your attendance history.</p>
+        </div>
+        <Link to="/module/attendance" className="teacher-self-attendance-link">Open attendance <ArrowRight size={17} /></Link>
+      </section>
 
       <section className="teacher-quick-actions">
         <div className="teacher-panel-title-row">
