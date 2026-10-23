@@ -513,7 +513,7 @@ async function calculatePayrollPreview(schoolId, year, month) {
     const payableDays = Math.min(eligibleWorkingDays, presentDays + paidLeaveDays);
     const earnedBasic = roundMoney(basicPerDayRate * payableDays);
     const earnedGross = roundMoney(perDayRate * payableDays);
-    const pfDeduction = pfEnabled ? roundMoney(earnedBasic * (pfRate / 100)) : 0;
+    const pfDeduction = pfEnabled ? roundMoney(basicPerDayRate * payableDays * (pfRate / 100)) : 0;
     const otherDeductions = roundMoney(recurringDeductions.reduce((sum, item) => sum + item.amount, 0) * payableDays / Math.max(1, workingDays));
     const totalDeductions = roundMoney(attendanceDeduction + unpaidLeaveDeduction + unmarkedAttendanceDeduction + pfDeduction + otherDeductions);
     if (pfEnabled) notes.push(`Employee PF calculated at ${pfRate}% of prorated basic salary; verify EPF eligibility and applicable wage ceiling before payroll approval.`);
