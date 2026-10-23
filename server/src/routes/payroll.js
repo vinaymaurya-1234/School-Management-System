@@ -515,15 +515,14 @@ async function calculatePayrollPreview(schoolId, year, month) {
     const earnedGross = roundMoney(perDayRate * payableDays);
     const pfDeduction = pfEnabled ? roundMoney(earnedBasic * (pfRate / 100)) : 0;
     const otherDeductions = roundMoney(recurringDeductions.reduce((sum, item) => sum + item.amount, 0) * payableDays / Math.max(1, workingDays));
-    const totalDeductions = roundMoney(pfDeduction + otherDeductions);
+    const totalDeductions = roundMoney(attendanceDeduction + unpaidLeaveDeduction + unmarkedAttendanceDeduction + pfDeduction + otherDeductions);
     if (pfEnabled) notes.push(`Employee PF calculated at ${pfRate}% of prorated basic salary; verify EPF eligibility and applicable wage ceiling before payroll approval.`);
     return {
       employee: employee._id, employeeId: employee.employeeId, name: employee.name, designation: employee.designation,
-      salaryStructure: structure._id, basicSalary: earnedBasic,
-      allowances: allowances.map((item) => ({ ...item, amount: roundMoney((Number(item.amount || 0) / Math.max(1, workingDays)) * payableDays) })),
+      salaryStructure: structure._id, basicSalary: basicEarned, allowances: earnedAllowances,
       recurringDeductions, pfDeduction, periodDays, eligibleDays, workingDays, eligibleWorkingDays, payableDays, perDayRate, presentDays, lateDays, absentDays, paidLeaveDays, unpaidLeaveDays, unmarkedDays,
-      grossSalary: earnedGross, fullMonthlyGross: fullGross, attendanceDeduction, unpaidLeaveDeduction, unmarkedAttendanceDeduction, otherDeductions, totalDeductions,
-      netPayable: Math.max(0, roundMoney(earnedGross - totalDeductions)), calculationNotes: notes, needsSalarySetup: false,
+      grossSalary, attendanceDeduction, unpaidLeaveDeduction, unmarkedAttendanceDeduction, otherDeductions, totalDeductions,
+      netPayable: Math.max(0, roundMoney(grossSalary - totalDeductions)), calculationNotes: notes, needsSalarySetup: false,
     };
   });
 }
