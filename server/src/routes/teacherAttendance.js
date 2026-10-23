@@ -302,7 +302,7 @@ router.post("/requests/bulk", async (req, res, next) => {
     const normalized = dates.map((value) => ({ value, date: normalizeDate(value) }));
     if (normalized.some((item) => !item.date || schoolDateKey(item.date) !== item.value)) return res.status(400).json({ message: "One or more dates are invalid. Use YYYY-MM-DD." });
     const today = schoolDateKey();
-    if (normalized.some((item) => item.value >= today)) return res.status(400).json({ message: "Bulk attendance requests are for past dates only." });
+    if (normalized.some((item) => item.value > today)) return res.status(400).json({ message: "Attendance requests can be submitted for today or a past date, not future dates." });
     const existing = await TeacherAttendanceRequest.find({ school: req.user.school, teacher: teacher._id, date: { $in: normalized.map((item) => item.date) }, status: "pending" }).select("date");
     const pendingDates = new Set(existing.map((item) => schoolDateKey(item.date)));
     const toCreate = normalized.filter((item) => !pendingDates.has(item.value));
