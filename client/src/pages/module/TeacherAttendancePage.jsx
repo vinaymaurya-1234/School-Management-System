@@ -12,6 +12,8 @@ export default function TeacherAttendancePage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [requestReason, setRequestReason] = useState('')
+  const [requestStartDate, setRequestStartDate] = useState('')
+  const [requestEndDate, setRequestEndDate] = useState('')
   const [showRequest, setShowRequest] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -56,9 +58,26 @@ export default function TeacherAttendancePage() {
     if (!requestReason.trim()) return setError('Please enter the reason for your attendance request.')
     setBusy(true); setError(''); setMessage('')
     try {
-      const response = await apiClient.post('/teacher-attendance/request', { reason: requestReason.trim() })
+      if (!requestStartDate || !requestEndDate || requestStartDate > requestEndDate) {
+        setBusy(false)
+        return setError('Choose a valid start and end date.')
+      }
+      const dates = []
+      const cursor = new Date(`${requestStartDate}T12:00:00`)
+      const end = new Date(`${requestEndDate}T12:00:00`)
+      while (cursor <= end && dates.length <= 31) {
+        dates.push(`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`)
+        cursor.setDate(cursor.getDate() + 1)
+      }
+      if (dates.length > 31) {
+        setBusy(false)
+        return setError('Select a maximum of 31 calendar dates per request.')
+      }
+      const response = await apiClient.post('/teacher-attendance/requests/bulk', { dates, reason: requestReason.trim() })
       setMessage(response.data.message)
       setRequestReason('')
+      setRequestStartDate('')
+      setRequestEndDate('')
       setShowRequest(false)
       await load()
     } catch (err) { setError(err.response?.data?.message || 'Unable to send attendance request.') }
@@ -94,7 +113,7 @@ export default function TeacherAttendancePage() {
         <aside className="teacher-attendance-card teacher-rules-card"><span className="teacher-card-label">CHECK-IN POLICY</span><div className="teacher-policy-line"><span className="policy-time">07:00</span><div><strong>Window opens</strong><small>Self check-in becomes available.</small></div></div><div className="teacher-policy-line"><span className="policy-time">07:15</span><div><strong>Late starts</strong><small>07:16–08:00 is Present + Late.</small></div></div><div className="teacher-policy-line"><span className="policy-time">08:00</span><div><strong>Window closes</strong><small>08:01 onward requires a principal request.</small></div></div><div className="teacher-policy-note"><ShieldCheck size={16} /><span>Late does not mean absent. A valid late check-in counts in Present and Late.</span></div></aside>
       </section>
 
-      {showRequest && <section className="teacher-attendance-card teacher-request-form-card"><div><span className="teacher-card-label">ATTENDANCE EXCEPTION</span><h2>Request principal approval</h2><p>Explain why you could not check in before 08:00. The principal will decide the final status.</p></div><form onSubmit={submitRequest}><textarea value={requestReason} onChange={(event) => setRequestReason(event.target.value)} placeholder="Example: I reached school at 08:20 because..." maxLength={500} autoFocus /><div className="teacher-form-actions"><button type="button" className="teacher-secondary-action" onClick={() => { setShowRequest(false); setRequestReason('') }}>Cancel</button><button type="submit" className="teacher-primary-action" disabled={busy}><Send size={16} />{busy ? 'Sending...' : 'Send to principal'}</button></div></form></section>}
+      {showRequest && <section className="teacher-attendance-card teacher-request-form-card"><div><span className="teacher-card-label">ATTENDANCE EXCEPTION</span><h2>Request attendance for multiple dates</h2><p>Select the date range for missed attendance. Each eligible past date will be sent to the principal for review; approval will mark the selected dates present.</p></div><form onSubmit={submitRequest}><div className="teacher-request-date-grid"><label>From date<input type="date" value={requestStartDate} max={data?.date || undefined} onChange={(event) => setRequestStartDate(event.target.value)} required /></label><label>To date<input type="date" value={requestEndDate} min={requestStartDate || undefined} max={data?.date || undefined} onChange={(event) => setRequestEndDate(event.target.value)} required /></label></div><textarea value={requestReason} onChange={(event) => setRequestReason(event.target.value)} placeholder="Explain why attendance was missed for these dates..." maxLength={500} autoFocus required /><div className="teacher-form-actions"><button type="button" className="teacher-secondary-action" onClick={() => { setShowRequest(false); setRequestReason(''); setRequestStartDate(''); setRequestEndDate('') }}>Cancel</button><button type="submit" className="teacher-primary-action" disabled={busy}><Send size={16} />{busy ? 'Sending...' : 'Send date requests'}</button></div></form></section>}
 
       <section className="teacher-attendance-card teacher-history-card"><div className="teacher-history-head"><div><span className="teacher-card-label">ATTENDANCE HISTORY</span><h2>Recent records</h2></div><span className="teacher-history-count">{attendanceDays} present/late in recent records</span></div><div className="teacher-history-table"><div className="teacher-history-row header"><span>Date</span><span>Status</span><span>Check-in</span><span>Check-out</span><span>Source</span></div>{history.length ? history.map((item) => <div className="teacher-history-row" key={`${item.date}-${item.record?.teacher}`}><span>{new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span><span className={`history-status ${item.record?.status || 'not_marked'}`}>{item.record?.status?.replace('_', ' ') || 'Not marked'}</span><span>{time(item.record?.checkIn)}</span><span>{time(item.record?.checkOut)}</span><span>{item.record?.verification?.networkVerified ? 'School Wi-Fi' : item.record?.source === 'development' ? 'Development mode' : 'Principal approval'}</span></div>) : <div className="teacher-history-empty">No attendance records yet.</div>}</div></section>
     </div>
