@@ -122,7 +122,7 @@ function PrincipalDashboard() {
             <h2>Teacher status today</h2>
             <p>A quick view of today's staff attendance. Open the attendance module to review individual records.</p>
           </div>
-          <Link to="/module/attendance" className="quiet-link">Open attendance <ChevronRight size={15} /></Link>
+          <div className="principal-attendance-links"><Link to="/module/attendance" className="quiet-link">Open attendance <ChevronRight size={15} /></Link><Link to="/module/teacher-attendance-requests" className="quiet-link">Review attendance requests <ChevronRight size={15} /></Link></div>
         </div>
 
         <div className="teacher-status-strip">
