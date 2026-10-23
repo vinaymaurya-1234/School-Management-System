@@ -32,6 +32,7 @@ import MessagesPage from '../pages/module/MessagesPage'
 import PayrollPage from '../pages/module/PayrollPage'
 import AttendancePage from '../pages/module/AttendancePage'
 import TeacherAttendancePage from '../pages/module/TeacherAttendancePage'
+import TeacherAttendanceRequestsPage from '../pages/module/TeacherAttendanceRequestsPage'
 import LeaveManagementPage from '../pages/module/LeaveManagementPage'
 import '../pages/module/ModuleFeature.css'
 
@@ -62,6 +63,7 @@ function ModuleRoute() {
   const { moduleKey } = useParams()
   const homeRoute = ROLE_HOME_ROUTES[user?.role] || '/login'
   if (user?.role === 'principal' && moduleKey === 'notices') return <TeacherWorkspacePage mode="notice-admin" />
+  if (user?.role === 'principal' && moduleKey === 'teacher-attendance-requests') return <TeacherAttendanceRequestsPage />
   if (user?.role === 'principal' && moduleKey === 'admissions') return <PrincipalStudentsPage />
   if (user?.role === 'principal' && moduleKey === 'login-credentials') return <PrincipalCredentialsPage />
   if (user?.role === 'student' && moduleKey === 'assignments') return <StudentAssignmentsPage />
