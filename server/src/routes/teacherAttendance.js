@@ -290,6 +290,28 @@ router.post("/check-out", async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+router.post("/requests/bulk", async (req, res, next) => {
+  try {
+    if (req.user.role !== ROLES.TEACHER) return res.status(403).json({ message: "Teacher access required" });
+    const teacher = await getTeacher(req);
+    if (!teacher) return res.status(404).json({ message: "Teacher profile not found" });
+    const dates = [...new Set((Array.isArray(req.body?.dates) ? req.body.dates : []).map((value) => String(value)))].sort();
+    const reason = String(req.body?.reason || "").trim();
+    if (!dates.length || dates.length > 31) return res.status(400).json({ message: "Choose between 1 and 31 dates." });
+    if (!reason) return res.status(400).json({ message: "Please provide a reason for the attendance request." });
+    const normalized = dates.map((value) => ({ value, date: normalizeDate(value) }));
+    if (normalized.some((item) => !item.date || schoolDateKey(item.date) !== item.value)) return res.status(400).json({ message: "One or more dates are invalid. Use YYYY-MM-DD." });
+    const today = schoolDateKey();
+    if (normalized.some((item) => item.value >= today)) return res.status(400).json({ message: "Bulk attendance requests are for past dates only." });
+    const existing = await TeacherAttendanceRequest.find({ school: req.user.school, teacher: teacher._id, date: { $in: normalized.map((item) => item.date) }, status: "pending" }).select("date");
+    const pendingDates = new Set(existing.map((item) => schoolDateKey(item.date)));
+    const toCreate = normalized.filter((item) => !pendingDates.has(item.value));
+    if (!toCreate.length) return res.status(409).json({ message: "All selected dates already have pending requests." });
+    const requests = await TeacherAttendanceRequest.insertMany(toCreate.map((item) => ({ school: req.user.school, teacher: teacher._id, date: item.date, reason })));
+    res.status(201).json({ message: `${requests.length} attendance request(s) sent to the principal.`, requests, skippedPendingDates: [...pendingDates] });
+  } catch (error) { next(error); }
+});
+
 router.post("/request", async (req, res, next) => {
   try {
     if (req.user.role !== ROLES.TEACHER) return res.status(403).json({ message: "Teacher access required" });
@@ -370,6 +392,29 @@ router.patch("/requests/:id/approve", principalOnly, async (req, res, next) => {
     await request.save();
 
     res.json({ message: `Attendance request approved as ${decisionStatus}.`, request, record: persisted.record, session: persisted.session });
+  } catch (error) { next(error); }
+});
+
+router.patch("/requests/bulk-approve", principalOnly, async (req, res, next) => {
+  try {
+    const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(String))];
+    const decisionStatus = ["present", "late", "on_leave"].includes(req.body?.status) ? req.body.status : null;
+    if (!ids.length || ids.length > 100) return res.status(400).json({ message: "Select between 1 and 100 pending requests." });
+    if (!decisionStatus) return res.status(400).json({ message: "Choose present, late or on leave." });
+    const requests = await TeacherAttendanceRequest.find({ _id: { $in: ids }, school: req.user.school, status: "pending" });
+    if (!requests.length) return res.status(404).json({ message: "No selected pending requests were found." });
+    const results = [];
+    for (const request of requests) {
+      request.decisionStatus = decisionStatus;
+      request.reviewedBy = req.user._id;
+      request.reviewedAt = new Date();
+      request.reviewNote = String(req.body?.reviewNote || "").trim();
+      const persisted = await persistApprovedAttendance(req.user.school, request, decisionStatus);
+      request.status = "approved";
+      await request.save();
+      results.push({ id: request._id, teacher: request.teacher, date: request.date, status: request.status, decisionStatus, attendanceRecordId: persisted.record?._id || null });
+    }
+    res.json({ message: `${results.length} attendance request(s) approved as ${decisionStatus}.`, results, requestedCount: ids.length });
   } catch (error) { next(error); }
 });
 
