@@ -22,6 +22,7 @@ function PrincipalDashboard() {
   const { user } = useAuth()
   const [teachers, setTeachers] = useState([])
   const [teacherAttendance, setTeacherAttendance] = useState([])
+  const [attendanceRequests, setAttendanceRequests] = useState([])
   const [events, setEvents] = useState([])
   const [attention, setAttention] = useState([])
   const [loading, setLoading] = useState(true)
@@ -34,11 +35,12 @@ function PrincipalDashboard() {
     const requests = await Promise.allSettled([
       apiClient.get('/teachers'),
       apiClient.get('/teacher-attendance'),
+      apiClient.get('/teacher-attendance/requests'),
       apiClient.get(`/events?year=${new Date().getFullYear()}`),
       ...OPERATION_MODULES.map((module) => apiClient.get(`/operations/${module}`)),
     ])
 
-    const [teacherResult, teacherAttendanceResult, eventResult, ...operationResults] = requests
+    const [teacherResult, teacherAttendanceResult, attendanceRequestsResult, eventResult, ...operationResults] = requests
 
     if (teacherResult.status === 'fulfilled') {
       setTeachers(teacherResult.value?.data?.teachers || [])
@@ -46,6 +48,10 @@ function PrincipalDashboard() {
 
     if (teacherAttendanceResult.status === 'fulfilled') {
       setTeacherAttendance(teacherAttendanceResult.value?.data?.teachers || [])
+    }
+
+    if (attendanceRequestsResult.status === 'fulfilled') {
+      setAttendanceRequests(attendanceRequestsResult.value?.data?.requests || [])
     }
 
     if (eventResult.status === 'fulfilled') {
@@ -143,6 +149,14 @@ function PrincipalDashboard() {
             )}
           </div>
         </div>
+      </section>
+
+      <section className="dashboard-section teacher-request-queue-section">
+        <div className="section-heading compact-heading">
+          <div><span>STAFF ATTENDANCE</span><h2>Pending teacher requests {attendanceRequests.length > 0 && <b className="teacher-request-count">{attendanceRequests.length}</b>}</h2><p>Requests submitted by teachers for missed attendance, including multiple dates.</p></div>
+          <Link to="/module/teacher-attendance-requests" className="quiet-link">Review requests <ChevronRight size={15} /></Link>
+        </div>
+        {attendanceRequests.length ? <div className="principal-pending-attendance-list">{attendanceRequests.slice(0, 5).map((request) => <div className="principal-pending-attendance-row" key={request._id}><div><strong>{request.teacher?.user?.name || 'Teacher'}</strong><small>{request.teacher?.employeeId || 'Staff member'} · {new Date(request.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}</small></div><p>{request.reason}</p><span>Pending</span></div>)}</div> : <div className="principal-pending-attendance-empty"><Check size={17} /> No pending teacher attendance requests.</div>}
       </section>
 
       <section className="dashboard-section calendar-section">
