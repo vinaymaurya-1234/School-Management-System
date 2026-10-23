@@ -472,12 +472,20 @@ async function calculatePayrollPreview(schoolId, year, month) {
     const configuredDeductions = (structure.recurringDeductions || []).map((item) => ({ name: item.name, amount: Number(item.amount || 0) }));
     const pfEnabled = structure.statutorySettings?.pfEnabled !== false;
     const pfRate = Number(structure.statutorySettings?.pfRate ?? 12);
-    // PF is calculated from this salary structure's configured percentage, not a fixed amount.
-    // Confirm employee EPF eligibility and applicable wage ceiling before approving payroll.
     const recurringDeductions = configuredDeductions.filter((item) => !(/^pf$/i.test(item.name.trim()) || /^provident fund$/i.test(item.name.trim())));
     const fullGross = basicSalary + allowances.reduce((sum, item) => sum + item.amount, 0);
-    const grossSalary = roundMoney(fullGross * eligibleDays / periodDays);
-    const perDayRate = roundMoney(fullGross / periodDays);
+    let workingDays = 0, eligibleWorkingDays = 0;
+    for (let day = 1; day <= periodDays; day += 1) {
+      const date = new Date(Date.UTC(year, month - 1, day));
+      if (date.getUTCDay() === 0) continue;
+      workingDays += 1;
+      if (date >= structureStart && date <= structureEnd) eligibleWorkingDays += 1;
+    }
+    const perDayRate = workingDays ? roundMoney(fullGross / workingDays) : 0;
+    const basicPerDayRate = workingDays ? roundMoney(basicSalary / workingDays) : 0;
+    const grossSalary = roundMoney(fullGross * eligibleWorkingDays / Math.max(1, workingDays));
+    const basicEarned = roundMoney(basicSalary * eligibleWorkingDays / Math.max(1, workingDays));
+    const earnedAllowances = allowances.map((item) => ({ ...item, amount: roundMoney(item.amount * eligibleWorkingDays / Math.max(1, workingDays)) }));
     let presentDays = 0, lateDays = 0, absentDays = 0, paidLeaveDays = 0, unpaidLeaveDays = 0, unmarkedDays = 0;
     const notes = [];
     if (!employee.teacher) notes.push("No linked teacher profile; teacher attendance was not applied.");
@@ -486,32 +494,29 @@ async function calculatePayrollPreview(schoolId, year, month) {
       if (date.getUTCDay() === 0 || date < structureStart || date > structureEnd) continue;
       const key = dayKey(date);
       const leave = employee.user ? leaveByUserDate.get(`${String(employee.user)}:${key}`) : null;
-      if (leave) {
-        if (leave.paid) paidLeaveDays += 1; else unpaidLeaveDays += 1;
-        continue;
-      }
+      if (leave) { if (leave.paid) paidLeaveDays += 1; else unpaidLeaveDays += 1; continue; }
       if (!employee.teacher) { unmarkedDays += 1; continue; }
       const status = attendanceByTeacherDate.get(`${String(employee.teacher)}:${key}`);
       if (status === "present") presentDays += 1;
       else if (status === "late") { lateDays += 1; presentDays += 1; }
       else if (status === "absent") absentDays += 1;
-      else if (status === "on_leave") { paidLeaveDays += 1; }
+      else if (status === "on_leave") paidLeaveDays += 1;
       else unmarkedDays += 1;
     }
-    if (unmarkedDays) notes.push(`${unmarkedDays} day(s) have no attendance record and are not automatically deducted.`);
+    if (unmarkedDays) notes.push(`${unmarkedDays} working day(s) have no attendance record; they are not treated as absences or deducted.`);
+    notes.push(`Monthly salary is divided by ${workingDays} working day(s); Sundays are excluded from the divisor.`);
     notes.push("Casual, sick and earned leave are treated as paid; emergency/other approved leave is treated as unpaid for payroll.");
     notes.push("Late attendance counts as present; statutory flags are not automatically calculated.");
     const attendanceDeduction = roundMoney(absentDays * perDayRate);
     const unpaidLeaveDeduction = roundMoney(unpaidLeaveDays * perDayRate);
-    const pfDeduction = pfEnabled ? roundMoney(basicSalary * (pfRate / 100) * eligibleDays / periodDays) : 0;
-    const otherDeductions = roundMoney(recurringDeductions.reduce((sum, item) => sum + item.amount, 0) * eligibleDays / periodDays);
+    const pfDeduction = pfEnabled ? roundMoney(basicPerDayRate * (pfRate / 100) * eligibleWorkingDays) : 0;
+    const otherDeductions = roundMoney(recurringDeductions.reduce((sum, item) => sum + item.amount, 0) * eligibleWorkingDays / Math.max(1, workingDays));
     const totalDeductions = roundMoney(attendanceDeduction + unpaidLeaveDeduction + pfDeduction + otherDeductions);
-    if (pfEnabled) notes.push(`Employee PF calculated at ${pfRate}% of basic salary, prorated for ${eligibleDays} eligible calendar day(s); verify EPF eligibility and applicable wage ceiling before payroll approval.`);
+    if (pfEnabled) notes.push(`Employee PF calculated at ${pfRate}% of prorated basic salary; verify EPF eligibility and applicable wage ceiling before payroll approval.`);
     return {
       employee: employee._id, employeeId: employee.employeeId, name: employee.name, designation: employee.designation,
-      salaryStructure: structure._id, basicSalary: roundMoney(basicSalary * eligibleDays / periodDays),
-      allowances: allowances.map((item) => ({ ...item, amount: roundMoney(item.amount * eligibleDays / periodDays) })),
-      recurringDeductions, pfDeduction, periodDays, eligibleDays, perDayRate, presentDays, lateDays, absentDays, paidLeaveDays, unpaidLeaveDays, unmarkedDays,
+      salaryStructure: structure._id, basicSalary: basicEarned, allowances: earnedAllowances,
+      recurringDeductions, pfDeduction, periodDays, eligibleDays, workingDays, eligibleWorkingDays, perDayRate, presentDays, lateDays, absentDays, paidLeaveDays, unpaidLeaveDays, unmarkedDays,
       grossSalary, attendanceDeduction, unpaidLeaveDeduction, otherDeductions, totalDeductions,
       netPayable: Math.max(0, roundMoney(grossSalary - totalDeductions)), calculationNotes: notes, needsSalarySetup: false,
     };
