@@ -509,16 +509,21 @@ async function calculatePayrollPreview(schoolId, year, month) {
     notes.push("Late attendance counts as present; statutory flags are not automatically calculated.");
     const attendanceDeduction = roundMoney(absentDays * perDayRate);
     const unpaidLeaveDeduction = roundMoney(unpaidLeaveDays * perDayRate);
-    const pfDeduction = pfEnabled ? roundMoney(basicPerDayRate * (pfRate / 100) * eligibleWorkingDays) : 0;
-    const otherDeductions = roundMoney(recurringDeductions.reduce((sum, item) => sum + item.amount, 0) * eligibleWorkingDays / Math.max(1, workingDays));
-    const totalDeductions = roundMoney(attendanceDeduction + unpaidLeaveDeduction + pfDeduction + otherDeductions);
+    const unmarkedAttendanceDeduction = roundMoney(unmarkedDays * perDayRate);
+    const payableDays = Math.min(eligibleWorkingDays, presentDays + paidLeaveDays);
+    const earnedBasic = roundMoney(basicPerDayRate * payableDays);
+    const earnedGross = roundMoney(perDayRate * payableDays);
+    const pfDeduction = pfEnabled ? roundMoney(earnedBasic * (pfRate / 100)) : 0;
+    const otherDeductions = roundMoney(recurringDeductions.reduce((sum, item) => sum + item.amount, 0) * payableDays / Math.max(1, workingDays));
+    const totalDeductions = roundMoney(pfDeduction + otherDeductions);
     if (pfEnabled) notes.push(`Employee PF calculated at ${pfRate}% of prorated basic salary; verify EPF eligibility and applicable wage ceiling before payroll approval.`);
     return {
       employee: employee._id, employeeId: employee.employeeId, name: employee.name, designation: employee.designation,
-      salaryStructure: structure._id, basicSalary: basicEarned, allowances: earnedAllowances,
-      recurringDeductions, pfDeduction, periodDays, eligibleDays, workingDays, eligibleWorkingDays, perDayRate, presentDays, lateDays, absentDays, paidLeaveDays, unpaidLeaveDays, unmarkedDays,
-      grossSalary, attendanceDeduction, unpaidLeaveDeduction, otherDeductions, totalDeductions,
-      netPayable: Math.max(0, roundMoney(grossSalary - totalDeductions)), calculationNotes: notes, needsSalarySetup: false,
+      salaryStructure: structure._id, basicSalary: earnedBasic,
+      allowances: allowances.map((item) => ({ ...item, amount: roundMoney((Number(item.amount || 0) / Math.max(1, workingDays)) * payableDays) })),
+      recurringDeductions, pfDeduction, periodDays, eligibleDays, workingDays, eligibleWorkingDays, payableDays, perDayRate, presentDays, lateDays, absentDays, paidLeaveDays, unpaidLeaveDays, unmarkedDays,
+      grossSalary: earnedGross, fullMonthlyGross: fullGross, attendanceDeduction, unpaidLeaveDeduction, unmarkedAttendanceDeduction, otherDeductions, totalDeductions,
+      netPayable: Math.max(0, roundMoney(earnedGross - totalDeductions)), calculationNotes: notes, needsSalarySetup: false,
     };
   });
 }
