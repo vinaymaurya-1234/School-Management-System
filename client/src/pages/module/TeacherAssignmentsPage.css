@@ -131,3 +131,9 @@
 .teacher-assignments-page .ta-pagination button:disabled{opacity:.4;cursor:not-allowed}
 @media(max-width:900px){.teacher-assignments-page .ta-directory,.teacher-assignments-page .ta-class-directory{grid-template-columns:1fr}}
 @media(max-width:620px){.teacher-assignments-page .ta-view-tabs{padding:9px;gap:3px}.teacher-assignments-page .ta-view-tabs button{flex:1;padding:0 7px;font-size:10px}.teacher-assignments-page .ta-view-tabs button svg{display:none}.teacher-assignments-page .ta-view-filters{align-items:stretch;flex-direction:column}.teacher-assignments-page .ta-view-filters .ta-filter{width:100%}.teacher-assignments-page .ta-view-hint{padding:0}.teacher-assignments-page .ta-directory,.teacher-assignments-page .ta-class-directory{padding:10px;gap:10px}.teacher-assignments-page .ta-teacher-summary{gap:8px}.teacher-assignments-page .ta-homeroom{flex-basis:100%;margin-left:0}.teacher-assignments-page .ta-assignment-chip{flex-wrap:wrap}.teacher-assignments-page .ta-pagination{align-items:flex-start;flex-direction:column}.teacher-assignments-page .ta-pagination>div{width:100%;justify-content:space-between}}
+
+/* Dedicated Class Teacher action */
+.teacher-assignments-page .ta-heading-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-shrink:0}
+.teacher-assignments-page .ta-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 15px;border:1px solid #dcdcdc;border-radius:11px;background:#fff;color:#171717;font-size:11px;font-weight:800;cursor:pointer}
+.teacher-assignments-page .ta-secondary:hover{background:#f5f5f5;border-color:#bdbdbd}
+@media(max-width:540px){.teacher-assignments-page .ta-heading-actions{width:100%;margin-left:0}.teacher-assignments-page .ta-heading-actions button{flex:1}}
