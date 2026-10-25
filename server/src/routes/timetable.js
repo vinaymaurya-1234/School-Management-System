@@ -162,7 +162,7 @@ router.post("/", async (req, res, next) => {
     if (day === "saturday" && Number(periodNumber) > DEFAULT_SATURDAY_PERIODS) {
       return res.status(400).json({ message: `Saturday is a half-day. Only the first ${DEFAULT_SATURDAY_PERIODS} periods can be scheduled.` });
     }
-    if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(startTime) || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(endTime) || minutes(endTime) <= minutes(startTime)) {
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime) || minutes(endTime) <= minutes(startTime)) {
       return res.status(400).json({ message: "Enter a valid start and end time." });
     }
     const durationEntries = await TimetableEntry.find({ school: req.user.school, academicYear }).select("startTime endTime").lean();
@@ -270,7 +270,7 @@ router.post("/auto-generate", async (req, res, next) => {
       : buildPeriodTimes({ startTime: DEFAULT_START_TIME, periodMinutes: DEFAULT_PERIOD_MINUTES, periodsPerDay: DEFAULT_PERIODS_PER_DAY, breakAfter: DEFAULT_BREAK_AFTER, breakMinutes: DEFAULT_BREAK_MINUTES });
     if (
       schedulePeriods.length < 1 || schedulePeriods.length > 12 ||
-      schedulePeriods.some(([start, end]) => !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(start) || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(end) || start >= end) ||
+      schedulePeriods.some(([start, end]) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(start) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(end) || start >= end) ||
       schedulePeriods.some((slot, index) => index > 0 && slot[0] < schedulePeriods[index - 1][1]) ||
       new Set(schedulePeriods.map(([start, end]) => {
         const minutes = (value) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
