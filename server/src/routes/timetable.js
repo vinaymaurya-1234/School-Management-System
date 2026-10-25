@@ -159,8 +159,8 @@ router.post("/", async (req, res, next) => {
             "academicYear, section, teacher, subject, day, periodNumber, startTime and endTime are required",
         });
     const minutes = (value) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
-    if (day === "saturday" && Number(periodNumber) > Math.ceil(PERIODS.length / 2)) {
-      return res.status(400).json({ message: "Saturday is a half-day. Only the first three periods can be scheduled." });
+    if (day === "saturday" && Number(periodNumber) > DEFAULT_SATURDAY_PERIODS) {
+      return res.status(400).json({ message: `Saturday is a half-day. Only the first ${DEFAULT_SATURDAY_PERIODS} periods can be scheduled.` });
     }
     if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(startTime) || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(endTime) || minutes(endTime) <= minutes(startTime)) {
       return res.status(400).json({ message: "Enter a valid start and end time." });
@@ -425,7 +425,7 @@ router.post("/auto-generate", async (req, res, next) => {
 
     return res.status(201).json({
       message: "Balanced draft timetable generated. Review it before publishing.",
-      createdCount: created.length, missingTeachers, conflicts,
+      createdCount: created.length, missingTeachers, conflicts,\n      availableSlots: 5 * schedulePeriods.length + saturdayLimit,\n      unfilledSlots: Math.max(0, 5 * schedulePeriods.length + saturdayLimit - created.length),
     });
   } catch (error) {
     if (error.code === 11000)
