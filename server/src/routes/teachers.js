@@ -82,15 +82,15 @@ router.post("/create-account", async (req, res, next) => {
   let user;
   try {
     const { name, email, phone, employeeId, designation = "Teacher", department = "Academic", qualification = "" } = req.body || {};
-    if (!String(name || "").trim() || !String(email || "").trim() || !String(employeeId || "").trim()) {
-      return res.status(400).json({ message: "Name, email and employee ID are required" });
+    if (!String(name || "").trim() || !String(employeeId || "").trim()) {
+      return res.status(400).json({ message: "Name and employee ID are required" });
     }
-    const normalizedEmail = String(email).trim().toLowerCase();
-    if (await User.exists({ email: normalizedEmail })) return res.status(409).json({ message: "A user with this email already exists" });
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    if (normalizedEmail && await User.exists({ email: normalizedEmail })) return res.status(409).json({ message: "A user with this email already exists" });
     if (await Teacher.exists({ school: req.user.school, employeeId: String(employeeId).trim() })) return res.status(409).json({ message: "A teacher with this employee ID already exists" });
     const loginId = await uniqueTeacherLoginId();
     const password = temporaryPassword();
-    user = await User.create({ name: String(name).trim(), email: normalizedEmail, loginId, password, mustChangePassword: true, role: ROLES.TEACHER, school: req.user.school });
+    user = await User.create({ name: String(name).trim(), ...(normalizedEmail ? { email: normalizedEmail } : {}), loginId, password, mustChangePassword: true, role: ROLES.TEACHER, school: req.user.school });
     const teacher = await Teacher.create({ user: user._id, school: req.user.school, employeeId: String(employeeId).trim(), phone: String(phone || "").trim(), designation: String(designation || "Teacher").trim(), department: String(department || "Academic").trim(), qualification: String(qualification || "").trim() });
     const populated = await findTeacher(teacher._id, req.user.school);
     res.status(201).json({ message: "Teacher account created successfully", teacher: serializeTeacher(populated), credentials: { name: user.name, loginId, temporaryPassword: password } });
