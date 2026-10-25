@@ -152,6 +152,7 @@ export default function PrincipalTeachersPage() {
   const [importPreview, setImportPreview] = useState(null)
   const [importBusy, setImportBusy] = useState(false)
   const [importResult, setImportResult] = useState(null)
+  const [createdCredential, setCreatedCredential] = useState(null)
   const fileRef = useRef(null)
 
   const activeYear = useMemo(() => years.find((year) => year.isActive) || years[0] || null, [years])
@@ -320,10 +321,6 @@ export default function PrincipalTeachersPage() {
       setError('Teacher name and email are required.')
       return
     }
-    if (!editingId && !form.password.trim()) {
-      setError('A login password is required for a new teacher.')
-      return
-    }
 
     setSaving(true)
     setError('')
@@ -341,22 +338,16 @@ export default function PrincipalTeachersPage() {
           qualification: form.qualification,
         })
       } else {
-        const userResponse = await apiClient.post('/users', {
+        const response = await apiClient.post('/teachers/create-account', {
           name: form.name,
           email: form.email,
-          password: form.password,
-          role: 'teacher',
-        })
-        teacherUserId = userResponse.data.user.id
-
-        await apiClient.post('/teachers', {
-          userId: teacherUserId,
           employeeId: form.employeeId,
           phone: form.phone,
           department: form.department,
           designation: form.designation,
           qualification: form.qualification,
         })
+        setCreatedCredential(response.data.credentials)
       }
 
       setModal(false)
@@ -487,12 +478,14 @@ export default function PrincipalTeachersPage() {
       {importOpen && <div className="student-modal-backdrop teacher-import-backdrop" onMouseDown={(event) => event.target === event.currentTarget && !importBusy && setImportOpen(false)}><div className="student-modal import-modal teacher-import-modal">
         <div className="modal-header"><div><span>BULK STAFF SETUP</span><h2>Import teachers from Excel/CSV</h2></div><button onClick={() => !importBusy && setImportOpen(false)}><X size={18}/></button></div>
         {!importResult ? <>
-          <div className="import-instructions"><div className="import-instruction-icon"><FileSpreadsheet size={23}/></div><div><strong>1. Download the template</strong><p>Fill one teacher per row. Include login password and unique employee ID. Save as CSV or Excel (.xlsx).</p><button className="student-secondary-btn" onClick={downloadTeacherTemplate}><Download size={16}/> Download CSV template</button></div></div>
-          <div className="import-instructions"><div className="import-instruction-icon"><Upload size={23}/></div><div><strong>2. Upload completed file</strong><p>Required columns: Full Name, Email, Password (at least 8 characters), Employee ID. Phone and qualification are optional. Maximum 500 rows per batch.</p><input ref={fileRef} type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => chooseImportFile(event.target.files?.[0])}/></div></div>
+          <div className="import-instructions"><div className="import-instruction-icon"><FileSpreadsheet size={23}/></div><div><strong>1. Download the template</strong><p>Fill one teacher per row with a unique employee ID. Login IDs and temporary passwords are generated automatically for each teacher.</p><button className="student-secondary-btn" onClick={downloadTeacherTemplate}><Download size={16}/> Download CSV template</button></div></div>
+          <div className="import-instructions"><div className="import-instruction-icon"><Upload size={23}/></div><div><strong>2. Upload completed file</strong><p>Required columns: Full Name, Email, Employee ID. Phone, department, designation and qualification are optional. Login credentials are generated automatically. Maximum 500 rows per batch.</p><input ref={fileRef} type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => chooseImportFile(event.target.files?.[0])}/></div></div>
           {importPreview && <div className="import-preview"><div className="import-preview-stats"><span><strong>{importPreview.total}</strong> rows</span><span><strong>{importPreview.valid.length}</strong> ready to import</span><span><strong>{importPreview.errors.length}</strong> errors</span></div><p>File: {importPreview.filename}. Invalid rows are skipped and shown below.</p>{importPreview.errors.length>0 && <div className="import-errors"><strong>Rows needing correction</strong>{importPreview.errors.slice(0,12).map((item)=><p key={item.row}>Row {item.row} · {item.name}: {item.message}</p>)}{importPreview.errors.length>12 && <p>And {importPreview.errors.length-12} more rows…</p>}</div>}<button className="student-primary-btn" disabled={importBusy||!importPreview.valid.length} onClick={runTeacherImport}>{importBusy?<Loader2 className="spin" size={16}/>:<Upload size={16}/>} Import {importPreview.valid.length} valid rows</button></div>}
         </> : <div className="import-result"><div className="import-result-icon"><Check size={25}/></div><h3>Teacher import finished</h3><div className="import-preview-stats"><span><strong>{importResult.imported.length}</strong> imported</span><span><strong>{importResult.failed.length}</strong> failed / skipped</span></div><p>Imported profiles are available in the teacher directory. Assign classes, sections, subjects and class-teacher roles from Teacher Assignments.</p>{importResult.failed.length>0 && <div className="import-errors"><strong>Rows needing attention</strong>{importResult.failed.slice(0,20).map((item)=><p key={item.row}>Row {item.row} · {item.name}: {item.message}</p>)}</div>}<button className="student-secondary-btn" onClick={()=>{const rows=[['Row','Name','Status / Error'],...importResult.imported.map(x=>[x.row,x.name,'Imported']),...importResult.failed.map(x=>[x.row,x.name,x.message])];const csv=rows.map(row=>row.map(v=>`"${String(v??'').replaceAll('"','""')}"`).join(',')).join('\\r\\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='teacher-import-results.csv';a.click();URL.revokeObjectURL(url)}}><Download size={16}/> Download results</button></div>}
         <div className="modal-footer"><button className="student-secondary-btn" onClick={()=>!importBusy&&setImportOpen(false)} disabled={importBusy}>{importResult?'Close':'Cancel'}</button></div>
       </div></div>}
+
+      {createdCredential && <div className="student-modal-backdrop"><div className="student-modal credential-result-modal"><div className="modal-header"><div><span>TEACHER ACCOUNT CREATED</span><h2>Teacher login credentials</h2></div><button onClick={() => setCreatedCredential(null)}><X size={18} /></button></div><div className="drawer-grid"><Detail label="Teacher" value={createdCredential.name} /><Detail label="Login ID" value={createdCredential.loginId} /><Detail label="Temporary password" value={createdCredential.temporaryPassword} /></div><p className="students-footnote">Share these credentials privately. The teacher must change the temporary password after first login.</p><div className="modal-footer"><button className="student-secondary-btn" onClick={() => navigator.clipboard?.writeText(`Teacher: ${createdCredential.name}\\nLogin ID: ${createdCredential.loginId}\\nTemporary password: ${createdCredential.temporaryPassword}`)}>Copy credentials</button><button className="student-primary-btn" onClick={() => setCreatedCredential(null)}>Done</button></div></div></div>}
 
       {modal && (
         <div className="student-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && !saving && setModal(false)}>
@@ -505,7 +498,7 @@ export default function PrincipalTeachersPage() {
             <div className="modal-grid">
               <Field label="Full name" value={form.name} onChange={(value) => setField('name', value)} required />
               <Field label="Email" type="email" value={form.email} onChange={(value) => setField('email', value)} required />
-              {!editingId && <Field label="Login password" type="password" value={form.password} onChange={(value) => setField('password', value)} required />}
+              
               <Field label="Employee ID" value={form.employeeId} onChange={(value) => setField('employeeId', value)} />
               <Field label="Phone" value={form.phone} onChange={(value) => setField('phone', value)} />
               <SelectField label="Department" value={form.department} onChange={(value) => setField('department', value)} options={departments.map((item) => ({ value: item, label: item }))} />
