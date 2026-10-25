@@ -17,7 +17,8 @@ export default function PrincipalTeacherCredentialsPage() {
     setError('')
     try {
       const response = await apiClient.get('/teachers/credentials')
-      setTeachers(response.data?.teachers || [])
+      const list = Array.isArray(response.data?.teachers) ? response.data.teachers : []
+      setTeachers(list.filter((item) => item && item.userId && item.loginId))
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to load teacher credentials.')
     } finally {
