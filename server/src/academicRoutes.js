@@ -264,6 +264,59 @@ router.post("/promotions", async (req, res, next) => {
   }
 });
 
+router.post("/class-teacher", async (req, res, next) => {
+  try {
+    if (!canManageAcademic(req)) return res.status(403).json({ message: "Only the principal can assign class teachers" });
+    const { academicYear, teacher, class: classId, section } = req.body || {};
+    if (!academicYear || !teacher || !classId || !section) {
+      return res.status(400).json({ message: "Academic year, teacher, class and section are required" });
+    }
+    const [teacherUser, schoolClass, sectionDoc] = await Promise.all([
+      User.findOne({ _id: teacher, school: req.user.school, role: ROLES.TEACHER, active: true }),
+      SchoolClass.findOne({ _id: classId, school: req.user.school, academicYear }),
+      Section.findOne({ _id: section, school: req.user.school, academicYear, class: classId }),
+    ]);
+    if (!teacherUser) return res.status(404).json({ message: "Teacher not found" });
+    if (!schoolClass || !sectionDoc) return res.status(404).json({ message: "Class or section not found for this academic year" });
+
+    const teacherAlreadyOwnsClass = await TeacherAssignment.findOne({
+      school: req.user.school, academicYear, teacher, isClassTeacher: true, status: "active",
+    });
+    if (teacherAlreadyOwnsClass) {
+      if (String(teacherAlreadyOwnsClass.class) !== String(classId) || String(teacherAlreadyOwnsClass.section) !== String(section)) {
+        return res.status(409).json({ message: "This teacher is already class teacher for another class-section in this academic year." });
+      }
+      return res.status(409).json({ message: "This teacher is already assigned as class teacher for this section." });
+    }
+    const sectionAlreadyHasTeacher = await TeacherAssignment.findOne({
+      school: req.user.school, academicYear, class: classId, section, isClassTeacher: true, status: "active",
+    });
+    if (sectionAlreadyHasTeacher) return res.status(409).json({ message: "This class-section already has a class teacher." });
+
+    let assignment = await TeacherAssignment.findOne({
+      school: req.user.school, academicYear, teacher, class: classId, section, status: "active",
+    }).sort({ createdAt: 1 });
+    if (assignment) {
+      assignment.isClassTeacher = true;
+      await assignment.save();
+    } else {
+      const classSubject = await ClassSubject.findOne({ school: req.user.school, academicYear, class: classId }).sort({ createdAt: 1 });
+      if (!classSubject) return res.status(400).json({ message: "Map at least one subject to this class before assigning a class teacher." });
+      assignment = await TeacherAssignment.create({
+        school: req.user.school, academicYear, teacher, class: classId, section,
+        subject: classSubject.subject, isClassTeacher: true,
+      });
+    }
+    const populated = await TeacherAssignment.findById(assignment._id)
+      .populate("teacher", "name email").populate("class", "name order")
+      .populate("section", "name").populate("subject", "name code");
+    res.status(201).json({ message: "Class teacher assigned successfully", assignment: populated });
+  } catch (error) {
+    if (error.code === 11000) return res.status(409).json({ message: "This class-teacher assignment already exists." });
+    next(error);
+  }
+});
+
 router.get("/teacher-assignments", async (req, res, next) => {
   try {
     const filter = { school: req.user.school, status: "active" };
