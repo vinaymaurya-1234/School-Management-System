@@ -115,6 +115,22 @@ router.post("/assign", principalOnly, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+router.patch("/:mappingId/weekly-periods", principalOnly, async (req, res, next) => {
+  try {
+    const weeklyPeriods = Number(req.body?.weeklyPeriods);
+    if (!Number.isInteger(weeklyPeriods) || weeklyPeriods < 1 || weeklyPeriods > 36) {
+      return res.status(400).json({ message: "Weekly periods must be a whole number between 1 and 36." });
+    }
+    const mapping = await ClassSubject.findOneAndUpdate(
+      { _id: req.params.mappingId, school: req.user.school },
+      { $set: { weeklyPeriods } },
+      { new: true, runValidators: true }
+    ).populate("class", "name order").populate("subject", "name code");
+    if (!mapping) return res.status(404).json({ message: "Subject-to-class assignment not found." });
+    res.json({ message: "Weekly periods updated for this class.", mapping });
+  } catch (error) { next(error); }
+});
+
 router.delete("/:mappingId", principalOnly, async (req, res, next) => {
   try {
     const mapping = await ClassSubject.findOneAndDelete({ _id: req.params.mappingId, school: req.user.school });
