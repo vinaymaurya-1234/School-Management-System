@@ -297,9 +297,9 @@ router.post("/teacher-assignments", async (req, res, next) => {
       const existingClassTeacher = await TeacherAssignment.findOne({
         school: req.user.school, academicYear, class: classId, section,
         isClassTeacher: true, status: "active",
-      }).populate("teacher", "name");
-      if (existingClassTeacher && String(existingClassTeacher.teacher?._id || existingClassTeacher.teacher) !== String(teacher)) {
-        return res.status(409).json({ message: `Class ${classExists.name} section ${sectionExists.name} already has a class teacher assigned. Edit that assignment first.` });
+      });
+      if (existingClassTeacher) {
+        return res.status(409).json({ message: "This class section already has a class teacher. Edit or deactivate the existing class-teacher assignment first." });
       }
     }
     const assignment = await TeacherAssignment.create({ school: req.user.school, academicYear, teacher, class: classId, section, subject, isClassTeacher });
@@ -330,9 +330,9 @@ router.put("/teacher-assignments/:assignmentId", async (req, res, next) => {
       const existingClassTeacher = await TeacherAssignment.findOne({
         _id: { $ne: assignment._id }, school: req.user.school, academicYear,
         class: classId, section, isClassTeacher: true, status: "active",
-      }).populate("teacher", "name");
-      if (existingClassTeacher && String(existingClassTeacher.teacher?._id || existingClassTeacher.teacher) !== String(teacher)) {
-        return res.status(409).json({ message: `Class ${schoolClass.name} section ${sectionDoc.name} already has a class teacher assigned. Edit that assignment first.` });
+      });
+      if (existingClassTeacher) {
+        return res.status(409).json({ message: "This class section already has a class teacher. Edit or deactivate the existing class-teacher assignment first." });
       }
     }
     const duplicate = await TeacherAssignment.findOne({
