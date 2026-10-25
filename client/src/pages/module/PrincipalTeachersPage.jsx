@@ -31,9 +31,6 @@ const departments = ['Academic', 'Administration', 'Sports & Activities', 'Stude
 
 export default function PrincipalTeachersPage() {
   const [teachers, setTeachers] = useState([])
-  const [classes, setClasses] = useState([])
-  const [sections, setSections] = useState([])
-  const [subjects, setSubjects] = useState([])
   const [years, setYears] = useState([])
   const [query, setQuery] = useState('')
   const [selectedDepartment, setSelectedDepartment] = useState('')
@@ -48,16 +45,6 @@ export default function PrincipalTeachersPage() {
 
   const activeYear = useMemo(() => years.find((year) => year.isActive) || years[0] || null, [years])
 
-  const availableSections = useMemo(() => {
-    if (!form.classId) return []
-    return sections.filter((section) => idOf(section.class) === form.classId)
-  }, [sections, form.classId])
-
-  const availableSubjects = useMemo(() => {
-    if (!form.classId) return subjects
-    return subjects.filter((subject) => !subject.class || idOf(subject.class) === form.classId)
-  }, [subjects, form.classId])
-
   const load = async () => {
     setLoading(true)
     setError('')
@@ -67,17 +54,8 @@ export default function PrincipalTeachersPage() {
       const year = nextYears.find((item) => item.isActive) || nextYears[0]
       setYears(nextYears)
 
-      const [teacherRes, classRes, sectionRes, subjectRes] = await Promise.all([
-        apiClient.get('/teachers'),
-        year ? apiClient.get('/academic/classes', { params: { academicYear: year._id } }) : Promise.resolve({ data: { classes: [] } }),
-        year ? apiClient.get('/academic/sections', { params: { academicYear: year._id } }) : Promise.resolve({ data: { sections: [] } }),
-        year ? apiClient.get('/subjects', { params: { academicYear: year._id } }) : Promise.resolve({ data: { subjects: [] } }),
-      ])
-
+      const teacherRes = await apiClient.get('/teachers')
       setTeachers(responseData(teacherRes, 'teachers'))
-      setClasses(responseData(classRes, 'classes'))
-      setSections(responseData(sectionRes, 'sections'))
-      setSubjects(responseData(subjectRes, 'subjects'))
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to load teacher records.')
     } finally {
@@ -207,17 +185,6 @@ export default function PrincipalTeachersPage() {
           department: form.department,
           designation: form.designation,
           qualification: form.qualification,
-        })
-      }
-
-      if (!editingId && form.classId && activeYear && teacherUserId) {
-        await apiClient.post('/academic/teacher-assignments', {
-          academicYear: activeYear._id,
-          teacher: teacherUserId,
-          class: form.classId,
-          section: form.sectionId || undefined,
-          subject: form.subjectId || undefined,
-          isClassTeacher: Boolean(form.isClassTeacher),
         })
       }
 
