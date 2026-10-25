@@ -19,13 +19,13 @@ async function startServer() {
     await User.collection.updateMany({ email: "" }, { $unset: { email: "" } });
     const userIndexes = await User.collection.indexes();
     const emailIndexes = userIndexes.filter((index) =>
-      index.unique && index.key && Object.keys(index.key).length === 1 && index.key.email === 1
+      index.key && Object.keys(index.key).length === 1 && index.key.email === 1
     );
-    const hasSparseUniqueEmailIndex = emailIndexes.some((index) => index.sparse === true);
-    if (!hasSparseUniqueEmailIndex) {
+    const hasCorrectSparseUniqueEmailIndex = emailIndexes.some((index) => index.sparse === true && index.unique === true);
+    if (!hasCorrectSparseUniqueEmailIndex) {
       for (const index of emailIndexes) await User.collection.dropIndex(index.name);
       await User.collection.createIndex({ email: 1 }, { unique: true, sparse: true, name: "email_1" });
-      console.log("Migrated User.email unique index to sparse; email is optional.");
+      console.log("Migrated User.email index to sparse unique; email is optional.");
     }
     const httpServer = createServer(app);
     const io = new Server(httpServer, {
