@@ -293,6 +293,15 @@ router.post("/teacher-assignments", async (req, res, next) => {
     if (!classSubject) return res.status(400).json({ message: "This subject is not mapped to the selected class. Map the subject first." });
     const sectionExists = await Section.findOne({ _id: section, school: req.user.school, academicYear, class: classId });
     if (!sectionExists) return res.status(404).json({ message: "Section not found for selected class" });
+    if (isClassTeacher) {
+      const existingClassTeacher = await TeacherAssignment.findOne({
+        school: req.user.school, academicYear, class: classId, section,
+        isClassTeacher: true, status: "active",
+      }).populate("teacher", "name");
+      if (existingClassTeacher && String(existingClassTeacher.teacher?._id || existingClassTeacher.teacher) !== String(teacher)) {
+        return res.status(409).json({ message: `Class ${classExists.name} section ${sectionExists.name} already has a class teacher assigned. Edit that assignment first.` });
+      }
+    }
     const assignment = await TeacherAssignment.create({ school: req.user.school, academicYear, teacher, class: classId, section, subject, isClassTeacher });
     res.status(201).json({ assignment });
   } catch (error) {
@@ -317,6 +326,15 @@ router.put("/teacher-assignments/:assignmentId", async (req, res, next) => {
     if (!teacherUser) return res.status(404).json({ message: "Teacher not found" });
     if (!schoolClass || !sectionDoc) return res.status(404).json({ message: "Class or section not found for academic year" });
     if (!classSubject) return res.status(400).json({ message: "This subject is not mapped to the selected class. Map the subject first." });
+    if (isClassTeacher) {
+      const existingClassTeacher = await TeacherAssignment.findOne({
+        _id: { $ne: assignment._id }, school: req.user.school, academicYear,
+        class: classId, section, isClassTeacher: true, status: "active",
+      }).populate("teacher", "name");
+      if (existingClassTeacher && String(existingClassTeacher.teacher?._id || existingClassTeacher.teacher) !== String(teacher)) {
+        return res.status(409).json({ message: `Class ${schoolClass.name} section ${sectionDoc.name} already has a class teacher assigned. Edit that assignment first.` });
+      }
+    }
     const duplicate = await TeacherAssignment.findOne({
       _id: { $ne: assignment._id }, school: req.user.school, academicYear, teacher, class: classId, section, subject, isClassTeacher, status: "active",
     });
