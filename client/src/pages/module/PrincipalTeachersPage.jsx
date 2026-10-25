@@ -362,12 +362,7 @@ export default function PrincipalTeachersPage() {
               <Field label="Designation" value={form.designation} onChange={(value) => setField('designation', value)} />
               <Field label="Qualification" value={form.qualification} onChange={(value) => setField('qualification', value)} />
 
-              {!editingId && <>
-                <SelectField label="Class assignment" value={form.classId} onChange={(value) => { setField('classId', value); setField('sectionId', ''); }} options={[{ value: '', label: 'No class assignment' }, ...classes.map((item) => ({ value: item._id, label: `Class ${item.name}` }))]} />
-                <SelectField label="Section" value={form.sectionId} onChange={(value) => setField('sectionId', value)} options={[{ value: '', label: form.classId ? 'All / no section' : 'Select class first' }, ...availableSections.map((item) => ({ value: item._id, label: `Section ${item.name}` }))]} disabled={!form.classId} />
-                <SelectField label="Subject" value={form.subjectId} onChange={(value) => setField('subjectId', value)} options={[{ value: '', label: 'No subject assignment' }, ...availableSubjects.map((item) => ({ value: item._id, label: item.name || item.subjectName || 'Subject' }))]} />
-                <label className="teacher-checkbox"><input type="checkbox" checked={Boolean(form.isClassTeacher)} onChange={(event) => setField('isClassTeacher', event.target.checked)} /><span>Mark as class teacher</span></label>
-              </>}
+              {!editingId && <div className="teacher-assignment-note">Create the teacher account here. Assign classes, sections, subjects and Class Teacher roles from the dedicated Teacher Assignments page.</div>}
             </div>
 
             <div className="modal-footer"><button className="student-secondary-btn" onClick={() => !saving && setModal(false)}>Cancel</button><button className="student-primary-btn" onClick={saveTeacher} disabled={saving}>{saving ? <Loader2 className="spin" size={17} /> : null}{editingId ? 'Save changes' : 'Create teacher'}</button></div>
