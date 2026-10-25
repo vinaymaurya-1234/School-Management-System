@@ -147,7 +147,8 @@ export default function PrincipalTeachersPage() {
   const [modal, setModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState(emptyForm)\n  const [importOpen, setImportOpen] = useState(false)\n  const [importPreview, setImportPreview] = useState(null)\n  const [importBusy, setImportBusy] = useState(false)\n  const [importResult, setImportResult] = useState(null)\n  const fileRef = useRef(null)
+  const [form, setForm] = useState(emptyForm)
+  const [importOpen, setImportOpen] = useState(false)\n  const [importPreview, setImportPreview] = useState(null)\n  const [importBusy, setImportBusy] = useState(false)\n  const [importResult, setImportResult] = useState(null)\n  const fileRef = useRef(null)
 
   const activeYear = useMemo(() => years.find((year) => year.isActive) || years[0] || null, [years])
 
@@ -488,7 +489,8 @@ export default function PrincipalTeachersPage() {
         </> : <div className="import-result"><div className="import-result-icon"><Check size={25}/></div><h3>Teacher import finished</h3><div className="import-preview-stats"><span><strong>{importResult.imported.length}</strong> imported</span><span><strong>{importResult.failed.length}</strong> failed / skipped</span></div><p>Imported profiles are available in the teacher directory. Assign classes, sections, subjects and class-teacher roles from Teacher Assignments.</p>{importResult.failed.length>0 && <div className="import-errors"><strong>Rows needing attention</strong>{importResult.failed.slice(0,20).map((item)=><p key={item.row}>Row {item.row} · {item.name}: {item.message}</p>)}</div>}<button className="student-secondary-btn" onClick={()=>{const rows=[['Row','Name','Status / Error'],...importResult.imported.map(x=>[x.row,x.name,'Imported']),...importResult.failed.map(x=>[x.row,x.name,x.message])];const csv=rows.map(row=>row.map(v=>`"${String(v??'').replaceAll('"','""')}"`).join(',')).join('\\r\\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='teacher-import-results.csv';a.click();URL.revokeObjectURL(url)}}><Download size={16}/> Download results</button></div>}
         <div className="modal-footer"><button className="student-secondary-btn" onClick={()=>!importBusy&&setImportOpen(false)} disabled={importBusy}>{importResult?'Close':'Cancel'}</button></div>
       </div></div>}
-\n      {modal && (
+
+      {modal && (
         <div className="student-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && !saving && setModal(false)}>
           <div className="student-modal">
             <div className="modal-header">
