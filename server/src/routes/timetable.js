@@ -76,15 +76,29 @@ router.get("/", async (req, res, next) => {
       filter.section = enrollment.section;
     }
     if (req.user.role === ROLES.PARENT) {
-      const childIds = await parentChildUserIds(req.user._id, req.user.school);
+      const parent = await Parent.findOne({ user: req.user._id, school: req.user.school }).select("children");
+      const childIds = (parent?.children || []).map((id) => id.toString());
       if (!childIds.length) return res.json({ entries: [] });
-      const enrollments = await StudentEnrollment.find({
-        school: req.user.school,
-        academicYear: year._id,
-        student: { $in: childIds },
-        status: "active",
-      }).select("section");
-      filter.section = { $in: enrollments.map((item) => item.section) };
+      // The picker sends a Student document ID, never trust it unless it belongs to this parent.
+      if (req.query.studentId) {
+        if (!childIds.includes(String(req.query.studentId))) {
+          return res.status(403).json({ message: "You can only view a timetable for your linked child." });
+        }
+        const child = await Student.findOne({ _id: req.query.studentId, school: req.user.school }).select("user");
+        if (!child) return res.status(404).json({ message: "Linked student not found." });
+        const enrollment = await StudentEnrollment.findOne({
+          school: req.user.school, academicYear: year._id, student: child.user, status: "active",
+        }).select("section");
+        if (!enrollment) return res.json({ entries: [] });
+        filter.section = enrollment.section;
+      } else {
+        const children = await Student.find({ _id: { $in: childIds }, school: req.user.school }).select("user");
+        const enrollments = await StudentEnrollment.find({
+          school: req.user.school, academicYear: year._id,
+          student: { $in: children.map((child) => child.user) }, status: "active",
+        }).select("section");
+        filter.section = { $in: enrollments.map((item) => item.section) };
+      }
     }
     const entries = await TimetableEntry.find(filter)
       .populate("teacher", "name email")
@@ -145,6 +159,22 @@ router.post("/", async (req, res, next) => {
       return res.status(404).json({ message: "Section not found" });
     if (!existingTeacher)
       return res.status(404).json({ message: "Teacher not found" });
+    const assignment = await TeacherAssignment.findOne({
+      school: req.user.school, academicYear, teacher, class: existingSection.class,
+      subject, status: "active",
+      $or: [{ section }, { section: { $exists: false } }, { section: null }],
+    });
+    if (!assignment) {
+      return res.status(400).json({
+        message: "This teacher is not assigned to teach this subject for the selected class/section. Update Teacher Assignments first.",
+      });
+    }
+    const classSubject = await ClassSubject.findOne({
+      school: req.user.school, academicYear, class: existingSection.class, subject,
+    });
+    if (!classSubject) {
+      return res.status(400).json({ message: "This subject is not mapped to the selected class for this academic year." });
+    }
     const conflict = await TimetableEntry.findOne({
       school: req.user.school,
       academicYear,
