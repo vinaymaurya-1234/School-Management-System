@@ -103,13 +103,34 @@ router.post("/create-account", async (req, res, next) => {
 
 router.get("/credentials", async (req, res, next) => {
   try {
-    const profiles = await Teacher.find({ school: req.user.school }).populate({ path: "user", select: "name email role active loginId mustChangePassword" }).sort({ createdAt: -1 });
-    const teachers = profiles.filter((item) => item.user && (item.user.role === ROLES.TEACHER || item.user.loginId)).map((item) => ({
-      userId: item.user._id, teacherId: item._id, name: item.user.name, email: item.user.email,
-      loginId: item.user.loginId || "", phone: item.phone || "", employeeId: item.employeeId,
-      active: item.user.active !== false, mustChangePassword: Boolean(item.user.mustChangePassword),
-    }));
-    res.json({ teachers, count: teachers.length });
+    const profiles = await Teacher.find({ school: req.user.school }).populate({ path: "user" }).sort({ createdAt: -1 });
+    const teachers = [];
+    const provisionedCredentials = [];
+    for (const profile of profiles) {
+      const user = profile.user;
+      if (!user || String(user.school) !== String(req.user.school)) continue;
+
+      // A Teacher profile is authoritative for this directory; repair legacy accounts
+      // that were created before teacher Login IDs were generated.
+      let changed = false;
+      if (user.role !== ROLES.TEACHER) { user.role = ROLES.TEACHER; changed = true; }
+      if (!user.loginId) {
+        user.loginId = await uniqueTeacherLoginId();
+        const password = temporaryPassword();
+        user.password = password;
+        user.mustChangePassword = true;
+        provisionedCredentials.push({ name: user.name, loginId: user.loginId, temporaryPassword: password, employeeId: profile.employeeId });
+        changed = true;
+      }
+      if (changed) await user.save();
+
+      teachers.push({
+        userId: user._id, teacherId: profile._id, name: user.name, email: user.email,
+        loginId: user.loginId || "", phone: profile.phone || "", employeeId: profile.employeeId,
+        active: user.active !== false, mustChangePassword: Boolean(user.mustChangePassword),
+      });
+    }
+    res.json({ teachers, count: teachers.length, provisionedCredentials });
   } catch (error) { next(error); }
 });
 
