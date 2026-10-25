@@ -153,7 +153,6 @@ export default function PrincipalTeachersPage() {
   const [importBusy, setImportBusy] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const fileRef = useRef(null)
-  const [importOpen, setImportOpen] = useState(false)\n  const [importPreview, setImportPreview] = useState(null)\n  const [importBusy, setImportBusy] = useState(false)\n  const [importResult, setImportResult] = useState(null)\n  const fileRef = useRef(null)
 
   const activeYear = useMemo(() => years.find((year) => year.isActive) || years[0] || null, [years])
 
