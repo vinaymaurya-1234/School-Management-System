@@ -294,11 +294,19 @@ router.post("/teacher-assignments", async (req, res, next) => {
     const sectionExists = await Section.findOne({ _id: section, school: req.user.school, academicYear, class: classId });
     if (!sectionExists) return res.status(404).json({ message: "Section not found for selected class" });
     if (isClassTeacher) {
-      const existingClassTeacher = await TeacherAssignment.findOne({
+      // A teacher can be class teacher for only one class-section in an academic year.
+      const teacherAlreadyOwnsClass = await TeacherAssignment.findOne({
+        school: req.user.school, academicYear, teacher,
+        isClassTeacher: true, status: "active",
+      });
+      if (teacherAlreadyOwnsClass) {
+        return res.status(409).json({ message: "This teacher is already a class teacher for another class or section in this academic year. A teacher can be class teacher for only one class-section." });
+      }
+      const sectionAlreadyHasTeacher = await TeacherAssignment.findOne({
         school: req.user.school, academicYear, class: classId, section,
         isClassTeacher: true, status: "active",
       });
-      if (existingClassTeacher) {
+      if (sectionAlreadyHasTeacher) {
         return res.status(409).json({ message: "This class section already has a class teacher. Edit or deactivate the existing class-teacher assignment first." });
       }
     }
@@ -327,11 +335,20 @@ router.put("/teacher-assignments/:assignmentId", async (req, res, next) => {
     if (!schoolClass || !sectionDoc) return res.status(404).json({ message: "Class or section not found for academic year" });
     if (!classSubject) return res.status(400).json({ message: "This subject is not mapped to the selected class. Map the subject first." });
     if (isClassTeacher) {
-      const existingClassTeacher = await TeacherAssignment.findOne({
+      // Exclude the assignment being edited, but reject another class-teacher role
+      // for this teacher in a different class-section during the same academic year.
+      const teacherAlreadyOwnsClass = await TeacherAssignment.findOne({
+        _id: { $ne: assignment._id }, school: req.user.school, academicYear, teacher,
+        isClassTeacher: true, status: "active",
+      });
+      if (teacherAlreadyOwnsClass) {
+        return res.status(409).json({ message: "This teacher is already a class teacher for another class or section in this academic year. A teacher can be class teacher for only one class-section." });
+      }
+      const sectionAlreadyHasTeacher = await TeacherAssignment.findOne({
         _id: { $ne: assignment._id }, school: req.user.school, academicYear,
         class: classId, section, isClassTeacher: true, status: "active",
       });
-      if (existingClassTeacher) {
+      if (sectionAlreadyHasTeacher) {
         return res.status(409).json({ message: "This class section already has a class teacher. Edit or deactivate the existing class-teacher assignment first." });
       }
     }
