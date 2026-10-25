@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { randomBytes } from "node:crypto";
 import mongoose from "mongoose";
 import Teacher from "../models/Teacher.js";
 import User from "../models/User.js";
@@ -33,6 +34,8 @@ function serializeTeacher(teacher) {
     user: teacher.user?._id || teacher.user,
     name: teacher.user?.name,
     email: teacher.user?.email,
+    loginId: teacher.user?.loginId || null,
+    mustChangePassword: Boolean(teacher.user?.mustChangePassword),
     active: teacher.user?.active,
     role: teacher.user?.role,
     responsibilities: teacher.user?.responsibilities || [],
@@ -58,11 +61,72 @@ async function findTeacher(id, schoolId) {
 
   return Teacher.findOne({ _id: id, school: schoolId }).populate({
     path: "user",
-    select: "name email role responsibilities active",
+    select: "name email role responsibilities active loginId mustChangePassword",
   });
 }
 
 router.use(requireAuth, principalOnly);
+
+
+function temporaryPassword() { return randomBytes(9).toString("base64url"); }
+async function uniqueTeacherLoginId() {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const loginId = `TCH${new Date().getFullYear().toString().slice(-2)}${randomBytes(4).toString("hex").toUpperCase()}`;
+    if (!(await User.exists({ loginId }))) return loginId;
+  }
+  throw new Error("Could not generate a unique teacher login ID. Please try again.");
+}
+
+// Create teacher login and profile together, generating credentials like student/parent accounts.
+router.post("/create-account", async (req, res, next) => {
+  let user;
+  try {
+    const { name, email, phone, employeeId, designation = "Teacher", department = "Academic", qualification = "" } = req.body || {};
+    if (!String(name || "").trim() || !String(email || "").trim() || !String(employeeId || "").trim()) {
+      return res.status(400).json({ message: "Name, email and employee ID are required" });
+    }
+    const normalizedEmail = String(email).trim().toLowerCase();
+    if (await User.exists({ email: normalizedEmail })) return res.status(409).json({ message: "A user with this email already exists" });
+    if (await Teacher.exists({ school: req.user.school, employeeId: String(employeeId).trim() })) return res.status(409).json({ message: "A teacher with this employee ID already exists" });
+    const loginId = await uniqueTeacherLoginId();
+    const password = temporaryPassword();
+    user = await User.create({ name: String(name).trim(), email: normalizedEmail, loginId, password, mustChangePassword: true, role: ROLES.TEACHER, school: req.user.school });
+    const teacher = await Teacher.create({ user: user._id, school: req.user.school, employeeId: String(employeeId).trim(), phone: String(phone || "").trim(), designation: String(designation || "Teacher").trim(), department: String(department || "Academic").trim(), qualification: String(qualification || "").trim() });
+    const populated = await findTeacher(teacher._id, req.user.school);
+    res.status(201).json({ message: "Teacher account created successfully", teacher: serializeTeacher(populated), credentials: { name: user.name, loginId, temporaryPassword: password } });
+  } catch (error) {
+    if (user?._id) await User.deleteOne({ _id: user._id, school: req.user.school }).catch(() => {});
+    if (error?.code === 11000) return res.status(409).json({ message: "Email, login ID or employee ID already exists" });
+    next(error);
+  }
+});
+
+router.get("/credentials", async (req, res, next) => {
+  try {
+    const profiles = await Teacher.find({ school: req.user.school }).populate({ path: "user", select: "name email role active loginId mustChangePassword" }).sort({ createdAt: -1 });
+    const teachers = profiles.filter((item) => item.user?.role === ROLES.TEACHER).map((item) => ({
+      userId: item.user._id, teacherId: item._id, name: item.user.name, email: item.user.email,
+      loginId: item.user.loginId || "", phone: item.phone || "", employeeId: item.employeeId,
+      active: item.user.active !== false, mustChangePassword: Boolean(item.user.mustChangePassword),
+    }));
+    res.json({ teachers, count: teachers.length });
+  } catch (error) { next(error); }
+});
+
+router.post("/credentials/:userId/reset", async (req, res, next) => {
+  try {
+    const user = await User.findOne({ _id: req.params.userId, school: req.user.school, role: ROLES.TEACHER });
+    if (!user) return res.status(404).json({ message: "Teacher account not found" });
+    const profile = await Teacher.findOne({ user: user._id, school: req.user.school });
+    if (!profile) return res.status(404).json({ message: "Teacher profile not found" });
+    if (!user.loginId) user.loginId = await uniqueTeacherLoginId();
+    const password = temporaryPassword();
+    user.password = password;
+    user.mustChangePassword = true;
+    await user.save();
+    res.json({ message: "Temporary teacher password reset", name: user.name, loginId: user.loginId, temporaryPassword: password });
+  } catch (error) { next(error); }
+});
 
 // Create a teacher profile for an existing teacher login account.
 router.post("/", async (req, res, next) => {
