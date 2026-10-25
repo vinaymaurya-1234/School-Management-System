@@ -104,7 +104,7 @@ router.post("/create-account", async (req, res, next) => {
 router.get("/credentials", async (req, res, next) => {
   try {
     const profiles = await Teacher.find({ school: req.user.school }).populate({ path: "user", select: "name email role active loginId mustChangePassword" }).sort({ createdAt: -1 });
-    const teachers = profiles.filter((item) => item.user?.role === ROLES.TEACHER).map((item) => ({
+    const teachers = profiles.filter((item) => item.user && (item.user.role === ROLES.TEACHER || item.user.loginId)).map((item) => ({
       userId: item.user._id, teacherId: item._id, name: item.user.name, email: item.user.email,
       loginId: item.user.loginId || "", phone: item.phone || "", employeeId: item.employeeId,
       active: item.user.active !== false, mustChangePassword: Boolean(item.user.mustChangePassword),
