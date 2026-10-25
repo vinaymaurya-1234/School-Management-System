@@ -12,6 +12,21 @@ const PORT = Number(process.env.PORT) || 5000;
 async function startServer() {
   try {
     await connectDB();
+
+    // Migrate legacy User email indexes so accounts without an email can be created.
+    // Older non-sparse unique email indexes treat missing email values as null and
+    // reject subsequent email-less teacher accounts.
+    await User.collection.updateMany({ email: "" }, { $unset: { email: "" } });
+    const userIndexes = await User.collection.indexes();
+    const emailIndexes = userIndexes.filter((index) =>
+      index.unique && index.key && Object.keys(index.key).length === 1 && index.key.email === 1
+    );
+    const hasSparseUniqueEmailIndex = emailIndexes.some((index) => index.sparse === true);
+    if (!hasSparseUniqueEmailIndex) {
+      for (const index of emailIndexes) await User.collection.dropIndex(index.name);
+      await User.collection.createIndex({ email: 1 }, { unique: true, sparse: true, name: "email_1" });
+      console.log("Migrated User.email unique index to sparse; email is optional.");
+    }
     const httpServer = createServer(app);
     const io = new Server(httpServer, {
       cors: {
