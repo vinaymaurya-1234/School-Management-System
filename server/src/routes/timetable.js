@@ -436,6 +436,41 @@ router.post("/auto-generate", async (req, res, next) => {
     next(error);
   }
 });
+router.patch("/:id", async (req, res, next) => {
+  try {
+    if (req.user.role !== ROLES.PRINCIPAL) return res.status(403).json({ message: "Only the principal can edit timetable entries" });
+    const entry = await TimetableEntry.findOne({ _id: req.params.id, school: req.user.school });
+    if (!entry) return res.status(404).json({ message: "Timetable entry not found" });
+    if (entry.status === "published") return res.status(409).json({ message: "Unpublish this period before editing it." });
+    const { academicYear, section, teacher, subject, day, periodNumber, startTime, endTime, room } = req.body || {};
+    if (!academicYear || !section || !teacher || !subject || !DAYS.includes(day) || !Number.isInteger(Number(periodNumber)) || Number(periodNumber) < 1 || !startTime || !endTime) {
+      return res.status(400).json({ message: "Provide valid class, subject, teacher, day, period and times." });
+    }
+    const sectionDoc = await Section.findOne({ _id: section, school: req.user.school, academicYear });
+    const teacherDoc = await User.findOne({ _id: teacher, school: req.user.school, role: ROLES.TEACHER, active: true });
+    if (!sectionDoc || !teacherDoc) return res.status(404).json({ message: "Selected class section or teacher was not found." });
+    if (day === "saturday" && Number(periodNumber) > DEFAULT_SATURDAY_PERIODS) return res.status(400).json({ message: "Saturday is a half-day. Choose an available period." });
+    const conflict = await TimetableEntry.findOne({
+      _id: { $ne: entry._id }, school: req.user.school, academicYear, day, periodNumber: Number(periodNumber),
+      $or: [{ section }, { teacher }],
+    });
+    if (conflict) return res.status(409).json({ message: String(conflict.section) === String(section) ? "This section already has a lesson in that period." : "This teacher is already teaching another section in that period." });
+    const assignment = await TeacherAssignment.findOne({
+      school: req.user.school, academicYear, teacher, class: sectionDoc.class, subject, status: "active",
+      $or: [{ section }, { section: { $exists: false } }, { section: null }],
+    });
+    if (!assignment) return res.status(400).json({ message: "This teacher is not assigned to this subject for the selected class/section." });
+    const classSubject = await ClassSubject.findOne({ school: req.user.school, academicYear, class: sectionDoc.class, subject });
+    if (!classSubject) return res.status(400).json({ message: "This subject is not mapped to the selected class." });
+    entry.academicYear = academicYear; entry.section = section; entry.teacher = teacher; entry.subject = subject;
+    entry.day = day; entry.periodNumber = Number(periodNumber); entry.startTime = startTime; entry.endTime = endTime; entry.room = room || "";
+    await entry.save();
+    return res.json({ message: "Timetable period updated", entry });
+  } catch (error) {
+    if (error.code === 11000) return res.status(409).json({ message: "Timetable conflict: this section or teacher is already booked in that period." });
+    next(error);
+  }
+});
 router.patch("/:id/publish", async (req, res, next) => {
   try {
     if (req.user.role !== ROLES.PRINCIPAL)
