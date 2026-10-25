@@ -125,8 +125,8 @@ async function parseXlsx(buffer) {
 
 function downloadTeacherTemplate() {
   const rows = [
-    ['Full Name', 'Email', 'Password', 'Employee ID', 'Phone', 'Department', 'Designation', 'Qualification'],
-    ['Soma Prasad', 'soma@example.com', 'ChangeMe123!', 'TCH001', '9876543210', 'Academic', 'Teacher', 'B.Ed'],
+    ['Full Name', 'Email', 'Employee ID', 'Phone', 'Department', 'Designation', 'Qualification'],
+    ['Soma Prasad', 'soma@example.com', 'TCH001', '9876543210', 'Academic', 'Teacher', 'B.Ed'],
   ]
   const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\\r\\n')
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
@@ -268,7 +268,6 @@ export default function PrincipalTeachersPage() {
       rows.forEach((row) => {
         const name = row.fullname || row.name || ''
         const email = String(row.email || '').toLowerCase().trim()
-        const password = row.password || ''
         const employeeId = row.employeeid || row.employeeidnumber || ''
         const phone = row.phone || ''
         const department = row.department || 'Academic'
@@ -277,7 +276,6 @@ export default function PrincipalTeachersPage() {
         const problems = []
         if (!name.trim()) problems.push('Full Name is required')
         if (!/^\S+@\S+\.\S+$/.test(email)) problems.push('Valid Email is required')
-        if (password.length < 8) problems.push('Password must be at least 8 characters')
         if (!employeeId.trim()) problems.push('Employee ID is required')
         const emailKey = normal(email); const idKey = normal(employeeId)
         if (emailKey && seenEmails.has(emailKey)) problems.push('Duplicate email in this file')
@@ -286,7 +284,7 @@ export default function PrincipalTeachersPage() {
         if (teachers.some((teacher) => normal(teacher.employeeId) === idKey)) problems.push('Employee ID already exists in school')
         if (emailKey) seenEmails.add(emailKey); if (idKey) seenIds.add(idKey)
         if (problems.length) errors.push({ row: row._sourceRow, name: name || 'Unnamed teacher', message: problems.join('; ') })
-        else valid.push({ _sourceRow: row._sourceRow, name: name.trim(), email, password, employeeId: employeeId.trim(), phone: phone.trim(), department: department.trim(), designation: designation.trim(), qualification: qualification.trim() })
+        else valid.push({ _sourceRow: row._sourceRow, name: name.trim(), email, employeeId: employeeId.trim(), phone: phone.trim(), department: department.trim(), designation: designation.trim(), qualification: qualification.trim() })
       })
       setImportPreview({ valid, errors, total: rows.length, filename: file.name })
     } catch (fileError) { setError(fileError.message || 'Could not read the uploaded file.') }
@@ -295,24 +293,28 @@ export default function PrincipalTeachersPage() {
   const runTeacherImport = async () => {
     if (!importPreview?.valid?.length) return
     setImportBusy(true); setError('')
-    const imported = []; const failed = [...importPreview.errors]
+    const imported = []; const failed = [...importPreview.errors]; const credentials = []
     for (const item of importPreview.valid) {
       try {
-        const userResponse = await apiClient.post('/users', { name: item.name, email: item.email, password: item.password, role: 'teacher' })
-        const userId = userResponse.data?.user?.id || userResponse.data?.user?._id
-        if (!userId) throw new Error('Login was created but the response did not include its user ID. Check this email before retrying.')
-        try {
-          await apiClient.post('/teachers', { userId, employeeId: item.employeeId, phone: item.phone, department: item.department, designation: item.designation, qualification: item.qualification })
-          imported.push({ row: item._sourceRow, name: item.name, email: item.email, employeeId: item.employeeId })
-        } catch (profileError) {
-          failed.push({ row: item._sourceRow, name: item.name, message: `Login created, but teacher profile failed: ${profileError.response?.data?.message || profileError.message}. Check before retrying this email.` })
-        }
-      } catch (userError) {
-        failed.push({ row: item._sourceRow, name: item.name, message: userError.response?.data?.message || userError.message || 'Could not create teacher login' })
+        const response = await apiClient.post('/teachers/create-account', {
+          name: item.name, email: item.email, employeeId: item.employeeId,
+          phone: item.phone, department: item.department, designation: item.designation,
+          qualification: item.qualification,
+        })
+        imported.push({ row: item._sourceRow, name: item.name, email: item.email, employeeId: item.employeeId })
+        if (response.data?.credentials) credentials.push({ row: item._sourceRow, ...response.data.credentials })
+      } catch (requestError) {
+        failed.push({ row: item._sourceRow, name: item.name, message: requestError.response?.data?.message || requestError.message || 'Could not create teacher account' })
       }
     }
-    setImportResult({ imported, failed });
-    if (imported.length) { setNotice(`Imported ${imported.length} teacher profile(s).`); await load() }
+    setImportResult({ imported, failed, credentials })
+    if (credentials.length) {
+      const rows = [['Row', 'Teacher', 'Login ID', 'Temporary Password'], ...credentials.map((item) => [item.row, item.name, item.loginId, item.temporaryPassword])]
+      const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\\r\\n')
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
+      const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'teacher-temporary-credentials.csv'; anchor.click(); URL.revokeObjectURL(url)
+    }
+    if (imported.length) { setNotice(`Imported ${imported.length} teacher profile(s). Temporary credentials CSV downloaded.`); await load() }
     setImportBusy(false)
   }
 
