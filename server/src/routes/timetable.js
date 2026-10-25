@@ -266,16 +266,25 @@ router.post("/auto-generate", async (req, res, next) => {
       return res.status(400).json({ message: "All periods must have the same duration, be in chronological order, and not overlap. Set valid start/end times." });
     }
 
-    const configuredSlots = await TimetableEntry.find({
-      school: req.user.school, academicYear,
+    const publishedSchoolEntries = await TimetableEntry.find({
+      school: req.user.school, academicYear, status: "published",
     }).select("periodNumber startTime endTime").lean();
-    for (const slot of configuredSlots) {
+    for (const slot of publishedSchoolEntries) {
       const requestedSlot = schedulePeriods[Number(slot.periodNumber) - 1];
       if (requestedSlot && (requestedSlot[0] !== slot.startTime || requestedSlot[1] !== slot.endTime)) {
         return res.status(409).json({
-          message: `Period ${slot.periodNumber} already uses ${slot.startTime}–${slot.endTime} in another class. Keep the same school-wide period timings, or clear existing draft timetables before changing them.`,
+          message: `Period ${slot.periodNumber} is already published at ${slot.startTime}–${slot.endTime}. Unpublish existing school timetables before changing the bell schedule.`,
         });
       }
+    }
+    // One bell schedule for the whole school: when draft schedules exist, update
+    // every draft entry's clock times together so classes never drift apart.
+    for (let index = 0; index < schedulePeriods.length; index += 1) {
+      const [startTime, endTime] = schedulePeriods[index];
+      await TimetableEntry.updateMany(
+        { school: req.user.school, academicYear, periodNumber: index + 1, status: "draft" },
+        { $set: { startTime, endTime } },
+      );
     }
 
     const saturdayLimit = Math.max(1, Math.min(schedulePeriods.length, Number(requestedSaturdayPeriods) || schedulePeriods.length));
