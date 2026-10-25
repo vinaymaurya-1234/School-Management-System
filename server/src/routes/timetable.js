@@ -221,7 +221,7 @@ router.post("/auto-generate", async (req, res, next) => {
     if (req.user.role !== ROLES.PRINCIPAL)
       return res.status(403).json({ message: "Only the principal can generate timetables" });
 
-    const { academicYear, section } = req.body || {};
+    const { academicYear, section, periods: requestedPeriods } = req.body || {};
     if (!academicYear || !section)
       return res.status(400).json({ message: "academicYear and section are required" });
 
@@ -229,6 +229,17 @@ router.post("/auto-generate", async (req, res, next) => {
       _id: section, school: req.user.school, academicYear,
     });
     if (!sectionDoc) return res.status(404).json({ message: "Section not found" });
+
+    const schedulePeriods = Array.isArray(requestedPeriods) && requestedPeriods.length
+      ? requestedPeriods.map((slot) => [String(slot.startTime || ""), String(slot.endTime || "")])
+      : PERIODS;
+    if (
+      schedulePeriods.length !== PERIODS.length ||
+      schedulePeriods.some(([start, end]) => !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(start) || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(end) || start >= end) ||
+      schedulePeriods.some((slot, index) => index > 0 && slot[0] < schedulePeriods[index - 1][1])
+    ) {
+      return res.status(400).json({ message: "Set valid period start/end times. Periods must not overlap and must be in chronological order." });
+    }
 
     const publishedEntries = await TimetableEntry.countDocuments({
       school: req.user.school, academicYear, section, status: "published",
@@ -269,10 +280,8 @@ router.post("/auto-generate", async (req, res, next) => {
       school: req.user.school, academicYear, section, status: "draft",
     });
 
-    const teacherIds = assignments.map((item) => item.teacher?._id || item.teacher).filter(Boolean);
     const existing = await TimetableEntry.find({
-      school: req.user.school, academicYear,
-      $or: [{ section: { $ne: section } }, { teacher: { $in: teacherIds } }],
+      school: req.user.school, academicYear, section: { $ne: section },
     }).lean();
 
     const sectionBusy = new Set();
@@ -331,7 +340,7 @@ router.post("/auto-generate", async (req, res, next) => {
         if (!choice) break;
 
         const periodNumber = choice.index + 1;
-        const [startTime, endTime] = choice.slot;
+        const [startTime, endTime] = schedulePeriods[choice.index];
         const entry = await TimetableEntry.create({
           school: req.user.school, academicYear, section, teacher: teacherId,
           subject: mapping.subject._id, day: choice.day, periodNumber,
