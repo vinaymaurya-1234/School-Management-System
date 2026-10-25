@@ -374,7 +374,8 @@ export default function PrincipalTeachersPage() {
         </div>
         <div className="hero-actions">
           <button className="student-secondary-btn" onClick={exportTeachers}><Download size={17} /> Export</button>
-          <button className="student-primary-btn" onClick={openAdd}><Plus size={17} /> Add teacher</button>
+          <button className="student-secondary-btn" onClick={() => { setImportOpen(true); setImportPreview(null); setImportResult(null); setError('') }}><Upload size={17} /> Import Excel/CSV</button>
+          <button className="student-primary-btn" onClick={openAdd}><Plus size={17} /> Add single teacher</button>
         </div>
       </header>
 
@@ -505,7 +506,6 @@ export default function PrincipalTeachersPage() {
               <Field label="Designation" value={form.designation} onChange={(value) => setField('designation', value)} />
               <Field label="Qualification" value={form.qualification} onChange={(value) => setField('qualification', value)} />
 
-              {!editingId && <div className="teacher-assignment-note">Create the teacher account here. Assign classes, sections, subjects and Class Teacher roles from the dedicated Teacher Assignments page.</div>}
             </div>
 
             <div className="modal-footer"><button className="student-secondary-btn" onClick={() => !saving && setModal(false)}>Cancel</button><button className="student-primary-btn" onClick={saveTeacher} disabled={saving}>{saving ? <Loader2 className="spin" size={17} /> : null}{editingId ? 'Save changes' : 'Create teacher'}</button></div>
