@@ -80,6 +80,8 @@ function PrincipalSubjectsPage() {
     if (!activeYear) return setError('Please configure an academic year first.')
     if (mode === 'create' && !form.name.trim()) return setError('Enter a subject name.')
     if (!form.classIds.length) return setError('Select at least one class.')
+    const invalidFrequency = form.classIds.some((id) => !Number.isInteger(Number(form.classFrequencies?.[id] ?? 5)) || Number(form.classFrequencies?.[id] ?? 5) < 1 || Number(form.classFrequencies?.[id] ?? 5) > 36)
+    if (invalidFrequency) return setError('Enter a whole number from 1 to 36 weekly lectures for every selected class.')
     setSaving(true); setError('')
     try {
       const payload = { academicYear: activeYear._id, classIds: form.classIds, weeklyPeriods: 5, classFrequencies: Object.fromEntries(form.classIds.map((id) => [id, Number(form.classFrequencies?.[id] ?? 5)])) }
