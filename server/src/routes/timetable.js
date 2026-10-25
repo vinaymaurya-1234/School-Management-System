@@ -349,26 +349,24 @@ router.post("/auto-generate", async (req, res, next) => {
     const teacherBusy = new Set(existing.map(
       (item) => `${String(item.teacher)}:${item.day}:${item.periodNumber}`
     ));
-    const placedSubjectsByDay = new Map(DAYS.map((day) => [day, new Set()]));
+    const subjectDayCounts = new Map();
     const subjectAtSlot = new Map();
     const created = [];
     const conflicts = [];
 
-    // Place subjects across the week. Each subject appears at most once per day by default.
-    // Candidate periods are scored to avoid adjacent repeats and keep the day reasonably balanced.
+    // Honour each class-subject mapping's weekly frequency while spreading repeats across days.
     const dayLoads = new Map(DAYS.map((day) => [day, 0]));
     const periodLoads = new Map(DAYS.map((day) => [day, new Array(schedulePeriods.length).fill(0)]));
     for (const { mapping, teacherId } of usableMappings) {
-      const weeklyPeriods = Math.max(1, Number(mapping.weeklyPeriods) || 1);
-      if (weeklyPeriods > DAYS.length) {
-        conflicts.push(`${mapping.subject?.name || "Subject"}: requested ${weeklyPeriods} periods, but the one-per-day rule allows at most ${DAYS.length} per week.`);
-      }
-      const target = Math.min(weeklyPeriods, DAYS.length);
+      const weeklyPeriods = Math.max(1, Math.min(36, Number(mapping.weeklyPeriods) || 1));
+      const availableWeeklySlots = 5 * schedulePeriods.length + saturdayLimit;
+      const target = Math.min(weeklyPeriods, availableWeeklySlots);
+      const maxPerDay = Math.max(1, Math.ceil(weeklyPeriods / DAYS.length));
       let placed = 0;
       while (placed < target) {
         const subjectId = String(mapping.subject?._id);
         const dayCandidates = DAYS
-          .filter((day) => !placedSubjectsByDay.get(day).has(subjectId))
+          .filter((day) => (subjectDayCounts.get(`${subjectId}:${day}`) || 0) < maxPerDay)
           .sort((a, b) => {
             const dayLoadDiff = dayLoads.get(a) - dayLoads.get(b);
             return dayLoadDiff || DAYS.indexOf(a) - DAYS.indexOf(b);
@@ -411,7 +409,8 @@ router.post("/auto-generate", async (req, res, next) => {
         });
         sectionBusy.add(`${choice.day}:${periodNumber}`);
         teacherBusy.add(`${String(teacherId)}:${choice.day}:${periodNumber}`);
-        placedSubjectsByDay.get(choice.day).add(subjectId);
+        const dayCountKey = `${subjectId}:${choice.day}`;
+        subjectDayCounts.set(dayCountKey, (subjectDayCounts.get(dayCountKey) || 0) + 1);
         subjectAtSlot.set(`${choice.day}:${periodNumber}`, subjectId);
         dayLoads.set(choice.day, dayLoads.get(choice.day) + 1);
         periodLoads.get(choice.day)[choice.index] += 1;
