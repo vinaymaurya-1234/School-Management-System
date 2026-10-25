@@ -22,7 +22,7 @@ export default function PrincipalTeacherCredentialsPage() {
       const provisioned = Array.isArray(response.data?.provisionedCredentials) ? response.data.provisionedCredentials : []
       if (provisioned.length) {
         const rows = [['Teacher', 'Employee ID', 'Login ID', 'Temporary Password'], ...provisioned.map((item) => [item.name, item.employeeId, item.loginId, item.temporaryPassword])]
-        const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\\r\\n')
+        const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\r\n')
         const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
         const anchor = document.createElement('a')
         anchor.href = url
