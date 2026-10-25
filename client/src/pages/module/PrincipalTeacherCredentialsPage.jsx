@@ -19,6 +19,18 @@ export default function PrincipalTeacherCredentialsPage() {
       const response = await apiClient.get('/teachers/credentials')
       const list = Array.isArray(response.data?.teachers) ? response.data.teachers : []
       setTeachers(list.filter((item) => item && item.userId && item.loginId))
+      const provisioned = Array.isArray(response.data?.provisionedCredentials) ? response.data.provisionedCredentials : []
+      if (provisioned.length) {
+        const rows = [['Teacher', 'Employee ID', 'Login ID', 'Temporary Password'], ...provisioned.map((item) => [item.name, item.employeeId, item.loginId, item.temporaryPassword])]
+        const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\\r\\n')
+        const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
+        const anchor = document.createElement('a')
+        anchor.href = url
+        anchor.download = 'existing-teacher-login-credentials.csv'
+        anchor.click()
+        URL.revokeObjectURL(url)
+        setNotice(`Generated login credentials for ${provisioned.length} existing teacher account(s). Downloaded the temporary credentials CSV; share it privately.`)
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to load teacher credentials.')
     } finally {
