@@ -16,7 +16,7 @@ function PrincipalSubjectsPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [search, setSearch] = useState('')
-  const [form, setForm] = useState({ name: '', subjectId: '', classIds: [], weeklyPeriods: 5 })
+  const [form, setForm] = useState({ name: '', subjectId: '', classIds: [], weeklyPeriods: 5, classFrequencies: {} })
 
   const activeYear = useMemo(() => years.find((year) => year.isActive) || years[0], [years])
   const catalog = useMemo(() => {
@@ -57,17 +57,24 @@ function PrincipalSubjectsPage() {
 
   const openCreate = () => {
     setMode('create')
-    setForm({ name: '', subjectId: '', classIds: [], weeklyPeriods: 5 })
+    setForm({ name: '', subjectId: '', classIds: [], weeklyPeriods: 5, classFrequencies: {} })
     setError(''); setModal(true)
   }
   const openAssign = (subject) => {
     setMode('assign')
-    setForm({ name: subject.name, subjectId: subject._id, classIds: [], weeklyPeriods: 5 })
+    setForm({ name: subject.name, subjectId: subject._id, classIds: [], weeklyPeriods: 5, classFrequencies: {} })
     setError(''); setModal(true)
   }
-  const toggleClass = (id) => setForm((prev) => ({
-    ...prev, classIds: prev.classIds.includes(id) ? prev.classIds.filter((item) => item !== id) : [...prev.classIds, id],
-  }))
+  const toggleClass = (id) => setForm((prev) => {
+    const selected = prev.classIds.includes(id)
+    return {
+      ...prev,
+      classIds: selected ? prev.classIds.filter((item) => item !== id) : [...prev.classIds, id],
+      classFrequencies: selected
+        ? Object.fromEntries(Object.entries(prev.classFrequencies || {}).filter(([classId]) => classId !== id))
+        : { ...(prev.classFrequencies || {}), [id]: 5 },
+    }
+  })
 
   const save = async () => {
     if (!activeYear) return setError('Please configure an academic year first.')
@@ -75,7 +82,7 @@ function PrincipalSubjectsPage() {
     if (!form.classIds.length) return setError('Select at least one class.')
     setSaving(true); setError('')
     try {
-      const payload = { academicYear: activeYear._id, classIds: form.classIds, weeklyPeriods: Number(form.weeklyPeriods) || 5 }
+      const payload = { academicYear: activeYear._id, classIds: form.classIds, weeklyPeriods: 5, classFrequencies: Object.fromEntries(form.classIds.map((id) => [id, Number(form.classFrequencies?.[id] ?? 5)])) }
       if (mode === 'create') await apiClient.post('/subjects', { ...payload, name: form.name.trim() })
       else await apiClient.post('/subjects/assign', { ...payload, subjectId: form.subjectId })
       setNotice(mode === 'create' ? `${form.name.trim()} created and assigned to ${form.classIds.length} class(es).` : `${form.name} assigned to ${form.classIds.length} class(es).`)
@@ -153,7 +160,7 @@ function PrincipalSubjectsPage() {
         {mode === 'create' && <label className="subjects-field"><span>SUBJECT NAME</span><input autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Mathematics"/></label>}
         <div className="subjects-class-pick-head"><span>SELECT CLASSES</span><button type="button" onClick={() => setForm({ ...form, classIds: form.classIds.length === classes.length ? [] : classes.map((item) => item._id) })}>{form.classIds.length === classes.length ? 'Clear all' : 'Select all'}</button></div>
         <div className="subjects-class-grid">{classes.map((item) => <label className={`subjects-class-option ${form.classIds.includes(item._id) ? 'selected' : ''}`} key={item._id}><input type="checkbox" checked={form.classIds.includes(item._id)} onChange={() => toggleClass(item._id)}/><span className="subjects-check">{form.classIds.includes(item._id) && <Check size={13}/>}</span><span>Class {item.name}</span></label>)}</div>
-        <p className="subjects-modal-note">Classes where this subject is already assigned will be skipped automatically. Set each class's weekly lecture count separately from the subject card after assigning.</p>
+        <div className="subjects-frequency-editor"><div className="subjects-class-pick-head"><span>WEEKLY LECTURES BY CLASS</span><small>Set 1–36 periods for each selected class</small></div>{form.classIds.map((id) => <label className="subjects-frequency-row" key={id}><span>Class {className(id)}</span><input type="number" min="1" max="36" step="1" value={form.classFrequencies?.[id] ?? 5} onChange={(e) => setForm((prev) => ({ ...prev, classFrequencies: { ...(prev.classFrequencies || {}), [id]: e.target.value } }))} aria-label={`Weekly lectures for Class ${className(id)}`} /><small>lectures / week</small></label>)}<p className="subjects-modal-note">Already-assigned classes are skipped. You can edit any class frequency later from its subject card.</p></div>
       </div>
       <div className="subjects-modal-foot"><button className="subjects-btn subjects-btn-light" onClick={() => setModal(false)} disabled={saving}>Cancel</button><button className="subjects-btn subjects-btn-dark" onClick={save} disabled={saving}>{saving ? <Loader2 size={15} className="subjects-spin"/> : <Check size={15}/>} {saving ? 'Saving…' : mode === 'create' ? 'Create & assign' : 'Assign subject'}</button></div>
     </section></div>}
