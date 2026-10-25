@@ -291,6 +291,15 @@ router.post("/auto-generate", async (req, res, next) => {
         });
       }
     }
+    const publishedEntries = await TimetableEntry.countDocuments({
+      school: req.user.school, academicYear, section, status: "published",
+    });
+    if (publishedEntries) {
+      return res.status(409).json({
+        message: "This section already has published periods. Unpublish or remove them before regenerating the timetable.",
+      });
+    }
+
     // One bell schedule for the whole school: when draft schedules exist, update
     // every draft entry's clock times together so classes never drift apart.
     for (let index = 0; index < schedulePeriods.length; index += 1) {
@@ -302,15 +311,6 @@ router.post("/auto-generate", async (req, res, next) => {
     }
 
     const saturdayLimit = Math.max(1, Math.min(schedulePeriods.length, Number(requestedSaturdayPeriods) || DEFAULT_SATURDAY_PERIODS));
-    const publishedEntries = await TimetableEntry.countDocuments({
-      school: req.user.school, academicYear, section, status: "published",
-    });
-    if (publishedEntries) {
-      return res.status(409).json({
-        message: "This section already has published periods. Unpublish or remove them before regenerating the timetable.",
-      });
-    }
-
     const mappings = await ClassSubject.find({
       school: req.user.school, academicYear, class: sectionDoc.class,
     }).populate("subject", "name code").lean();
@@ -440,18 +440,37 @@ router.post("/auto-generate", async (req, res, next) => {
 router.patch("/:id/publish", async (req, res, next) => {
   try {
     if (req.user.role !== ROLES.PRINCIPAL)
-      return res
-        .status(403)
-        .json({ message: "Only the principal can publish a timetable" });
-    const entry = await TimetableEntry.findOneAndUpdate(
-      { _id: req.params.id, school: req.user.school },
-      { status: "published" },
-      { new: true },
-    );
-    if (!entry)
-      return res.status(404).json({ message: "Timetable entry not found" });
-    res.json({ message: "Timetable entry published", entry });
+      return res.status(403).json({ message: "Only the principal can publish a timetable" });
+
+    const entry = await TimetableEntry.findOne({
+      _id: req.params.id, school: req.user.school,
+    });
+    if (!entry) return res.status(404).json({ message: "Timetable entry not found" });
+
+    const conflict = await TimetableEntry.findOne({
+      _id: { $ne: entry._id },
+      school: req.user.school,
+      academicYear: entry.academicYear,
+      day: entry.day,
+      periodNumber: entry.periodNumber,
+      $or: [{ section: entry.section }, { teacher: entry.teacher }],
+    }).populate("teacher", "name").populate("section", "name");
+
+    if (conflict) {
+      const sameSection = String(conflict.section?._id || conflict.section) === String(entry.section);
+      return res.status(409).json({
+        message: sameSection
+          ? "Cannot publish: this class/section already has a lesson in that period."
+          : `Cannot publish: this teacher already has another class in this period${conflict.section?.name ? ` (section ${conflict.section.name})` : ""}.`,
+      });
+    }
+
+    entry.status = "published";
+    await entry.save();
+    return res.json({ message: "Timetable entry published", entry });
   } catch (error) {
+    if (error.code === 11000)
+      return res.status(409).json({ message: "Cannot publish because this teacher or section is already booked in that period." });
     next(error);
   }
 });
