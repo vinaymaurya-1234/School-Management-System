@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, Check, Download, GraduationCap, Loader2, Plus, Search, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowRight, Check, Download, FileSpreadsheet, GraduationCap, Loader2, Plus, Search, Upload, X } from 'lucide-react'
 import apiClient from '../../api/client'
 import './PrincipalStudentsPage.css'
 import './PrincipalTeachersPage.css'
@@ -23,6 +23,116 @@ const emptyForm = {
   qualification: '',
 }
 
+const normal = (value) => String(value ?? '').trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+
+function parseCsv(text) {
+  const rows = []
+  let row = []
+  let cell = ''
+  let quoted = false
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i]
+    if (char === '"' && quoted && text[i + 1] === '"') { cell += '"'; i += 1 }
+    else if (char === '"') quoted = !quoted
+    else if (char === ',' && !quoted) { row.push(cell); cell = '' }
+    else if ((char === '\n' || char === '\r') && !quoted) {
+      if (char === '\r' && text[i + 1] === '\n') i += 1
+      row.push(cell)
+      if (row.some((value) => value.trim())) rows.push(row)
+      row = []; cell = ''
+    } else cell += char
+  }
+  row.push(cell)
+  if (row.some((value) => value.trim())) rows.push(row)
+  if (rows.length < 2) throw new Error('The file has no student rows. Fill the template and save it as CSV UTF-8.')
+  const headers = rows[0].map((value) => normal(value.replace(/^\uFEFF/, '')))
+  return rows.slice(1).map((values, index) => {
+    const item = {}
+    headers.forEach((header, col) => { item[header] = String(values[col] ?? '').trim() })
+    item._sourceRow = index + 2
+    return item
+  })
+}
+
+async function parseXlsx(buffer) {
+  if (typeof DecompressionStream === 'undefined') throw new Error('This browser cannot read XLSX files. Please save the workbook as CSV UTF-8 and upload it again.')
+  const bytes = new Uint8Array(buffer)
+  const view = new DataView(buffer)
+  const u32 = (offset) => view.getUint32(offset, true)
+  let endRecord = -1
+  for (let offset = Math.max(0, bytes.length - 65557); offset <= bytes.length - 22; offset += 1) {
+    if (u32(offset) === 0x06054b50) endRecord = offset
+  }
+  if (endRecord < 0) throw new Error('This is not a valid XLSX workbook.')
+  const entryCount = view.getUint16(endRecord + 10, true)
+  let cursor = u32(endRecord + 16)
+  const decoder = new TextDecoder()
+  const entries = new Map()
+  for (let index = 0; index < entryCount; index += 1) {
+    if (u32(cursor) !== 0x02014b50) throw new Error('Could not read the XLSX workbook directory.')
+    const method = view.getUint16(cursor + 10, true)
+    const compressedSize = u32(cursor + 20)
+    const nameLength = view.getUint16(cursor + 28, true)
+    const extraLength = view.getUint16(cursor + 30, true)
+    const commentLength = view.getUint16(cursor + 32, true)
+    const localOffset = u32(cursor + 42)
+    const name = decoder.decode(bytes.slice(cursor + 46, cursor + 46 + nameLength))
+    entries.set(name, { method, compressedSize, localOffset })
+    cursor += 46 + nameLength + extraLength + commentLength
+  }
+  const readEntry = async (name) => {
+    const entry = entries.get(name)
+    if (!entry) return ''
+    const offset = entry.localOffset
+    const nameLength = view.getUint16(offset + 26, true)
+    const extraLength = view.getUint16(offset + 28, true)
+    const start = offset + 30 + nameLength + extraLength
+    const compressed = bytes.slice(start, start + entry.compressedSize)
+    if (entry.method === 0) return decoder.decode(compressed)
+    if (entry.method !== 8) throw new Error('This XLSX file uses an unsupported compression method.')
+    const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('deflate-raw'))
+    return decoder.decode(await new Response(stream).arrayBuffer())
+  }
+  const parseXml = (text) => new DOMParser().parseFromString(text, 'application/xml')
+  const findAll = (node, name) => Array.from(node.getElementsByTagNameNS('*', name))
+  const sharedXml = await readEntry('xl/sharedStrings.xml')
+  const sharedStrings = sharedXml ? findAll(parseXml(sharedXml), 'si').map((item) => findAll(item, 't').map((part) => part.textContent || '').join('')) : []
+  const sheetXml = await readEntry('xl/worksheets/sheet1.xml')
+  if (!sheetXml) throw new Error('The first worksheet could not be found in this workbook.')
+  const sheet = parseXml(sheetXml)
+  const rowElements = findAll(sheet, 'row')
+  const matrix = rowElements.map((rowElement) => {
+    const cells = Array.from(rowElement.children).filter((child) => child.localName === 'c')
+    const values = []
+    cells.forEach((cell) => {
+      const ref = cell.getAttribute('r') || ''
+      const letters = ref.match(/^[A-Z]+/i)?.[0] || 'A'
+      let column = 0
+      for (const letter of letters.toUpperCase()) column = column * 26 + letter.charCodeAt(0) - 64
+      column -= 1
+      const valueNode = findAll(cell, 'v')[0]
+      let value = valueNode?.textContent || ''
+      if (cell.getAttribute('t') === 's' && value !== '') value = sharedStrings[Number(value)] ?? ''
+      else if (cell.getAttribute('t') === 'inlineStr') value = findAll(cell, 't').map((part) => part.textContent || '').join('')
+      values[column] = value
+    })
+    return values.map((value) => value ?? '')
+  })
+  const csv = matrix.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\n')
+  return parseCsv(csv)
+}
+
+
+function downloadTeacherTemplate() {
+  const rows = [
+    ['Full Name', 'Email', 'Password', 'Employee ID', 'Phone', 'Department', 'Designation', 'Qualification'],
+    ['Soma Prasad', 'soma@example.com', 'ChangeMe123!', 'TCH001', '9876543210', 'Academic', 'Teacher', 'B.Ed'],
+  ]
+  const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\\r\\n')
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
+  const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'teacher-import-template.csv'; anchor.click(); URL.revokeObjectURL(url)
+}
+
 const departments = ['Academic', 'Administration', 'Sports & Activities', 'Student Support', 'Other']
 
 export default function PrincipalTeachersPage() {
@@ -37,7 +147,7 @@ export default function PrincipalTeachersPage() {
   const [modal, setModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState(emptyForm)\n  const [importOpen, setImportOpen] = useState(false)\n  const [importPreview, setImportPreview] = useState(null)\n  const [importBusy, setImportBusy] = useState(false)\n  const [importResult, setImportResult] = useState(null)\n  const fileRef = useRef(null)
 
   const activeYear = useMemo(() => years.find((year) => year.isActive) || years[0] || null, [years])
 
@@ -138,6 +248,66 @@ export default function PrincipalTeachersPage() {
     setModal(true)
     setError('')
     setNotice('')
+  }
+
+  const chooseImportFile = async (file) => {
+    setError(''); setImportPreview(null); setImportResult(null)
+    if (!file) return
+    const extension = file.name.toLowerCase().split('.').pop()
+    if (!['csv', 'xlsx'].includes(extension)) { setError('Please upload an Excel workbook (.xlsx) or CSV file.'); return }
+    try {
+      const rows = extension === 'xlsx' ? await parseXlsx(await file.arrayBuffer()) : parseCsv(await file.text())
+      if (rows.length > 500) throw new Error('Import is limited to 500 teachers per batch. Split the file into smaller batches.')
+      const valid = []; const errors = []; const seenEmails = new Set(); const seenIds = new Set()
+      rows.forEach((row) => {
+        const name = row.fullname || row.name || ''
+        const email = String(row.email || '').toLowerCase().trim()
+        const password = row.password || ''
+        const employeeId = row.employeeid || row.employeeidnumber || ''
+        const phone = row.phone || ''
+        const department = row.department || 'Academic'
+        const designation = row.designation || 'Teacher'
+        const qualification = row.qualification || ''
+        const problems = []
+        if (!name.trim()) problems.push('Full Name is required')
+        if (!/^\S+@\S+\.\S+$/.test(email)) problems.push('Valid Email is required')
+        if (password.length < 8) problems.push('Password must be at least 8 characters')
+        if (!employeeId.trim()) problems.push('Employee ID is required')
+        const emailKey = normal(email); const idKey = normal(employeeId)
+        if (emailKey && seenEmails.has(emailKey)) problems.push('Duplicate email in this file')
+        if (idKey && seenIds.has(idKey)) problems.push('Duplicate Employee ID in this file')
+        if (teachers.some((teacher) => normal(teacher.email) === emailKey)) problems.push('Email already exists in school')
+        if (teachers.some((teacher) => normal(teacher.employeeId) === idKey)) problems.push('Employee ID already exists in school')
+        if (emailKey) seenEmails.add(emailKey); if (idKey) seenIds.add(idKey)
+        if (problems.length) errors.push({ row: row._sourceRow, name: name || 'Unnamed teacher', message: problems.join('; ') })
+        else valid.push({ _sourceRow: row._sourceRow, name: name.trim(), email, password, employeeId: employeeId.trim(), phone: phone.trim(), department: department.trim(), designation: designation.trim(), qualification: qualification.trim() })
+      })
+      setImportPreview({ valid, errors, total: rows.length, filename: file.name })
+    } catch (fileError) { setError(fileError.message || 'Could not read the uploaded file.') }
+  }
+
+  const runTeacherImport = async () => {
+    if (!importPreview?.valid?.length) return
+    setImportBusy(true); setError('')
+    const imported = []; const failed = [...importPreview.errors]
+    for (const item of importPreview.valid) {
+      try {
+        const userResponse = await apiClient.post('/users', { name: item.name, email: item.email, password: item.password, role: 'teacher' })
+        const userId = userResponse.data?.user?.id || userResponse.data?.user?._id
+        if (!userId) throw new Error('Login was created but the response did not include its user ID. Check this email before retrying.')
+        try {
+          await apiClient.post('/teachers', { userId, employeeId: item.employeeId, phone: item.phone, department: item.department, designation: item.designation, qualification: item.qualification })
+          imported.push({ row: item._sourceRow, name: item.name, email: item.email, employeeId: item.employeeId })
+        } catch (profileError) {
+          failed.push({ row: item._sourceRow, name: item.name, message: `Login created, but teacher profile failed: ${profileError.response?.data?.message || profileError.message}. Check before retrying this email.` })
+        }
+      } catch (userError) {
+        failed.push({ row: item._sourceRow, name: item.name, message: userError.response?.data?.message || userError.message || 'Could not create teacher login' })
+      }
+    }
+    setImportResult({ imported, failed });
+    if (imported.length) { setNotice(`Imported ${imported.length} teacher profile(s).`); await load() }
+    setImportBusy(false)
   }
 
   const saveTeacher = async () => {
@@ -307,7 +477,17 @@ export default function PrincipalTeachersPage() {
         </div>
       )}
 
-      {modal && (
+
+      {importOpen && <div className="student-modal-backdrop teacher-import-backdrop" onMouseDown={(event) => event.target === event.currentTarget && !importBusy && setImportOpen(false)}><div className="student-modal import-modal teacher-import-modal">
+        <div className="modal-header"><div><span>BULK STAFF SETUP</span><h2>Import teachers from Excel/CSV</h2></div><button onClick={() => !importBusy && setImportOpen(false)}><X size={18}/></button></div>
+        {!importResult ? <>
+          <div className="import-instructions"><div className="import-instruction-icon"><FileSpreadsheet size={23}/></div><div><strong>1. Download the template</strong><p>Fill one teacher per row. Include login password and unique employee ID. Save as CSV or Excel (.xlsx).</p><button className="student-secondary-btn" onClick={downloadTeacherTemplate}><Download size={16}/> Download CSV template</button></div></div>
+          <div className="import-instructions"><div className="import-instruction-icon"><Upload size={23}/></div><div><strong>2. Upload completed file</strong><p>Required columns: Full Name, Email, Password (at least 8 characters), Employee ID. Phone and qualification are optional. Maximum 500 rows per batch.</p><input ref={fileRef} type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => chooseImportFile(event.target.files?.[0])}/></div></div>
+          {importPreview && <div className="import-preview"><div className="import-preview-stats"><span><strong>{importPreview.total}</strong> rows</span><span><strong>{importPreview.valid.length}</strong> ready to import</span><span><strong>{importPreview.errors.length}</strong> errors</span></div><p>File: {importPreview.filename}. Invalid rows are skipped and shown below.</p>{importPreview.errors.length>0 && <div className="import-errors"><strong>Rows needing correction</strong>{importPreview.errors.slice(0,12).map((item)=><p key={item.row}>Row {item.row} · {item.name}: {item.message}</p>)}{importPreview.errors.length>12 && <p>And {importPreview.errors.length-12} more rows…</p>}</div>}<button className="student-primary-btn" disabled={importBusy||!importPreview.valid.length} onClick={runTeacherImport}>{importBusy?<Loader2 className="spin" size={16}/>:<Upload size={16}/>} Import {importPreview.valid.length} valid rows</button></div>}
+        </> : <div className="import-result"><div className="import-result-icon"><Check size={25}/></div><h3>Teacher import finished</h3><div className="import-preview-stats"><span><strong>{importResult.imported.length}</strong> imported</span><span><strong>{importResult.failed.length}</strong> failed / skipped</span></div><p>Imported profiles are available in the teacher directory. Assign classes, sections, subjects and class-teacher roles from Teacher Assignments.</p>{importResult.failed.length>0 && <div className="import-errors"><strong>Rows needing attention</strong>{importResult.failed.slice(0,20).map((item)=><p key={item.row}>Row {item.row} · {item.name}: {item.message}</p>)}</div>}<button className="student-secondary-btn" onClick={()=>{const rows=[['Row','Name','Status / Error'],...importResult.imported.map(x=>[x.row,x.name,'Imported']),...importResult.failed.map(x=>[x.row,x.name,x.message])];const csv=rows.map(row=>row.map(v=>`"${String(v??'').replaceAll('"','""')}"`).join(',')).join('\\r\\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='teacher-import-results.csv';a.click();URL.revokeObjectURL(url)}}><Download size={16}/> Download results</button></div>}
+        <div className="modal-footer"><button className="student-secondary-btn" onClick={()=>!importBusy&&setImportOpen(false)} disabled={importBusy}>{importResult?'Close':'Cancel'}</button></div>
+      </div></div>}
+\n      {modal && (
         <div className="student-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && !saving && setModal(false)}>
           <div className="student-modal">
             <div className="modal-header">
