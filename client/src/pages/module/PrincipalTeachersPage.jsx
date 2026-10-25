@@ -262,7 +262,7 @@ export default function PrincipalTeachersPage() {
     try {
       const rows = extension === 'xlsx' ? await parseXlsx(await file.arrayBuffer()) : parseCsv(await file.text())
       if (rows.length > 500) throw new Error('Import is limited to 500 teachers per batch. Split the file into smaller batches.')
-      const valid = []; const errors = []; const seenEmails = new Set(); const seenIds = new Set()
+      const valid = []; const errors = []; const seenIds = new Set()
       rows.forEach((row) => {
         const name = row.fullname || row.name || ''
         const employeeId = row.employeeid || row.employeeidnumber || ''
