@@ -58,6 +58,7 @@ const studentLifeItems = [
 const exploreItems = [
   { label: 'Subjects', href: '/module/subjects', hint: 'Curriculum mapping' },
   { label: 'Admissions', href: '/module/students', hint: 'Add one student or import a class list' },
+  { label: 'Teacher Login Credentials', href: '/module/teacher-credentials', hint: 'Teacher login IDs, account status and password reset' },
   { label: 'Student & Parent Login Credentials', href: '/module/login-credentials', hint: 'Login IDs, account status and password reset' },
   { label: 'Assignments', href: '/module/assignments', hint: 'Learning tasks' },
   { label: 'Communication', href: '/module/communication', hint: 'Messages & notices' },
