@@ -16,6 +16,7 @@ function downloadCsv(filename, rows) {
 export default function PrincipalCredentialsPage() {
   const [students, setStudents] = useState([])
   const [parents, setParents] = useState([])
+  const [teachers, setTeachers] = useState([])
   const [query, setQuery] = useState('')
   const [years, setYears] = useState([])
   const [yearId, setYearId] = useState('')
@@ -34,12 +35,14 @@ export default function PrincipalCredentialsPage() {
     setLoading(true)
     setError('')
     try {
-      const [response, yearResponse] = await Promise.all([
+      const [response, yearResponse, teacherResponse] = await Promise.all([
         apiClient.get('/students/credentials'),
         apiClient.get('/academic/years'),
+        apiClient.get('/teachers/credentials'),
       ])
       setStudents(response.data.students || [])
       setParents(response.data.parents || [])
+      setTeachers(teacherResponse.data.teachers || [])
       const nextYears = yearResponse.data.years || []
       setYears(nextYears)
       const selectedYear = nextYears.find((item) => item._id === yearId) || nextYears.find((item) => item.isActive) || nextYears[0]
@@ -75,7 +78,7 @@ export default function PrincipalCredentialsPage() {
     setError('')
     setNotice('')
     try {
-      const response = await apiClient.post(`/students/credentials/${account.userId}/reset`)
+      const response = await apiClient.post(account.type === 'Teacher' ? `/teachers/credentials/${account.userId}/reset` : `/students/credentials/${account.userId}/reset`)
       setNewCredential(response.data)
       await load()
     } catch (requestError) {
@@ -84,6 +87,8 @@ export default function PrincipalCredentialsPage() {
       setBusyId('')
     }
   }
+
+  const visibleTeachers = teachers.filter((item) => `${item.name} ${item.loginId} ${item.email} ${item.employeeId} ${item.phone}`.toLowerCase().includes(query.toLowerCase()))
 
   const selectedYear = years.find((item) => item._id === yearId)
   const classSections = useMemo(() => sections.filter((section) => {
@@ -134,6 +139,7 @@ export default function PrincipalCredentialsPage() {
       ['Account type', 'Name', 'Login ID', 'Email', 'Phone', 'Status', 'First login password change required'],
       ...students.map((item) => ['Student', item.name, item.loginId, item.email, '', item.active ? 'Active' : 'Inactive', item.mustChangePassword ? 'Yes' : 'No']),
       ...parents.map((item) => ['Parent', item.name, item.loginId, item.email, item.phone, item.active ? 'Active' : 'Inactive', item.mustChangePassword ? 'Yes' : 'No']),
+      ...teachers.map((item) => ['Teacher', item.name, item.loginId, item.email, item.phone, item.active ? 'Active' : 'Inactive', item.mustChangePassword ? 'Yes' : 'No']),
     ])
   }
 
@@ -154,7 +160,8 @@ export default function PrincipalCredentialsPage() {
       <section className="credentials-stats">
         <div><span>Student accounts</span><strong>{students.length}</strong></div>
         <div><span>Parent accounts</span><strong>{parents.length}</strong></div>
-        <div><span>Need first login</span><strong>{students.filter((x) => x.mustChangePassword).length + parents.filter((x) => x.mustChangePassword).length}</strong></div>
+        <div><span>Teacher accounts</span><strong>{teachers.length}</strong></div>
+        <div><span>Need first login</span><strong>{students.filter((x) => x.mustChangePassword).length + parents.filter((x) => x.mustChangePassword).length + teachers.filter((x) => x.mustChangePassword).length}</strong></div>
       </section>
 
       <section className="credentials-filters" aria-label="Filter login credentials">
@@ -170,7 +177,7 @@ export default function PrincipalCredentialsPage() {
         <div className="credentials-card-heading"><div><span>STUDENT ACCOUNTS</span><h2>Student login IDs</h2></div><span>{visibleStudents.length} accounts</span></div>
         {loading ? <div className="credentials-empty"><Loader2 className="credentials-spin" /> Loading accounts…</div> : visibleStudents.length ? (
           <div className="credentials-table-wrap"><table><thead><tr><th>Student</th><th>Admission No.</th><th>Login ID</th><th>Account status</th><th>Action</th></tr></thead><tbody>
-            {visibleStudents.map((item) => <tr key={item.studentId}><td><strong>{item.name}</strong></td><td>{item.admissionNumber}</td><td><code>{item.loginId || 'Not assigned'}</code></td><td><span className={`credentials-status ${item.active ? 'active' : 'inactive'}`}>{!item.active ? 'Inactive' : item.mustChangePassword ? 'Password change pending' : 'Active'}</span></td><td><button className="credentials-reset" disabled={busyId === item.userId || !item.userId} onClick={() => resetPassword(item)}>{busyId === item.userId ? <Loader2 className="credentials-spin" size={15} /> : <RefreshCw size={15} />} Reset password</button></td></tr>)}
+            {visibleStudents.map((item) => <tr key={item.studentId}><td><strong>{item.name}</strong></td><td>{item.admissionNumber}</td><td><code>{item.loginId || 'Not assigned'}</code></td><td><span className={`credentials-status ${item.active ? 'active' : 'inactive'}`}>{!item.active ? 'Inactive' : item.mustChangePassword ? 'Password change pending' : 'Active'}</span></td><td><button className="credentials-reset" disabled={busyId === item.userId || !item.userId} onClick={() => resetPassword({ ...item, type: 'Student' })}>{busyId === item.userId ? <Loader2 className="credentials-spin" size={15} /> : <RefreshCw size={15} />} Reset password</button></td></tr>)}
           </tbody></table></div>
         ) : <div className="credentials-empty"><Users size={23} />No student accounts found.</div>}
       </section>
@@ -179,9 +186,18 @@ export default function PrincipalCredentialsPage() {
         <div className="credentials-card-heading"><div><span>GUARDIAN ACCOUNTS</span><h2>Parent login IDs</h2></div><span>{visibleParents.length} accounts</span></div>
         {loading ? <div className="credentials-empty"><Loader2 className="credentials-spin" /> Loading accounts…</div> : visibleParents.length ? (
           <div className="credentials-table-wrap"><table><thead><tr><th>Parent / Guardian</th><th>Linked children</th><th>Login ID</th><th>Account status</th><th>Action</th></tr></thead><tbody>
-            {visibleParents.map((item) => <tr key={item.parentProfileId}><td><strong>{item.name}</strong><small>{item.phone || 'No phone recorded'}</small></td><td>{(item.children || []).map((child) => child.name).join(', ') || 'No linked child'}</td><td><code>{item.loginId || 'Not assigned'}</code></td><td><span className={`credentials-status ${item.active ? 'active' : 'inactive'}`}>{!item.active ? 'Inactive' : item.mustChangePassword ? 'Password change pending' : 'Active'}</span></td><td><button className="credentials-reset" disabled={busyId === item.userId || !item.userId} onClick={() => resetPassword(item)}>{busyId === item.userId ? <Loader2 className="credentials-spin" size={15} /> : <RefreshCw size={15} />} Reset password</button></td></tr>)}
+            {visibleParents.map((item) => <tr key={item.parentProfileId}><td><strong>{item.name}</strong><small>{item.phone || 'No phone recorded'}</small></td><td>{(item.children || []).map((child) => child.name).join(', ') || 'No linked child'}</td><td><code>{item.loginId || 'Not assigned'}</code></td><td><span className={`credentials-status ${item.active ? 'active' : 'inactive'}`}>{!item.active ? 'Inactive' : item.mustChangePassword ? 'Password change pending' : 'Active'}</span></td><td><button className="credentials-reset" disabled={busyId === item.userId || !item.userId} onClick={() => resetPassword({ ...item, type: 'Parent' })}>{busyId === item.userId ? <Loader2 className="credentials-spin" size={15} /> : <RefreshCw size={15} />} Reset password</button></td></tr>)}
           </tbody></table></div>
         ) : <div className="credentials-empty"><Users size={23} />No parent accounts found.</div>}
+      </section>
+
+      <section className="credentials-card">
+        <div className="credentials-card-heading"><div><span>TEACHER ACCOUNTS</span><h2>Teacher login IDs</h2></div><span>{visibleTeachers.length} accounts</span></div>
+        {loading ? <div className="credentials-empty"><Loader2 className="credentials-spin" /> Loading teacher accounts…</div> : visibleTeachers.length ? (
+          <div className="credentials-table-wrap"><table><thead><tr><th>Teacher</th><th>Employee ID</th><th>Login ID</th><th>Account status</th><th>Action</th></tr></thead><tbody>
+            {visibleTeachers.map((item) => <tr key={item.userId}><td><strong>{item.name}</strong><small>{item.email}</small></td><td>{item.employeeId || '—'}</td><td><code>{item.loginId || 'Not assigned'}</code></td><td><span className={`credentials-status ${item.active ? 'active' : 'inactive'}`}>{!item.active ? 'Inactive' : item.mustChangePassword ? 'Password change pending' : 'Active'}</span></td><td><button className="credentials-reset" disabled={busyId === item.userId || !item.userId} onClick={() => resetPassword({ ...item, type: 'Teacher' })}>{busyId === item.userId ? <Loader2 className="credentials-spin" size={15} /> : <RefreshCw size={15} />} Reset password</button></td></tr>)}
+          </tbody></table></div>
+        ) : <div className="credentials-empty"><Users size={23} />No teacher accounts found.</div>}
       </section>
 
       <p className="credentials-security-note"><ShieldCheck size={16} /> Passwords are never retrievable from this page. Reset creates a new temporary password and invalidates the old one.</p>
