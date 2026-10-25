@@ -96,7 +96,18 @@ router.post("/create-account", async (req, res, next) => {
     res.status(201).json({ message: "Teacher account created successfully", teacher: serializeTeacher(populated), credentials: { name: user.name, loginId, temporaryPassword: password } });
   } catch (error) {
     if (user?._id) await User.deleteOne({ _id: user._id, school: req.user.school }).catch(() => {});
-    if (error?.code === 11000) return res.status(409).json({ message: "Email, login ID or employee ID already exists" });
+    if (error?.code === 11000) {
+      const duplicateField = Object.keys(error.keyPattern || error.keyValue || {})[0];
+      const messages = {
+        email: "This email already exists",
+        loginId: "Login ID collision; please retry",
+        employeeId: "This employee ID already exists in this school",
+      };
+      return res.status(409).json({
+        message: messages[duplicateField] || "A duplicate value conflicts with a unique database field",
+        duplicateField: duplicateField || null,
+      });
+    }
     next(error);
   }
 });
