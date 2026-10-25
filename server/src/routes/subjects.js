@@ -65,6 +65,13 @@ router.post("/", principalOnly, async (req, res, next) => {
     const validClasses = await SchoolClass.find({ _id: { $in: targets }, school: req.user.school, academicYear });
     if (validClasses.length !== targets.length) return res.status(404).json({ message: "One or more classes were not found for this academic year" });
 
+    for (const targetClass of targets) {
+      const requestedFrequency = Number(classFrequencies[targetClass] ?? weeklyPeriods ?? 5);
+      if (!Number.isInteger(requestedFrequency) || requestedFrequency < 1 || requestedFrequency > 36) {
+        return res.status(400).json({ message: `Weekly lectures for class ${targetClass} must be a whole number between 1 and 36.` });
+      }
+    }
+
     let subject = await Subject.findOne({ school: req.user.school, academicYear, name: { $regex: new RegExp("^" + cleanName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i") } });
     if (!subject) subject = await Subject.create({ school: req.user.school, academicYear, name: cleanName });
 
@@ -104,6 +111,12 @@ router.post("/assign", principalOnly, async (req, res, next) => {
     if (!year) return res.status(404).json({ message: "Academic year not found" });
     if (!subject) return res.status(404).json({ message: "Subject not found" });
     if (validClasses.length !== targets.length) return res.status(404).json({ message: "One or more classes were not found" });
+    for (const targetClass of targets) {
+      const requestedFrequency = Number(classFrequencies[targetClass] ?? weeklyPeriods ?? 5);
+      if (!Number.isInteger(requestedFrequency) || requestedFrequency < 1 || requestedFrequency > 36) {
+        return res.status(400).json({ message: `Weekly lectures for class ${targetClass} must be a whole number between 1 and 36.` });
+      }
+    }
     const existing = await ClassSubject.find({ school: req.user.school, academicYear, subject: subjectId, class: { $in: targets } }).select("class");
     const existingIds = new Set(existing.map((item) => item.class.toString()));
     const created = [];
