@@ -126,7 +126,7 @@ function downloadTeacherTemplate() {
     ['Full Name', 'Employee ID', 'Phone', 'Department', 'Designation', 'Qualification'],
     ['Soma Prasad', 'TCH001', '9876543210', 'Academic', 'Teacher', 'B.Ed'], 
   ]
-  const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\\r\\n')
+  const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\r\n')
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
   const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'teacher-import-template.csv'; anchor.click(); URL.revokeObjectURL(url)
 }
@@ -306,9 +306,9 @@ export default function PrincipalTeachersPage() {
       const rows = [['Row', 'Teacher', 'Login ID', 'Temporary Password'], ...credentials.map((item) => [item.row, item.name, item.loginId, item.temporaryPassword])]
       const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\\r\\n')
       const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
-      const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'teacher-temporary-credentials.csv'; anchor.click(); URL.revokeObjectURL(url)
+      const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'teacher-login-credentials.csv'; anchor.click(); URL.revokeObjectURL(url)
     }
-    if (imported.length) { setNotice(`Imported ${imported.length} teacher profile(s). Temporary credentials CSV downloaded.`); await load() }
+    if (imported.length) { setNotice(`Imported ${imported.length} teacher account(s). Login IDs and temporary passwords are in the downloaded credentials CSV.`); await load() }
     setImportBusy(false)
   }
 
