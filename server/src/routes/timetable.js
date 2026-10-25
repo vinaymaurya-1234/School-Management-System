@@ -22,14 +22,28 @@ const DAYS = [
   "friday",
   "saturday",
 ];
-const PERIODS = [
-  ["08:00", "08:45"],
-  ["08:45", "09:30"],
-  ["09:45", "10:30"],
-  ["10:30", "11:15"],
-  ["11:30", "12:15"],
-  ["12:15", "13:00"],
-];
+const DEFAULT_START_TIME = "07:15";
+const DEFAULT_PERIOD_MINUTES = 40;
+const DEFAULT_PERIODS_PER_DAY = 8;
+const DEFAULT_BREAK_AFTER = 4;
+const DEFAULT_BREAK_MINUTES = 20;
+const DEFAULT_SATURDAY_PERIODS = 4;
+function buildPeriodTimes({ startTime, periodMinutes, periodsPerDay, breakAfter, breakMinutes }) {
+  const [hours, minutes] = String(startTime || DEFAULT_START_TIME).split(":").map(Number);
+  let cursor = hours * 60 + minutes;
+  const total = Math.max(1, Math.min(12, Number(periodsPerDay) || DEFAULT_PERIODS_PER_DAY));
+  const breakAt = Math.max(0, Math.min(total, Number(breakAfter) || 0));
+  const length = Math.max(20, Math.min(90, Number(periodMinutes) || DEFAULT_PERIOD_MINUTES));
+  const pause = Math.max(0, Math.min(90, Number(breakMinutes) || 0));
+  const format = (value) => String(Math.floor(value / 60) % 24).padStart(2, "0") + ":" + String(value % 60).padStart(2, "0");
+  return Array.from({ length: total }, (_, index) => {
+    if (breakAt > 0 && index === breakAt) cursor += pause;
+    const startTime = format(cursor);
+    cursor += length;
+    return [startTime, format(cursor)];
+  });
+}
+const TIME_PATTERN = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
 async function studentEnrollmentForUser(userId, schoolId, academicYear) {
   return StudentEnrollment.findOne({
     school: schoolId,
@@ -152,7 +166,7 @@ router.post("/", async (req, res, next) => {
       return res.status(400).json({ message: "Enter a valid start and end time." });
     }
     const durationEntries = await TimetableEntry.find({ school: req.user.school, academicYear }).select("startTime endTime").lean();
-    const expectedDuration = durationEntries.length ? minutes(durationEntries[0].endTime) - minutes(durationEntries[0].startTime) : minutes(PERIODS[0][1]) - minutes(PERIODS[0][0]);
+    const expectedDuration = durationEntries.length ? minutes(durationEntries[0].endTime) - minutes(durationEntries[0].startTime) : DEFAULT_PERIOD_MINUTES;
     if (minutes(endTime) - minutes(startTime) !== expectedDuration) {
       return res.status(400).json({ message: "All school periods must have the same duration." });
     }
@@ -287,7 +301,7 @@ router.post("/auto-generate", async (req, res, next) => {
       );
     }
 
-    const saturdayLimit = Math.max(1, Math.min(schedulePeriods.length, Number(requestedSaturdayPeriods) || schedulePeriods.length));
+    const saturdayLimit = Math.max(1, Math.min(schedulePeriods.length, Number(requestedSaturdayPeriods) || DEFAULT_SATURDAY_PERIODS));
     const publishedEntries = await TimetableEntry.countDocuments({
       school: req.user.school, academicYear, section, status: "published",
     });
@@ -343,7 +357,7 @@ router.post("/auto-generate", async (req, res, next) => {
     // Place subjects across the week. Each subject appears at most once per day by default.
     // Candidate periods are scored to avoid adjacent repeats and keep the day reasonably balanced.
     const dayLoads = new Map(DAYS.map((day) => [day, 0]));
-    const periodLoads = new Map(DAYS.map((day) => [day, new Array(PERIODS.length).fill(0)]));
+    const periodLoads = new Map(DAYS.map((day) => [day, new Array(schedulePeriods.length).fill(0)]));
     for (const { mapping, teacherId } of usableMappings) {
       const weeklyPeriods = Math.max(1, Number(mapping.weeklyPeriods) || 1);
       if (weeklyPeriods > DAYS.length) {
@@ -364,7 +378,7 @@ router.post("/auto-generate", async (req, res, next) => {
           const periodCount = day === "saturday" ? saturdayLimit : schedulePeriods.length;
           const periodCandidates = schedulePeriods.slice(0, periodCount).map((slot, index) => ({ slot, index, score: 0 }))
             .filter(({ index }) => {
-              if (day === "saturday" && index >= Math.ceil(PERIODS.length / 2)) return false;
+              if (day === "saturday" && index >= saturdayLimit) return false;
               const periodNumber = index + 1;
               return !sectionBusy.has(`${day}:${periodNumber}`) &&
                 !teacherBusy.has(`${String(teacherId)}:${day}:${periodNumber}`);
@@ -377,7 +391,7 @@ router.post("/auto-generate", async (req, res, next) => {
                 (previous === subjectId ? 100 : 0) +
                 (next === subjectId ? 100 : 0) +
                 periodLoads.get(day)[p] * 2 +
-                Math.abs(p - Math.floor((PERIODS.length - 1) / 2)) * 0.1;
+                Math.abs(p - Math.floor((periodCount - 1) / 2)) * 0.1;
               return candidate;
             })
             .sort((a, b) => a.score - b.score);
