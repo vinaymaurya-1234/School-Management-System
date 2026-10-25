@@ -85,6 +85,23 @@ function PrincipalSubjectsPage() {
     finally { setSaving(false) }
   }
 
+  const editWeeklyPeriods = async (mapping, subjectName, classLabel) => {
+    const current = Number(mapping.weeklyPeriods) || 5
+    const answer = window.prompt(`Weekly lectures for ${subjectName} in Class ${classLabel} (1–36):`, String(current))
+    if (answer === null) return
+    const weeklyPeriods = Number(answer)
+    if (!Number.isInteger(weeklyPeriods) || weeklyPeriods < 1 || weeklyPeriods > 36) {
+      setError('Enter a whole number from 1 to 36.')
+      return
+    }
+    try {
+      setError('')
+      const response = await apiClient.patch(`/subjects/${mapping._id}/weekly-periods`, { weeklyPeriods })
+      setNotice(response.data.message || `Updated ${subjectName} for Class ${classLabel}.`)
+      await load()
+    } catch (err) { setError(err.response?.data?.message || 'Unable to update weekly lecture frequency.') }
+  }
+
   const removeMapping = async (mapping, subjectName) => {
     const name = className(mapping.class?._id || mapping.class)
     if (!window.confirm(`Remove ${subjectName} from Class ${name}? This also removes its teacher assignment for that class.`)) return
@@ -122,7 +139,7 @@ function PrincipalSubjectsPage() {
             <div className="subjects-card-top"><div className="subjects-card-icon"><BookOpen size={19}/></div><span className="subjects-count">{assigned.length} {assigned.length === 1 ? 'class' : 'classes'}</span></div>
             <h3>{subject.name}</h3>
             <div className="subjects-assigned-label"><Layers size={14}/> ASSIGNED CLASSES</div>
-            <div className="subjects-chips">{assigned.sort((a, b) => Number(a.name) - Number(b.name)).map(({ mapping, id, name }) => <span className="subjects-chip" key={mapping._id}>Class {name}<button title={`Remove from Class ${name}`} onClick={() => removeMapping(mapping, subject.name)}><X size={12}/></button></span>)}</div>
+            <div className="subjects-mapping-list">{assigned.sort((a, b) => Number(a.name) - Number(b.name)).map(({ mapping, id, name }) => <div className="subjects-mapping-row" key={mapping._id}><div className="subjects-mapping-label"><strong>Class {name}</strong><span>{mapping.weeklyPeriods || 5} lectures / week</span></div><div className="subjects-mapping-actions"><button type="button" title="Edit weekly lecture frequency" onClick={() => editWeeklyPeriods(mapping, subject.name, name)}>Edit frequency</button><button type="button" title={`Remove from Class ${name}`} onClick={() => removeMapping(mapping, subject.name)}><X size={13}/></button></div></div>)}</div>
             <button className="subjects-assign-btn" onClick={() => openAssign(subject)}><Plus size={15}/> Assign to more classes</button>
           </article>
         })}
