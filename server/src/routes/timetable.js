@@ -242,7 +242,7 @@ router.post("/auto-generate", async (req, res, next) => {
     if (req.user.role !== ROLES.PRINCIPAL)
       return res.status(403).json({ message: "Only the principal can generate timetables" });
 
-    const { academicYear, section, periods: requestedPeriods } = req.body || {};
+    const { academicYear, section, periods: requestedPeriods, saturdayPeriods: requestedSaturdayPeriods } = req.body || {};
     if (!academicYear || !section)
       return res.status(400).json({ message: "academicYear and section are required" });
 
@@ -255,7 +255,7 @@ router.post("/auto-generate", async (req, res, next) => {
       ? requestedPeriods.map((slot) => [String(slot.startTime || ""), String(slot.endTime || "")])
       : PERIODS;
     if (
-      schedulePeriods.length !== PERIODS.length ||
+      schedulePeriods.length < 1 || schedulePeriods.length > 12 ||
       schedulePeriods.some(([start, end]) => !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(start) || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(end) || start >= end) ||
       schedulePeriods.some((slot, index) => index > 0 && slot[0] < schedulePeriods[index - 1][1]) ||
       new Set(schedulePeriods.map(([start, end]) => {
@@ -278,6 +278,7 @@ router.post("/auto-generate", async (req, res, next) => {
       }
     }
 
+    const saturdayLimit = Math.max(1, Math.min(schedulePeriods.length, Number(requestedSaturdayPeriods) || schedulePeriods.length));
     const publishedEntries = await TimetableEntry.countDocuments({
       school: req.user.school, academicYear, section, status: "published",
     });
@@ -351,7 +352,8 @@ router.post("/auto-generate", async (req, res, next) => {
           });
         let choice = null;
         for (const day of dayCandidates) {
-          const periodCandidates = PERIODS.map((slot, index) => ({ slot, index, score: 0 }))
+          const periodCount = day === "saturday" ? saturdayLimit : schedulePeriods.length;
+          const periodCandidates = schedulePeriods.slice(0, periodCount).map((slot, index) => ({ slot, index, score: 0 }))
             .filter(({ index }) => {
               if (day === "saturday" && index >= Math.ceil(PERIODS.length / 2)) return false;
               const periodNumber = index + 1;
