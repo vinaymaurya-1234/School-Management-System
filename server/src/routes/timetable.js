@@ -425,7 +425,9 @@ router.post("/auto-generate", async (req, res, next) => {
 
     return res.status(201).json({
       message: "Balanced draft timetable generated. Review it before publishing.",
-      createdCount: created.length, missingTeachers, conflicts,\n      availableSlots: 5 * schedulePeriods.length + saturdayLimit,\n      unfilledSlots: Math.max(0, 5 * schedulePeriods.length + saturdayLimit - created.length),
+      createdCount: created.length, missingTeachers, conflicts,
+      availableSlots: 5 * schedulePeriods.length + saturdayLimit,
+      unfilledSlots: Math.max(0, 5 * schedulePeriods.length + saturdayLimit - created.length),
     });
   } catch (error) {
     if (error.code === 11000)
