@@ -21,10 +21,6 @@ const emptyForm = {
   department: 'Academic',
   designation: 'Teacher',
   qualification: '',
-  classId: '',
-  sectionId: '',
-  subjectId: '',
-  isClassTeacher: true,
 }
 
 const departments = ['Academic', 'Administration', 'Sports & Activities', 'Student Support', 'Other']
