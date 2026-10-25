@@ -148,6 +148,11 @@ export default function PrincipalTeachersPage() {
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(emptyForm)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importPreview, setImportPreview] = useState(null)
+  const [importBusy, setImportBusy] = useState(false)
+  const [importResult, setImportResult] = useState(null)
+  const fileRef = useRef(null)
   const [importOpen, setImportOpen] = useState(false)\n  const [importPreview, setImportPreview] = useState(null)\n  const [importBusy, setImportBusy] = useState(false)\n  const [importResult, setImportResult] = useState(null)\n  const fileRef = useRef(null)
 
   const activeYear = useMemo(() => years.find((year) => year.isActive) || years[0] || null, [years])
