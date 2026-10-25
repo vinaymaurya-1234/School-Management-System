@@ -175,6 +175,15 @@ router.post("/", async (req, res, next) => {
     if (!classSubject) {
       return res.status(400).json({ message: "This subject is not mapped to the selected class for this academic year." });
     }
+    const existingSlot = await TimetableEntry.findOne({
+      school: req.user.school, academicYear, periodNumber: Number(periodNumber),
+      $or: [{ startTime: { $ne: startTime } }, { endTime: { $ne: endTime } }],
+    }).select("startTime endTime periodNumber");
+    if (existingSlot) {
+      return res.status(409).json({
+        message: `Period ${periodNumber} already uses ${existingSlot.startTime}–${existingSlot.endTime} elsewhere in the school. Use the same timings for every class.`,
+      });
+    }
     const conflict = await TimetableEntry.findOne({
       school: req.user.school,
       academicYear,
@@ -239,6 +248,18 @@ router.post("/auto-generate", async (req, res, next) => {
       schedulePeriods.some((slot, index) => index > 0 && slot[0] < schedulePeriods[index - 1][1])
     ) {
       return res.status(400).json({ message: "Set valid period start/end times. Periods must not overlap and must be in chronological order." });
+    }
+
+    const configuredSlots = await TimetableEntry.find({
+      school: req.user.school, academicYear,
+    }).select("periodNumber startTime endTime").lean();
+    for (const slot of configuredSlots) {
+      const requestedSlot = schedulePeriods[Number(slot.periodNumber) - 1];
+      if (requestedSlot && (requestedSlot[0] !== slot.startTime || requestedSlot[1] !== slot.endTime)) {
+        return res.status(409).json({
+          message: `Period ${slot.periodNumber} already uses ${slot.startTime}–${slot.endTime} in another class. Keep the same school-wide period timings, or clear existing draft timetables before changing them.`,
+        });
+      }
     }
 
     const publishedEntries = await TimetableEntry.countDocuments({
