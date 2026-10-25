@@ -219,134 +219,147 @@ router.post("/", async (req, res, next) => {
 router.post("/auto-generate", async (req, res, next) => {
   try {
     if (req.user.role !== ROLES.PRINCIPAL)
-      return res
-        .status(403)
-        .json({ message: "Only the principal can generate timetables" });
+      return res.status(403).json({ message: "Only the principal can generate timetables" });
+
     const { academicYear, section } = req.body || {};
     if (!academicYear || !section)
-      return res
-        .status(400)
-        .json({ message: "academicYear and section are required" });
+      return res.status(400).json({ message: "academicYear and section are required" });
+
     const sectionDoc = await Section.findOne({
-      _id: section,
-      school: req.user.school,
-      academicYear,
+      _id: section, school: req.user.school, academicYear,
     });
-    if (!sectionDoc)
-      return res.status(404).json({ message: "Section not found" });
-    const mappings = await ClassSubject.find({
-      school: req.user.school,
-      academicYear,
-      class: sectionDoc.class,
-    })
-      .populate("subject", "name code")
-      .lean();
-    const assignments = await TeacherAssignment.find({
-      school: req.user.school,
-      academicYear,
-      class: sectionDoc.class,
-      status: "active",
-    })
-      .populate("teacher", "name")
-      .lean();
-    if (!mappings.length)
-      return res
-        .status(400)
-        .json({
-          message:
-            "No subjects are mapped to this class yet. Add subjects and teacher assignments first.",
-        });
-    const teacherIds = assignments.map(
-      (item) => item.teacher?._id || item.teacher,
-    );
-    const existing = await TimetableEntry.find({
-      school: req.user.school,
-      academicYear,
-      $or: [{ section }, { teacher: { $in: teacherIds } }],
-    }).lean();
-    const sectionBusy = new Set(
-      existing
-        .filter((item) => item.section.toString() === section.toString())
-        .map((item) => `${item.day}:${item.periodNumber}`),
-    );
-    const teacherBusy = new Set(
-      existing.map(
-        (item) => `${item.teacher.toString()}:${item.day}:${item.periodNumber}`,
-      ),
-    );
-    const missingTeachers = [];
-    const conflicts = [];
-    const created = [];
-    for (const mapping of mappings) {
-      const weeklyPeriods = Math.min(
-        Number(mapping.weeklyPeriods) || 1,
-        DAYS.length * PERIODS.length,
-      );
-      const candidates = assignments.filter(
-        (item) =>
-          item.subject?.toString() === mapping.subject._id.toString() &&
-          (!item.section || item.section.toString() === section.toString()),
-      );
-      const assignment = candidates[0];
-      if (!assignment?.teacher) {
-        missingTeachers.push(mapping.subject?.name || "Unknown subject");
-        continue;
-      }
-      let placed = 0;
-      for (const day of DAYS) {
-        for (
-          let periodIndex = 0;
-          periodIndex < PERIODS.length;
-          periodIndex += 1
-        ) {
-          if (placed >= weeklyPeriods) break;
-          const periodNumber = periodIndex + 1;
-          const key = `${day}:${periodNumber}`;
-          const teacherId = assignment.teacher._id || assignment.teacher;
-          const teacherKey = `${teacherId}:${day}:${periodNumber}`;
-          if (sectionBusy.has(key) || teacherBusy.has(teacherKey)) continue;
-          const [startTime, endTime] = PERIODS[periodIndex];
-          const entry = await TimetableEntry.create({
-            school: req.user.school,
-            academicYear,
-            section,
-            teacher: teacherId,
-            subject: mapping.subject._id,
-            day,
-            periodNumber,
-            startTime,
-            endTime,
-            room: "",
-            status: "draft",
-          });
-          sectionBusy.add(key);
-          teacherBusy.add(teacherKey);
-          created.push(entry);
-          placed += 1;
-        }
-        if (placed >= weeklyPeriods) break;
-      }
-      if (placed < weeklyPeriods)
-        conflicts.push(
-          `${mapping.subject?.name || "Subject"}: only ${placed}/${weeklyPeriods} periods could be placed`,
-        );
-    }
-    res
-      .status(201)
-      .json({
-        message: "Timetable generation completed",
-        createdCount: created.length,
-        missingTeachers,
-        conflicts,
+    if (!sectionDoc) return res.status(404).json({ message: "Section not found" });
+
+    const publishedEntries = await TimetableEntry.countDocuments({
+      school: req.user.school, academicYear, section, status: "published",
+    });
+    if (publishedEntries) {
+      return res.status(409).json({
+        message: "This section already has published periods. Unpublish or remove them before regenerating the timetable.",
       });
+    }
+
+    const mappings = await ClassSubject.find({
+      school: req.user.school, academicYear, class: sectionDoc.class,
+    }).populate("subject", "name code").lean();
+
+    const assignments = await TeacherAssignment.find({
+      school: req.user.school, academicYear, class: sectionDoc.class, status: "active",
+    }).populate("teacher", "name").lean();
+
+    if (!mappings.length)
+      return res.status(400).json({
+        message: "No subjects are mapped to this class yet. Add subjects and teacher assignments first.",
+      });
+
+    const missingTeachers = [];
+    const usableMappings = [];
+    for (const mapping of mappings) {
+      const candidates = assignments.filter((item) =>
+        String(item.subject?._id || item.subject) === String(mapping.subject?._id) &&
+        (!item.section || String(item.section?._id || item.section) === String(section))
+      );
+      const assignment = candidates.find((item) => item.teacher?._id || item.teacher);
+      if (!assignment?.teacher) missingTeachers.push(mapping.subject?.name || "Unknown subject");
+      else usableMappings.push({ mapping, teacherId: assignment.teacher._id || assignment.teacher });
+    }
+
+    // Re-generation replaces only this section's draft entries; published entries are protected above.
+    await TimetableEntry.deleteMany({
+      school: req.user.school, academicYear, section, status: "draft",
+    });
+
+    const teacherIds = assignments.map((item) => item.teacher?._id || item.teacher).filter(Boolean);
+    const existing = await TimetableEntry.find({
+      school: req.user.school, academicYear,
+      $or: [{ section: { $ne: section } }, { teacher: { $in: teacherIds } }],
+    }).lean();
+
+    const sectionBusy = new Set();
+    const teacherBusy = new Set(existing.map(
+      (item) => `${String(item.teacher)}:${item.day}:${item.periodNumber}`
+    ));
+    const placedSubjectsByDay = new Map(DAYS.map((day) => [day, new Set()]));
+    const subjectAtSlot = new Map();
+    const created = [];
+    const conflicts = [];
+
+    // Place subjects across the week. Each subject appears at most once per day by default.
+    // Candidate periods are scored to avoid adjacent repeats and keep the day reasonably balanced.
+    const dayLoads = new Map(DAYS.map((day) => [day, 0]));
+    const periodLoads = new Map(DAYS.map((day) => [day, new Array(PERIODS.length).fill(0)]));
+    for (const { mapping, teacherId } of usableMappings) {
+      const weeklyPeriods = Math.max(1, Number(mapping.weeklyPeriods) || 1);
+      if (weeklyPeriods > DAYS.length) {
+        conflicts.push(`${mapping.subject?.name || "Subject"}: requested ${weeklyPeriods} periods, but the one-per-day rule allows at most ${DAYS.length} per week.`);
+      }
+      const target = Math.min(weeklyPeriods, DAYS.length);
+      let placed = 0;
+      while (placed < target) {
+        const subjectId = String(mapping.subject?._id);
+        const dayCandidates = DAYS
+          .filter((day) => !placedSubjectsByDay.get(day).has(subjectId))
+          .sort((a, b) => {
+            const dayLoadDiff = dayLoads.get(a) - dayLoads.get(b);
+            return dayLoadDiff || DAYS.indexOf(a) - DAYS.indexOf(b);
+          });
+        let choice = null;
+        for (const day of dayCandidates) {
+          const periodCandidates = PERIODS.map((slot, index) => ({ slot, index, score: 0 }))
+            .filter(({ index }) => {
+              const periodNumber = index + 1;
+              return !sectionBusy.has(`${day}:${periodNumber}`) &&
+                !teacherBusy.has(`${String(teacherId)}:${day}:${periodNumber}`);
+            })
+            .map((candidate) => {
+              const p = candidate.index;
+              const previous = subjectAtSlot.get(`${day}:${p}`);
+              const next = subjectAtSlot.get(`${day}:${p + 2}`);
+              candidate.score =
+                (previous === subjectId ? 100 : 0) +
+                (next === subjectId ? 100 : 0) +
+                periodLoads.get(day)[p] * 2 +
+                Math.abs(p - Math.floor((PERIODS.length - 1) / 2)) * 0.1;
+              return candidate;
+            })
+            .sort((a, b) => a.score - b.score);
+          if (periodCandidates.length) {
+            choice = { day, ...periodCandidates[0] };
+            break;
+          }
+        }
+        if (!choice) break;
+
+        const periodNumber = choice.index + 1;
+        const [startTime, endTime] = choice.slot;
+        const entry = await TimetableEntry.create({
+          school: req.user.school, academicYear, section, teacher: teacherId,
+          subject: mapping.subject._id, day: choice.day, periodNumber,
+          startTime, endTime, room: "", status: "draft",
+        });
+        sectionBusy.add(`${choice.day}:${periodNumber}`);
+        teacherBusy.add(`${String(teacherId)}:${choice.day}:${periodNumber}`);
+        placedSubjectsByDay.get(choice.day).add(subjectId);
+        subjectAtSlot.set(`${choice.day}:${periodNumber}`, subjectId);
+        dayLoads.set(choice.day, dayLoads.get(choice.day) + 1);
+        periodLoads.get(choice.day)[choice.index] += 1;
+        created.push(entry);
+        placed += 1;
+      }
+      if (placed < target) {
+        conflicts.push(`${mapping.subject?.name || "Subject"}: only ${placed}/${target} periods could be scheduled due to teacher/section conflicts.`);
+      }
+    }
+
+    return res.status(201).json({
+      message: "Balanced draft timetable generated. Review it before publishing.",
+      createdCount: created.length, missingTeachers, conflicts,
+    });
   } catch (error) {
     if (error.code === 11000)
-      return res
-        .status(409)
-        .json({
-          message:
-            "A timetable conflict occurred while generating the schedule. Refresh and try again.",
-        });
+      return res.status(409).json({
+        message: "A timetable conflict occurred while generating the schedule. Refresh and try again.",
+      });
     next(error);
   }
 });
