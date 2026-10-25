@@ -54,7 +54,7 @@ router.get("/", async (req, res, next) => {
 
 router.post("/", principalOnly, async (req, res, next) => {
   try {
-    const { academicYear, name, classIds, classId, weeklyPeriods = 5 } = req.body || {};
+    const { academicYear, name, classIds, classId, weeklyPeriods = 5, classFrequencies = {} } = req.body || {};
     const targets = [...new Set((Array.isArray(classIds) ? classIds : [classId]).filter(Boolean).map(String))];
     const cleanName = String(name || "").trim();
     if (!academicYear || !cleanName || !targets.length) {
@@ -73,9 +73,13 @@ router.post("/", principalOnly, async (req, res, next) => {
     const created = [];
     for (const targetClass of targets) {
       if (existingIds.has(targetClass)) continue;
+      const requestedFrequency = Number(classFrequencies[targetClass] ?? weeklyPeriods ?? 5);
+      if (!Number.isInteger(requestedFrequency) || requestedFrequency < 1 || requestedFrequency > 36) {
+        return res.status(400).json({ message: `Weekly lectures for class ${targetClass} must be a whole number between 1 and 36.` });
+      }
       const mapping = await ClassSubject.create({
         school: req.user.school, academicYear, class: targetClass, subject: subject._id,
-        weeklyPeriods: Math.max(1, Math.min(36, Number(weeklyPeriods) || 5)),
+        weeklyPeriods: requestedFrequency,
       });
       created.push(mapping);
     }
@@ -89,7 +93,7 @@ router.post("/", principalOnly, async (req, res, next) => {
 
 router.post("/assign", principalOnly, async (req, res, next) => {
   try {
-    const { academicYear, subjectId, classIds, weeklyPeriods = 5 } = req.body || {};
+    const { academicYear, subjectId, classIds, weeklyPeriods = 5, classFrequencies = {} } = req.body || {};
     const targets = [...new Set((Array.isArray(classIds) ? classIds : []).filter(Boolean).map(String))];
     if (!academicYear || !subjectId || !targets.length) return res.status(400).json({ message: "Subject and at least one class are required" });
     const [year, subject, validClasses] = await Promise.all([
@@ -105,9 +109,13 @@ router.post("/assign", principalOnly, async (req, res, next) => {
     const created = [];
     for (const targetClass of targets) {
       if (existingIds.has(targetClass)) continue;
+      const requestedFrequency = Number(classFrequencies[targetClass] ?? weeklyPeriods ?? 5);
+      if (!Number.isInteger(requestedFrequency) || requestedFrequency < 1 || requestedFrequency > 36) {
+        return res.status(400).json({ message: `Weekly lectures for class ${targetClass} must be a whole number between 1 and 36.` });
+      }
       created.push(await ClassSubject.create({
         school: req.user.school, academicYear, class: targetClass, subject: subjectId,
-        weeklyPeriods: Math.max(1, Math.min(36, Number(weeklyPeriods) || 5)),
+        weeklyPeriods: requestedFrequency,
       }));
     }
     if (!created.length) return res.status(409).json({ message: "This subject is already assigned to all selected classes" });
