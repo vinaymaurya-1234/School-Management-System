@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, BookOpen, Check, Loader2, Plus, RefreshCw, Trash2, X, Layers, Search } from 'lucide-react'
+import { BookOpen, Check, Loader2, Plus, Trash2, X, Layers, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import apiClient from '../../api/client'
 import './PrincipalSubjectsPage.css'
@@ -97,7 +97,6 @@ function PrincipalSubjectsPage() {
 
   return <main className="subjects-page">
     <header className="subjects-header">
-      <button className="subjects-back" onClick={() => navigate('/dashboard/principal')}><ArrowLeft size={16}/> Dashboard</button>
       <div className="subjects-heading"><div className="subjects-icon"><BookOpen size={22}/></div><div><span>ACADEMICS / CURRICULUM</span><h1>Subject Library</h1><p>Create each subject once, then assign it to multiple classes from one place.</p></div></div>
       {loading && <span className="subjects-loading"><Loader2 size={15} className="subjects-spin"/> Loading</span>}
     </header>
@@ -108,7 +107,7 @@ function PrincipalSubjectsPage() {
     <section className="subjects-panel">
       <div className="subjects-toolbar">
         <div><span className="subjects-eyebrow">ACADEMIC YEAR</span><h2>{activeYear?.name || 'Not configured'}</h2><p>Classes 1–10 · One shared subject list</p></div>
-        <div className="subjects-actions"><button className="subjects-btn subjects-btn-light" onClick={load}><RefreshCw size={15}/> Refresh</button><button className="subjects-btn subjects-btn-dark" onClick={openCreate}><Plus size={16}/> Create subject</button></div>
+        <div className="subjects-actions"><button className="subjects-btn subjects-btn-dark" onClick={openCreate}><Plus size={16}/> Create subject</button></div>
       </div>
       <div className="subjects-stats">
         <div><span>SUBJECTS</span><strong>{catalog.length}</strong><small>Unique subjects in your library</small></div>
