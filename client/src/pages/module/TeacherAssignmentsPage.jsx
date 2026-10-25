@@ -3,7 +3,8 @@ import { BookOpen, Check, GraduationCap, Loader2, Plus, RefreshCw, Search, Trash
 import apiClient from '../../api/client'
 import './TeacherAssignmentsPage.css'
 
-const blankForm = { teacher: '', classId: '', section: '', subject: '', isClassTeacher: false }
+const blankForm = { teacher: '', classId: '', section: '', subject: '' }
+const blankClassTeacherForm = { teacher: '', classId: '', section: '' }
 const idOf = (value) => value?._id || value?.id || value || ''
 const nameOf = (value) => value?.name || '—'
 
@@ -23,6 +24,8 @@ export default function TeacherAssignmentsPage() {
   const [page, setPage] = useState(1)
   const pageSize = 12
   const [modal, setModal] = useState(false)
+  const [classTeacherModal, setClassTeacherModal] = useState(false)
+  const [classTeacherForm, setClassTeacherForm] = useState(blankClassTeacherForm)
   const [form, setForm] = useState(blankForm)
   const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -87,10 +90,26 @@ export default function TeacherAssignmentsPage() {
   const openCreate = () => { setEditing(null); setForm(blankForm); setError(''); setModal(true) }
   const openEdit = (item) => {
     setEditing(item)
-    setForm({ teacher: idOf(item.teacher), classId: idOf(item.class), section: idOf(item.section), subject: idOf(item.subject), isClassTeacher: Boolean(item.isClassTeacher) })
+    setForm({ teacher: idOf(item.teacher), classId: idOf(item.class), section: idOf(item.section), subject: idOf(item.subject) })
     setError(''); setModal(true)
   }
   const setField = (key, value) => setForm((current) => ({ ...current, [key]: value, ...(key === 'classId' ? { section: '', subject: '' } : {}) }))
+
+  async function saveClassTeacher() {
+    if (!activeYear?._id || !classTeacherForm.teacher || !classTeacherForm.classId || !classTeacherForm.section) {
+      setError('Select teacher, class and section to set a class teacher.')
+      return
+    }
+    setSaving(true); setError('')
+    try {
+      await apiClient.post('/academic/class-teacher', { academicYear: activeYear._id, teacher: classTeacherForm.teacher, class: classTeacherForm.classId, section: classTeacherForm.section })
+      setNotice('Class teacher assigned successfully.')
+      setClassTeacherModal(false)
+      setClassTeacherForm(blankClassTeacherForm)
+      await load()
+    } catch (err) { setError(err.response?.data?.message || 'Unable to assign class teacher.') }
+    finally { setSaving(false) }
+  }
 
   async function saveAssignment() {
     if (!activeYear?._id || !form.teacher || !form.classId || !form.section || !form.subject) {
@@ -99,7 +118,7 @@ export default function TeacherAssignmentsPage() {
     }
     setSaving(true); setError('')
     try {
-      const payload = { academicYear: activeYear._id, teacher: form.teacher, class: form.classId, section: form.section, subject: form.subject, isClassTeacher: form.isClassTeacher }
+      const payload = { academicYear: activeYear._id, teacher: form.teacher, class: form.classId, section: form.section, subject: form.subject, isClassTeacher: Boolean(editing?.isClassTeacher) }
       if (editing) await apiClient.put('/academic/teacher-assignments/' + editing._id, payload)
       else await apiClient.post('/academic/teacher-assignments', payload)
       setNotice(editing ? 'Teacher assignment updated.' : 'Teacher assignment saved to the database.')
@@ -124,7 +143,7 @@ export default function TeacherAssignmentsPage() {
       <div className="ta-heading-row">
         <div className="ta-title-icon"><GraduationCap size={24} /></div>
         <div><h1>Teacher Assignments</h1><p>Assign teachers to multiple classes, sections and subjects for each academic year.</p></div>
-        <button className="ta-primary" onClick={openCreate}><Plus size={17}/> Assign teacher</button>
+        <div className="ta-heading-actions"><button className="ta-secondary" onClick={() => { setClassTeacherForm(blankClassTeacherForm); setError(''); setClassTeacherModal(true) }}><Users size={16}/> Class Teacher</button><button className="ta-primary" onClick={openCreate}><Plus size={17}/> Assign teacher</button></div>
       </div>
     </header>
     {error && <div className="ta-alert ta-error"><span>{error}</span><button onClick={() => setError('')}><X size={16}/></button></div>}
@@ -191,6 +210,16 @@ export default function TeacherAssignmentsPage() {
       {view === 'all' && <div className="ta-pagination"><span>Showing {filteredAssignments.length ? (page-1)*pageSize+1 : 0}–{Math.min(page*pageSize, filteredAssignments.length)} of {filteredAssignments.length} assignments</span><div><button disabled={page<=1} onClick={() => setPage((p)=>Math.max(1,p-1))}><ChevronLeft size={15}/> Previous</button><span>Page {page} of {pageCount}</span><button disabled={page>=pageCount} onClick={() => setPage((p)=>Math.min(pageCount,p+1))}>Next <ChevronRight size={15}/></button></div></div>}
       <footer className="ta-footer"><span>{view === 'teacher' ? 'Teacher-wise overview' : view === 'class' ? 'Class and section overview' : `Showing ${visibleAssignments.length} of ${filteredAssignments.length} assignments`}</span><span>Changes are stored against the selected academic year.</span></footer>
     </section>
+    {classTeacherModal && <div className="ta-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && !saving && setClassTeacherModal(false)}><section className="ta-modal">
+      <header><div><span>CLASS LEADERSHIP</span><h2>Assign Class Teacher</h2><p>Choose one teacher for a class and section.</p></div><button onClick={() => !saving && setClassTeacherModal(false)}><X size={19}/></button></header>
+      <div className="ta-form-grid">
+        <label><span>Teacher *</span><select value={classTeacherForm.teacher} onChange={(event) => setClassTeacherForm((current) => ({ ...current, teacher: event.target.value }))}><option value="">Select teacher</option>{teacherChoices.map((teacher) => <option key={idOf(teacher.user)} value={idOf(teacher.user)}>{teacher.name} · {teacher.employeeId || teacher.email}</option>)}</select></label>
+        <label><span>Class *</span><select value={classTeacherForm.classId} onChange={(event) => setClassTeacherForm((current) => ({ ...current, classId: event.target.value, section: '' }))}><option value="">Select class</option>{yearClasses.map((item) => <option key={item._id} value={item._id}>Class {item.name}</option>)}</select></label>
+        <label><span>Section *</span><select value={classTeacherForm.section} onChange={(event) => setClassTeacherForm((current) => ({ ...current, section: event.target.value }))}><option value="">Select section</option>{sections.filter((item) => idOf(item.class) === classTeacherForm.classId).map((item) => <option key={item._id} value={idOf(item)}>{item.name}</option>)}</select></label>
+      </div>
+      {error && <div className="ta-inline-error">{error}</div>}
+      <footer><button className="ta-cancel" onClick={() => setClassTeacherModal(false)} disabled={saving}>Cancel</button><button className="ta-primary" onClick={saveClassTeacher} disabled={saving}>{saving ? <Loader2 className="ta-spin" size={16}/> : <Check size={16}/>} {saving ? 'Saving…' : 'Save class teacher'}</button></footer>
+    </section></div>}
     {modal && <div className="ta-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && !saving && setModal(false)}><section className="ta-modal">
       <header><div><span>{editing ? 'UPDATE ALLOCATION' : 'NEW ALLOCATION'}</span><h2>{editing ? 'Edit teacher assignment' : 'Assign a teacher'}</h2><p>Each row assigns one teacher to one class, section and subject.</p></div><button onClick={() => !saving && setModal(false)}><X size={19}/></button></header>
       <div className="ta-form-grid">
@@ -199,7 +228,6 @@ export default function TeacherAssignmentsPage() {
         <label><span>Section *</span><select value={form.section} onChange={(event) => setField('section', event.target.value)}><option value="">Select section</option>{availableSections.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}</select></label>
         <label><span>Subject *</span><select value={form.subject} onChange={(event) => setField('subject', event.target.value)}><option value="">Select subject</option>{classSubjects.map((item) => <option key={idOf(item.subject)} value={idOf(item.subject)}>{nameOf(item.subject)}{item.subject?.code ? ' · ' + item.subject.code : ''}</option>)}</select></label>
       </div>
-      <label className="ta-checkbox"><input type="checkbox" checked={form.isClassTeacher} onChange={(event) => setField('isClassTeacher', event.target.checked)}/><span><strong>Also class teacher</strong><small>Mark this teacher as the class teacher for the selected section.</small></span></label>
       <div className="ta-form-note">You can add more rows for the same teacher to assign additional subjects, sections or classes.</div>
       {error && <div className="ta-inline-error">{error}</div>}
       <footer><button className="ta-cancel" onClick={() => setModal(false)} disabled={saving}>Cancel</button><button className="ta-primary" onClick={saveAssignment} disabled={saving}>{saving ? <Loader2 className="ta-spin" size={16}/> : <Check size={16}/>} {saving ? 'Saving…' : editing ? 'Save changes' : 'Save assignment'}</button></footer>
