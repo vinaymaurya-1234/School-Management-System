@@ -16,6 +16,7 @@ function PrincipalSubjectsPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [search, setSearch] = useState('')
+  const [expandedSubjects, setExpandedSubjects] = useState({})
   const [form, setForm] = useState({ name: '', subjectId: '', classIds: [], weeklyPeriods: 5, classFrequencies: {} })
 
   const activeYear = useMemo(() => years.find((year) => year.isActive) || years[0], [years])
@@ -147,9 +148,20 @@ function PrincipalSubjectsPage() {
           return <article className="subjects-card" key={subject._id}>
             <div className="subjects-card-top"><div className="subjects-card-icon"><BookOpen size={19}/></div><span className="subjects-count">{assigned.length} {assigned.length === 1 ? 'class' : 'classes'}</span></div>
             <h3>{subject.name}</h3>
-            <div className="subjects-assigned-label"><Layers size={14}/> ASSIGNED CLASSES</div>
-            <div className="subjects-mapping-list">{assigned.sort((a, b) => Number(a.name) - Number(b.name)).map(({ mapping, id, name }) => <div className="subjects-mapping-row" key={mapping._id}><div className="subjects-mapping-label"><strong>Class {name}</strong><span>{mapping.weeklyPeriods || 5} lectures / week</span></div><div className="subjects-mapping-actions"><button type="button" title="Edit weekly lecture frequency" onClick={() => editWeeklyPeriods(mapping, subject.name, name)}>Edit frequency</button><button type="button" title={`Remove from Class ${name}`} onClick={() => removeMapping(mapping, subject.name)}><X size={13}/></button></div></div>)}</div>
-            <button className="subjects-assign-btn" onClick={() => openAssign(subject)}><Plus size={15}/> Assign to more classes</button>
+            <div className="subjects-card-summary">
+              <span>{assigned.length ? `${assigned.length} classes assigned` : 'Not assigned to any class yet'}</span>
+              <span>{assigned.reduce((total, item) => total + (Number(item.mapping.weeklyPeriods) || 5), 0)} lectures / week</span>
+            </div>
+            {expandedSubjects[subject._id] && <>
+              <div className="subjects-assigned-label"><Layers size={14}/> ASSIGNED CLASSES</div>
+              <div className="subjects-mapping-list">{assigned.sort((a, b) => Number(a.name) - Number(b.name)).map(({ mapping, id, name }) => <div className="subjects-mapping-row" key={mapping._id}><div className="subjects-mapping-label"><strong>Class {name}</strong><span>{mapping.weeklyPeriods || 5} lectures / week</span></div><div className="subjects-mapping-actions"><button type="button" title="Edit weekly lecture frequency" onClick={() => editWeeklyPeriods(mapping, subject.name, name)}>Edit frequency</button><button type="button" title={`Remove from Class ${name}`} onClick={() => removeMapping(mapping, subject.name)}><X size={13}/></button></div></div>)}</div>
+            </>}
+            <div className="subjects-card-footer">
+              <button className="subjects-expand-btn" type="button" aria-expanded={Boolean(expandedSubjects[subject._id])} onClick={() => setExpandedSubjects((prev) => ({ ...prev, [subject._id]: !prev[subject._id] }))}>
+                {expandedSubjects[subject._id] ? 'Hide classes' : 'Manage classes'} <span>{expandedSubjects[subject._id] ? '−' : '+'}</span>
+              </button>
+              <button className="subjects-assign-btn" onClick={() => openAssign(subject)}><Plus size={15}/> Assign classes</button>
+            </div>
           </article>
         })}
         {!filteredCatalog.length && <div className="subjects-empty"><BookOpen size={27}/><strong>{search ? 'No matching subjects' : 'Your subject library is empty'}</strong><span>{search ? 'Try another subject name.' : 'Create a subject once and assign it to one or more classes.'}</span>{!search && <button className="subjects-btn subjects-btn-dark" onClick={openCreate}><Plus size={15}/> Create first subject</button>}</div>}
