@@ -441,7 +441,6 @@ router.patch("/:id", async (req, res, next) => {
     if (req.user.role !== ROLES.PRINCIPAL) return res.status(403).json({ message: "Only the principal can edit timetable entries" });
     const entry = await TimetableEntry.findOne({ _id: req.params.id, school: req.user.school });
     if (!entry) return res.status(404).json({ message: "Timetable entry not found" });
-    if (entry.status === "published") return res.status(409).json({ message: "Unpublish this period before editing it." });
     const { academicYear, section, teacher, subject, day, periodNumber, startTime, endTime, room } = req.body || {};
     if (!academicYear || !section || !teacher || !subject || !DAYS.includes(day) || !Number.isInteger(Number(periodNumber)) || Number(periodNumber) < 1 || !startTime || !endTime) {
       return res.status(400).json({ message: "Provide valid class, subject, teacher, day, period and times." });
@@ -463,7 +462,7 @@ router.patch("/:id", async (req, res, next) => {
     const classSubject = await ClassSubject.findOne({ school: req.user.school, academicYear, class: sectionDoc.class, subject });
     if (!classSubject) return res.status(400).json({ message: "This subject is not mapped to the selected class." });
     entry.academicYear = academicYear; entry.section = section; entry.teacher = teacher; entry.subject = subject;
-    entry.day = day; entry.periodNumber = Number(periodNumber); entry.startTime = startTime; entry.endTime = endTime; entry.room = room || "";
+    entry.day = day; entry.periodNumber = Number(periodNumber); entry.startTime = startTime; entry.endTime = endTime; entry.room = room || ""; entry.status = "draft";
     await entry.save();
     return res.json({ message: "Timetable period updated", entry });
   } catch (error) {
