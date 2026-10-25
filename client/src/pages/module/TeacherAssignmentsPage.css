@@ -134,6 +134,6 @@
 
 /* Dedicated Class Teacher action */
 .teacher-assignments-page .ta-heading-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-shrink:0}
-.teacher-assignments-page .ta-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 15px;border:1px solid #dcdcdc;border-radius:11px;background:#fff;color:#171717;font-size:11px;font-weight:800;cursor:pointer}
-.teacher-assignments-page .ta-secondary:hover{background:#f5f5f5;border-color:#bdbdbd}
+.teacher-assignments-page .ta-heading-actions .ta-secondary{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:0 16px;border:1px solid #171717;border-radius:11px;background:#171717;color:#fff;font-family:inherit;font-size:11px;font-weight:800;line-height:1;white-space:nowrap;cursor:pointer;box-shadow:0 4px 12px #00000012;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+.teacher-assignments-page .ta-heading-actions .ta-secondary:hover{background:#303030;border-color:#303030}.teacher-assignments-page .ta-heading-actions .ta-secondary:active{transform:translateY(1px)}
 @media(max-width:540px){.teacher-assignments-page .ta-heading-actions{width:100%;margin-left:0}.teacher-assignments-page .ta-heading-actions button{flex:1}}
