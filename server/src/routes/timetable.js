@@ -267,7 +267,7 @@ router.post("/auto-generate", async (req, res, next) => {
 
     const schedulePeriods = Array.isArray(requestedPeriods) && requestedPeriods.length
       ? requestedPeriods.map((slot) => [String(slot.startTime || ""), String(slot.endTime || "")])
-      : PERIODS;
+      : buildPeriodTimes({ startTime: DEFAULT_START_TIME, periodMinutes: DEFAULT_PERIOD_MINUTES, periodsPerDay: DEFAULT_PERIODS_PER_DAY, breakAfter: DEFAULT_BREAK_AFTER, breakMinutes: DEFAULT_BREAK_MINUTES });
     if (
       schedulePeriods.length < 1 || schedulePeriods.length > 12 ||
       schedulePeriods.some(([start, end]) => !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(start) || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(end) || start >= end) ||
