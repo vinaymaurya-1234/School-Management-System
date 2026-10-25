@@ -102,3 +102,40 @@
 .timetable-time-setting input:focus{outline:0;border-color:#222;box-shadow:0 0 0 3px rgba(0,0,0,.05)}
 @media(max-width:900px){.timetable-period-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.timetable-period-settings-heading{align-items:flex-start;flex-direction:column}.timetable-period-settings-grid{grid-template-columns:1fr}}
+
+/* Timetable schedule setup: polished, compact, accessible form layout */
+.timetable-feature-page .timetable-period-settings{margin-top:18px;padding:22px;border:1px solid #e5e7eb;border-radius:18px;background:linear-gradient(145deg,#fff 0%,#f8f9fb 100%);box-shadow:0 8px 24px rgba(17,24,39,.035)}
+.timetable-feature-page .timetable-period-settings-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:22px}
+.timetable-feature-page .timetable-period-settings-heading>div{display:grid;gap:7px}
+.timetable-feature-page .timetable-period-settings-heading strong{font-size:16px;font-weight:800;letter-spacing:-.45px;color:#16181d}
+.timetable-feature-page .timetable-period-settings-heading span{max-width:620px;font-size:11px;line-height:1.7;color:#717783}
+.timetable-feature-page .timetable-period-settings-heading .secondary-button{min-height:38px;padding:0 13px;border:1px solid #dfe2e7;border-radius:10px;background:#fff;color:#292d33;font-size:10px;font-weight:750;white-space:nowrap}
+.timetable-feature-page .timetable-settings-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.timetable-feature-page .timetable-settings-fields>label{min-width:0;display:flex;flex-direction:column;gap:9px;padding:14px;border:1px solid #e7e9ed;border-radius:13px;background:#fff;color:#555d68;font-size:10px;font-weight:750;transition:border-color .16s ease,box-shadow .16s ease}
+.timetable-feature-page .timetable-settings-fields>label:focus-within{border-color:#9ca3af;box-shadow:0 0 0 3px rgba(17,24,39,.045)}
+.timetable-feature-page .timetable-settings-fields input{width:100%;min-width:0;height:43px;padding:0 12px;border:1px solid #e0e3e8;border-radius:9px;background:#fafbfc;color:#15171b;font-family:inherit;font-size:14px;font-weight:750;outline:0}
+.timetable-feature-page .timetable-settings-fields input:focus{border-color:#9ca3af;background:#fff}
+.timetable-feature-page .timetable-preview{display:grid;gap:13px;margin-top:19px;padding:17px;border:1px solid #e5e7eb;border-radius:13px;background:#f5f6f8}
+.timetable-feature-page .timetable-preview>div:not(.timetable-preview-slots){display:flex;align-items:center;justify-content:space-between;gap:12px}
+.timetable-feature-page .timetable-preview>div>strong{font-size:11px;font-weight:800;color:#24272d}
+.timetable-feature-page .timetable-preview>div>span{font-size:10px;color:#717783}
+.timetable-feature-page .timetable-preview-slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.timetable-feature-page .timetable-preview-slots>span{padding:10px 11px;border:1px solid #e3e5e9;border-radius:9px;background:#fff;color:#4a505a;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums}
+.timetable-feature-page .timetable-preview-slots>span:first-child{border-color:#c9cdd4;background:#eef0f3;color:#1d2026}
+.timetable-feature-page .timetable-action-row{display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:10px;margin-top:19px;padding-top:17px;border-top:1px solid #eceef1}
+.timetable-feature-page .timetable-action-row>button{min-height:43px;padding:0 16px;border:1px solid #dfe2e7;border-radius:11px;background:#fff;color:#292d33;font-size:11px;font-weight:800;box-shadow:0 2px 3px rgba(0,0,0,.015);transition:transform .16s ease,box-shadow .16s ease,background .16s ease}
+.timetable-feature-page .timetable-action-row>button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 5px 12px rgba(0,0,0,.06);background:#f8f9fa}
+.timetable-feature-page .timetable-action-row>button.primary-button{background:#17191d;border-color:#17191d;color:#fff}
+.timetable-feature-page .timetable-action-row>button.primary-button:hover:not(:disabled){background:#303238}
+.timetable-feature-page .timetable-action-row>button:disabled{opacity:.46;cursor:not-allowed}
+.timetable-feature-page .feature-select-grid>label{display:flex;flex-direction:column;gap:9px;color:#545b66;font-size:10px;font-weight:800}
+.timetable-feature-page .feature-select-grid>label select{width:100%;height:47px;padding:0 13px;border:1px solid #dfe2e7;border-radius:11px;background:#fff;color:#24272d;font-size:12px;font-weight:700;outline:0}
+.timetable-feature-page .feature-select-grid>label select:focus{border-color:#a5aab3;box-shadow:0 0 0 3px rgba(17,24,39,.045)}
+.timetable-feature-page .feature-selection-summary{min-height:47px;align-self:end;padding:10px 14px;border:1px solid #e4e6ea;border-radius:11px;background:#f7f8fa}
+.timetable-feature-page .feature-selection-summary>span{font-size:8px;font-weight:800;letter-spacing:1px;color:#858b95}
+.timetable-feature-page .feature-selection-summary>strong{margin-top:3px;font-size:12px;font-weight:800;color:#202329}
+.timetable-feature-page .feature-selection-summary>small{margin-top:2px;font-size:10px;color:#858b95}
+.timetable-feature-page .feature-stat-grid{gap:14px}
+.timetable-feature-page .feature-stat-grid article{border-radius:17px;box-shadow:0 5px 18px rgba(17,24,39,.025)}
+@media(max-width:1000px){.timetable-feature-page .timetable-settings-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.timetable-feature-page .timetable-preview-slots{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){.timetable-feature-page .timetable-period-settings{padding:15px}.timetable-feature-page .timetable-period-settings-heading{flex-direction:column}.timetable-feature-page .timetable-settings-fields{grid-template-columns:1fr}.timetable-feature-page .timetable-preview-slots{grid-template-columns:repeat(2,minmax(0,1fr))}.timetable-feature-page .timetable-action-row>button{flex:1 1 145px}}
