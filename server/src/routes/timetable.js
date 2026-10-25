@@ -144,6 +144,18 @@ router.post("/", async (req, res, next) => {
           message:
             "academicYear, section, teacher, subject, day, periodNumber, startTime and endTime are required",
         });
+    const minutes = (value) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
+    if (day === "saturday" && Number(periodNumber) > Math.ceil(PERIODS.length / 2)) {
+      return res.status(400).json({ message: "Saturday is a half-day. Only the first three periods can be scheduled." });
+    }
+    if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(startTime) || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(endTime) || minutes(endTime) <= minutes(startTime)) {
+      return res.status(400).json({ message: "Enter a valid start and end time." });
+    }
+    const durationEntries = await TimetableEntry.find({ school: req.user.school, academicYear }).select("startTime endTime").lean();
+    const expectedDuration = durationEntries.length ? minutes(durationEntries[0].endTime) - minutes(durationEntries[0].startTime) : minutes(PERIODS[0][1]) - minutes(PERIODS[0][0]);
+    if (minutes(endTime) - minutes(startTime) !== expectedDuration) {
+      return res.status(400).json({ message: "All school periods must have the same duration." });
+    }
     const existingSection = await Section.findOne({
       _id: section,
       school: req.user.school,
@@ -245,9 +257,13 @@ router.post("/auto-generate", async (req, res, next) => {
     if (
       schedulePeriods.length !== PERIODS.length ||
       schedulePeriods.some(([start, end]) => !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(start) || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(end) || start >= end) ||
-      schedulePeriods.some((slot, index) => index > 0 && slot[0] < schedulePeriods[index - 1][1])
+      schedulePeriods.some((slot, index) => index > 0 && slot[0] < schedulePeriods[index - 1][1]) ||
+      new Set(schedulePeriods.map(([start, end]) => {
+        const minutes = (value) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
+        return minutes(end) - minutes(start);
+      })).size !== 1
     ) {
-      return res.status(400).json({ message: "Set valid period start/end times. Periods must not overlap and must be in chronological order." });
+      return res.status(400).json({ message: "All periods must have the same duration, be in chronological order, and not overlap. Set valid start/end times." });
     }
 
     const configuredSlots = await TimetableEntry.find({
@@ -337,6 +353,7 @@ router.post("/auto-generate", async (req, res, next) => {
         for (const day of dayCandidates) {
           const periodCandidates = PERIODS.map((slot, index) => ({ slot, index, score: 0 }))
             .filter(({ index }) => {
+              if (day === "saturday" && index >= Math.ceil(PERIODS.length / 2)) return false;
               const periodNumber = index + 1;
               return !sectionBusy.has(`${day}:${periodNumber}`) &&
                 !teacherBusy.has(`${String(teacherId)}:${day}:${periodNumber}`);
