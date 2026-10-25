@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { AcademicYear, SchoolClass, TeacherAssignment } from "../models/Academic.js";
 import { ClassSubject, Subject } from "../models/Subject.js";
-import User from "../models/User.js";
 import { requireAuth } from "../middleware/auth.js";
 import { ROLES } from "../config/permissions.js";
 
@@ -49,63 +48,71 @@ router.get("/", async (req, res, next) => {
         })),
       };
     });
-
     res.json({ subjects: records, count: records.length });
   } catch (error) { next(error); }
 });
 
 router.post("/", principalOnly, async (req, res, next) => {
   try {
-    const { academicYear, name, code, isOptional = false, classId, weeklyPeriods = 5, teacherId, sectionId } = req.body || {};
-    if (!academicYear || !name || !classId) return res.status(400).json({ message: "academicYear, name and classId are required" });
-    const [year, schoolClass] = await Promise.all([
-      AcademicYear.findOne({ _id: academicYear, school: req.user.school }),
-      SchoolClass.findOne({ _id: classId, school: req.user.school, academicYear }),
-    ]);
-    if (!year) return res.status(404).json({ message: "Academic year not found" });
-    if (!schoolClass) return res.status(404).json({ message: "Class not found for the academic year" });
-
-    let subject = await Subject.findOne({ school: req.user.school, academicYear, name: String(name).trim() });
-    if (!subject) subject = await Subject.create({ school: req.user.school, academicYear, name: String(name).trim(), code: String(code || "").trim().toUpperCase(), isOptional });
-
-    const mapping = await ClassSubject.create({ school: req.user.school, academicYear, class: classId, subject: subject._id, weeklyPeriods: Number(weeklyPeriods) || 5 });
-
-    if (teacherId) {
-      const teacher = await User.findOne({ _id: teacherId, school: req.user.school, role: ROLES.TEACHER, active: true });
-      if (!teacher) return res.status(404).json({ message: "Teacher not found" });
-
-      // Use the TeacherAssignment document's save lifecycle instead of
-      // findOneAndUpdate(). This keeps the single-class-per-teacher rule
-      // active even when assignments are created from the Subjects module.
-      const existing = await TeacherAssignment.findOne({
-        school: req.user.school,
-        academicYear,
-        teacher: teacherId,
-        class: classId,
-        section: sectionId || null,
-        subject: subject._id,
-        status: "active",
-      });
-
-      if (!existing) {
-        const assignment = new TeacherAssignment({
-          school: req.user.school,
-          academicYear,
-          teacher: teacherId,
-          class: classId,
-          section: sectionId || undefined,
-          subject: subject._id,
-          isClassTeacher: false,
-        });
-        await assignment.save();
-      }
+    const { academicYear, name, classIds, classId, weeklyPeriods = 5 } = req.body || {};
+    const targets = [...new Set((Array.isArray(classIds) ? classIds : [classId]).filter(Boolean).map(String))];
+    const cleanName = String(name || "").trim();
+    if (!academicYear || !cleanName || !targets.length) {
+      return res.status(400).json({ message: "Academic year, subject name and at least one class are required" });
     }
+    const year = await AcademicYear.findOne({ _id: academicYear, school: req.user.school });
+    if (!year) return res.status(404).json({ message: "Academic year not found" });
+    const validClasses = await SchoolClass.find({ _id: { $in: targets }, school: req.user.school, academicYear });
+    if (validClasses.length !== targets.length) return res.status(404).json({ message: "One or more classes were not found for this academic year" });
 
-    res.status(201).json({ message: "Subject mapped successfully", subject, mapping });
+    let subject = await Subject.findOne({ school: req.user.school, academicYear, name: { $regex: new RegExp("^" + cleanName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i") } });
+    if (!subject) subject = await Subject.create({ school: req.user.school, academicYear, name: cleanName });
+
+    const existingMappings = await ClassSubject.find({ school: req.user.school, academicYear, subject: subject._id, class: { $in: targets } }).select("class");
+    const existingIds = new Set(existingMappings.map((item) => item.class.toString()));
+    const created = [];
+    for (const targetClass of targets) {
+      if (existingIds.has(targetClass)) continue;
+      const mapping = await ClassSubject.create({
+        school: req.user.school, academicYear, class: targetClass, subject: subject._id,
+        weeklyPeriods: Math.max(1, Math.min(36, Number(weeklyPeriods) || 5)),
+      });
+      created.push(mapping);
+    }
+    if (!created.length) return res.status(409).json({ message: "This subject is already assigned to all selected classes" });
+    res.status(201).json({ message: "Subject saved and assigned to selected classes", subject, mappings: created });
   } catch (error) {
-    if (error.code === 11000) return res.status(409).json({ message: "This subject is already mapped to the selected class" });
+    if (error.code === 11000) return res.status(409).json({ message: "This subject is already assigned to the selected class" });
     next(error);
   }
+});
+
+router.post("/assign", principalOnly, async (req, res, next) => {
+  try {
+    const { academicYear, subjectId, classIds, weeklyPeriods = 5 } = req.body || {};
+    const targets = [...new Set((Array.isArray(classIds) ? classIds : []).filter(Boolean).map(String))];
+    if (!academicYear || !subjectId || !targets.length) return res.status(400).json({ message: "Subject and at least one class are required" });
+    const [year, subject, validClasses] = await Promise.all([
+      AcademicYear.findOne({ _id: academicYear, school: req.user.school }),
+      Subject.findOne({ _id: subjectId, school: req.user.school, academicYear }),
+      SchoolClass.find({ _id: { $in: targets }, school: req.user.school, academicYear }),
+    ]);
+    if (!year) return res.status(404).json({ message: "Academic year not found" });
+    if (!subject) return res.status(404).json({ message: "Subject not found" });
+    if (validClasses.length !== targets.length) return res.status(404).json({ message: "One or more classes were not found" });
+    const existing = await ClassSubject.find({ school: req.user.school, academicYear, subject: subjectId, class: { $in: targets } }).select("class");
+    const existingIds = new Set(existing.map((item) => item.class.toString()));
+    const created = [];
+    for (const targetClass of targets) {
+      if (existingIds.has(targetClass)) continue;
+      created.push(await ClassSubject.create({
+        school: req.user.school, academicYear, class: targetClass, subject: subjectId,
+        weeklyPeriods: Math.max(1, Math.min(36, Number(weeklyPeriods) || 5)),
+      }));
+    }
+    if (!created.length) return res.status(409).json({ message: "This subject is already assigned to all selected classes" });
+    res.status(201).json({ message: "Subject assigned to selected classes", mappings: created });
+  } catch (error) { next(error); }
 });
 
 router.delete("/:mappingId", principalOnly, async (req, res, next) => {
