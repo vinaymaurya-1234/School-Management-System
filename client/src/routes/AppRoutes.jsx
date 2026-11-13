@@ -74,6 +74,9 @@ function ModuleRoute() {
   if (user?.role === 'principal' && moduleKey === 'login-credentials') return <PrincipalCredentialsPage />
   if (user?.role === 'principal' && moduleKey === 'teacher-credentials') return <PrincipalTeacherCredentialsPage />
   if (user?.role === 'student' && moduleKey === 'assignments') return <StudentAssignmentsPage />
+  if (user?.role === 'parent' && moduleKey === 'assignments') return <TeacherWorkspacePage mode="parent-homework" />
+  if (user?.role === 'parent' && moduleKey === 'children') return <ParentDashboard />
+  if (['student', 'parent'].includes(user?.role) && moduleKey === 'events') return <TeacherWorkspacePage mode="events" />
   if (user?.role === 'student' && moduleKey === 'profile') return <StudentProfilePage />
   if (user?.role === 'principal' && moduleKey === 'profile') return <PrincipalProfilePage />
   if (user?.role === 'teacher' && moduleKey === 'profile') return <TeacherProfilePage />
