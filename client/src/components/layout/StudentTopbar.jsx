@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Bell, BookOpen, CalendarDays, ChevronDown, ClipboardCheck, FileText, GraduationCap, Home, LogOut, MessageCircle, Search, Settings, Trophy, UserRound, WalletCards, X } from 'lucide-react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import './StudentTopbar.css'
 
@@ -24,7 +24,6 @@ const allItems = [{ label: 'Messages', hint: 'Chat with authorized school contac
 function StudentTopbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   const rootRef = useRef(null)
   const [openGroup, setOpenGroup] = useState('')
   const [profileOpen, setProfileOpen] = useState(false)
@@ -35,13 +34,6 @@ function StudentTopbar() {
     const query = search.trim().toLowerCase()
     return query ? allItems.filter((item) => `${item.label} ${item.hint}`.toLowerCase().includes(query)) : []
   }, [search])
-
-  useEffect(() => {
-    setOpenGroup('')
-    setProfileOpen(false)
-    setNotificationsOpen(false)
-    setSearchOpen(false)
-  }, [location.pathname])
 
   useEffect(() => {
     const closeMenus = (event) => { if (!rootRef.current?.contains(event.target)) { setOpenGroup(''); setProfileOpen(false); setNotificationsOpen(false); setSearchOpen(false) } }
@@ -59,8 +51,8 @@ function StudentTopbar() {
         <span><strong>Campus</strong><small>STUDENT PORTAL</small></span>
       </div>
       <nav className="student-primary-nav" aria-label="Student navigation">
-        <NavLink to="/dashboard/student" end className={({ isActive }) => `student-nav-home ${isActive ? 'active' : ''}`}><Home size={16} /> Home</NavLink>
-        <NavLink to="/module/messages" className={({ isActive }) => `student-nav-home ${isActive ? 'active' : ''}`}><MessageCircle size={16} /> Messages</NavLink>
+        <NavLink to="/dashboard/student" end className={({ isActive }) => `student-nav-home ${isActive ? 'active' : ''}`} onClick={() => setOpenGroup('')}><Home size={16} /> Home</NavLink>
+        <NavLink to="/module/messages" className={({ isActive }) => `student-nav-home ${isActive ? 'active' : ''}`} onClick={() => setOpenGroup('')}><MessageCircle size={16} /> Messages</NavLink>
         {studentGroups.map((group) => (
           <div className="student-nav-group" key={group.label}>
             <button type="button" className={`student-nav-trigger ${openGroup === group.label ? 'active' : ''}`} aria-expanded={openGroup === group.label} onClick={() => setOpenGroup(openGroup === group.label ? '' : group.label)}>{group.label}<ChevronDown size={15} /></button>
