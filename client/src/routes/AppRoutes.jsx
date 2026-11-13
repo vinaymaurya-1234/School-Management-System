@@ -38,9 +38,14 @@ import LeaveManagementPage from '../pages/module/LeaveManagementPage'
 import '../pages/module/ModuleFeature.css'
 
 const PRINCIPAL_OPERATIONS = new Set(['fees', 'notices', 'payroll'])
+function SessionLoading() {
+  return <main className="session-loading" role="status" aria-live="polite">Checking your school session…</main>
+}
+
 function ProtectedRoute() {
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, isInitializing, user } = useAuth()
   const location = useLocation()
+  if (isInitializing) return <SessionLoading />
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (user?.mustChangePassword && location.pathname !== '/first-login-password') return <Navigate to="/first-login-password" replace />
   return <Outlet />
@@ -106,8 +111,9 @@ function ModuleRoute() {
   return <ModulePage moduleKey={moduleKey} />
 }
 function PublicRoute() {
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, isInitializing, user } = useAuth()
   const homeRoute = ROLE_HOME_ROUTES[user?.role] || ROLE_HOME_ROUTES[ROLES.PRINCIPAL]
+  if (isInitializing) return <SessionLoading />
   if (isAuthenticated && user?.mustChangePassword) return <Navigate to="/first-login-password" replace />
   return isAuthenticated ? <Navigate to={homeRoute} replace /> : <Outlet />
 }
