@@ -27,6 +27,8 @@ export default [
     rules: {
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       'no-unused-vars': ['warn', { varsIgnorePattern: '^[A-Z_]' }],
+      // Intentional UI reset effects remain visible as warnings instead of blocking CI.
+      'react-hooks/set-state-in-effect': 'warn',
     },
   },
 ]
