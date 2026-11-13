@@ -1,0 +1,110 @@
+/* SchoolOS shared page polish — applied across principal, teacher, student, parent and accountant workspaces.
+   Intentionally styles presentation only; no route, data, or business rules are changed. */
+:root {
+  --ui-ink: #171717;
+  --ui-muted: #737373;
+  --ui-line: #e8e8e6;
+  --ui-surface: #fff;
+  --ui-canvas: #f7f7f5;
+  --ui-soft: #f2f2f0;
+  --ui-radius: 16px;
+  --ui-shadow: 0 8px 26px rgba(0,0,0,.035);
+}
+body { color: var(--ui-ink); }
+.app-main, .student-app-main, .teacher-app-main { min-width: 0; background: var(--ui-canvas); }
+.page-content { width: 100%; max-width: 1680px; margin-inline: auto; padding: clamp(16px,2.2vw,32px); }
+:is(.feature-page,.principal-dashboard,.teacher-dashboard,.student-dashboard,.parent-dashboard,.accountant-dashboard-page,.accountant-directory-page,.accountant-reports-page,.principal-module-page,.teacher-module-page) {
+  color: var(--ui-ink);
+}
+:is(.feature-page,.principal-dashboard,.teacher-dashboard,.student-dashboard,.parent-dashboard,.accountant-dashboard-page,.accountant-directory-page,.accountant-reports-page) > :is(header,.page-header,.feature-heading,.dashboard-header,.control-room-header) {
+  min-width: 0;
+}
+:is(.feature-page,.principal-module-page,.teacher-module-page) :is(h1,.feature-title-line h1,.page-title) {
+  color: var(--ui-ink);
+  letter-spacing: -.035em;
+}
+:is(.feature-page,.principal-module-page,.teacher-module-page) :is(h2,h3) { letter-spacing: -.02em; }
+:is(.feature-page,.principal-module-page,.teacher-module-page) :is(p,.subtitle,.page-subtitle) {
+  color: var(--ui-muted);
+  line-height: 1.6;
+}
+:is(.feature-panel,.feature-controls-card,.feature-stat-grid article,.principal-module-card,.teacher-module-card,.dashboard-card,.stat-card,.overview-card,.content-card,.panel-card,.accountant-directory-panel,.accountant-report-panel) {
+  border: 1px solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  background: var(--ui-surface);
+  box-shadow: var(--ui-shadow);
+}
+:is(.feature-panel,.feature-controls-card,.content-card,.panel-card) { min-width: 0; }
+:is(.feature-panel,.feature-controls-card,.content-card,.panel-card) :is(header,.panel-header,.card-header) {
+  border-color: var(--ui-line);
+}
+:is(.feature-page,.principal-module-page,.teacher-module-page,.student-app-shell,.parent-dashboard,.accountant-directory-page,.accountant-reports-page) table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+:is(.feature-page,.principal-module-page,.teacher-module-page,.student-app-shell,.parent-dashboard,.accountant-directory-page,.accountant-reports-page) :is(th,td) {
+  border-color: #ededeb;
+}
+:is(.feature-page,.principal-module-page,.teacher-module-page,.student-app-shell,.parent-dashboard,.accountant-directory-page,.accountant-reports-page) th {
+  color: #686868;
+  background: #fafaf9;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+:is(.feature-page,.principal-module-page,.teacher-module-page,.student-app-shell,.parent-dashboard,.accountant-directory-page,.accountant-reports-page) tbody tr:hover {
+  background: #fafaf9;
+}
+:is(.feature-page,.principal-module-page,.teacher-module-page,.student-app-shell,.parent-dashboard,.accountant-directory-page,.accountant-reports-page) :is(input,select,textarea) {
+  min-width: 0;
+  border-color: #dededb;
+  border-radius: 10px;
+  background-color: #fff;
+  color: #171717;
+}
+:is(.feature-page,.principal-module-page,.teacher-module-page,.student-app-shell,.parent-dashboard,.accountant-directory-page,.accountant-reports-page) :is(input,select,textarea):focus {
+  border-color: #8a8a86;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(0,0,0,.055);
+}
+:is(.feature-page,.principal-module-page,.teacher-module-page,.student-app-shell,.parent-dashboard,.accountant-directory-page,.accountant-reports-page) :is(button,.btn,.button) {
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+:is(.feature-page,.principal-module-page,.teacher-module-page,.student-app-shell,.parent-dashboard,.accountant-directory-page,.accountant-reports-page) :is(button,.btn,.button):active {
+  transform: translateY(1px);
+}
+:is(.feature-page,.principal-module-page,.teacher-module-page,.student-app-shell,.parent-dashboard,.accountant-directory-page,.accountant-reports-page) :is(button:disabled,[aria-disabled="true"]) {
+  cursor: not-allowed;
+  opacity: .58;
+}
+:is(.feature-page,.principal-module-page,.teacher-module-page,.student-app-shell,.parent-dashboard,.accountant-directory-page,.accountant-reports-page) :is(.empty-state,.feature-empty,.no-data,.empty-message) {
+  color: var(--ui-muted);
+}
+:is(.feature-page,.principal-module-page,.teacher-module-page,.student-app-shell,.parent-dashboard,.accountant-directory-page,.accountant-reports-page) :is(.error-message,.form-error,[role="alert"]) {
+  line-height: 1.5;
+}
+.sidebar { position: sticky; top: 0; height: 100vh; min-height: 100vh; overflow-y: auto; }
+.sidebar .nav-item { border-radius: 10px; }
+.sidebar .nav-item.active, .sidebar .nav-item[aria-current="page"] { font-weight: 700; }
+.premium-topbar { position: sticky; top: 0; z-index: 30; background: rgba(255,255,255,.94); backdrop-filter: blur(14px); border-bottom: 1px solid var(--ui-line); }
+:is(.student-app-shell,.teacher-app-shell,.app-shell) :is(img) { max-width: 100%; }
+@media (max-width: 900px) {
+  .page-content { padding: 18px; }
+  .sidebar { position: fixed; }
+}
+@media (max-width: 640px) {
+  .page-content { padding: 14px; }
+  :is(.feature-page,.principal-dashboard,.teacher-dashboard,.student-dashboard,.parent-dashboard,.accountant-dashboard-page,.accountant-directory-page,.accountant-reports-page) {
+    gap: 16px;
+  }
+  :is(.feature-page,.principal-module-page,.teacher-module-page,.student-app-shell,.parent-dashboard,.accountant-directory-page,.accountant-reports-page) :is(.table-wrap,.table-container,.feature-table-wrap) {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
