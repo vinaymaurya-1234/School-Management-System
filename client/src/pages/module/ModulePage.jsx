@@ -378,6 +378,75 @@ function ModulePage({ moduleKey }) {
     ...(customSubjects[selectedClassNumber] || []),
   ], [baseSubjects, customSubjects, selectedClassNumber])
 
+  useEffect(() => {
+    if (moduleKey !== 'fees' || !user?.id) return
+    let active = true
+    const loadFees = async () => {
+      setFeeLoading(true)
+      setFeeError('')
+      try {
+        const finance = ['principal', 'accountant'].includes(user.role)
+        const summary = await apiClient.get('/fees/summary')
+        if (!active) return
+        setFeeData(summary.data || { summary: {}, accounts: [], payments: [], available: false })
+        if (finance) {
+          const results = await Promise.allSettled([
+            apiClient.get('/fees/options'),
+            apiClient.get('/fees/structures'),
+            apiClient.get('/fees/students'),
+          ])
+          const feeOptionsResponse = results[0].status === 'fulfilled' ? results[0].value.data : null
+          const structures = results[1].status === 'fulfilled' ? results[1].value.data : []
+          let students = results[2].status === 'fulfilled' ? results[2].value.data : []
+          // Academic Setup is the source of truth for years/classes/sections.
+          // Fetch its endpoints directly on every load so stale/partial fee options cannot hide real records.
+          const academic = await Promise.allSettled([
+            apiClient.get('/academic/years'),
+            apiClient.get('/academic/classes'),
+            apiClient.get('/academic/sections'),
+          ])
+          const academicYears = academic[0].status === 'fulfilled' ? academic[0].value.data?.years : null
+          const academicClasses = academic[1].status === 'fulfilled' ? academic[1].value.data?.classes : null
+          const academicSections = academic[2].status === 'fulfilled' ? academic[2].value.data?.sections : null
+          const options = {
+            academicYears: Array.isArray(academicYears) && academicYears.length ? academicYears : feeOptionsResponse?.academicYears || [],
+            classes: Array.isArray(academicClasses) && academicClasses.length ? academicClasses : feeOptionsResponse?.classes || [],
+            sections: Array.isArray(academicSections) && academicSections.length ? academicSections : feeOptionsResponse?.sections || [],
+          }
+          if (!students.length) {
+            const enrollmentResponse = await apiClient.get('/academic/enrollments').catch(() => null)
+            students = (enrollmentResponse?.data?.enrollments || []).filter((item) => item.status === 'active' && item.student).map((item) => ({
+              studentId: String(item.student._id || item.student.id || item.student),
+              name: item.student.name || '',
+              email: item.student.email || '',
+              classId: item.class?._id || item.class,
+              className: item.class?.name || '—',
+              sectionId: item.section?._id || item.section,
+              sectionName: item.section?.name || '—',
+              academicYearId: item.academicYear?._id || item.academicYear,
+              admissionNumber: '—',
+            }))
+          }
+          if (!active) return
+          setFeeOptions({ academicYears: options?.academicYears || [], classes: options?.classes || [], sections: options?.sections || [] })
+          setFeeStructures(Array.isArray(structures) ? structures : [])
+          setFeeStudents(Array.isArray(students) ? students : [])
+          const activeYear = (options?.academicYears || []).find((item) => item.isActive) || options?.academicYears?.[0]
+          if (activeYear) {
+            setFeeYear((current) => current || activeYear._id)
+            setFeeAssignYear((current) => current || activeYear._id)
+          }
+        }
+      } catch (error) {
+        if (active) setFeeError(error.response?.data?.message || 'Finance data could not be loaded. Check the server connection and try again.')
+      } finally {
+        if (active) setFeeLoading(false)
+      }
+    }
+    loadFees()
+    return () => { active = false }
+  }, [moduleKey, user?.id, user?.role])
+
   if (!module) return <div className="module-empty"><h2>Module not found</h2><p>The requested section is not configured yet.</p></div>
 
   const Icon = module.icon
@@ -482,75 +551,6 @@ function ModulePage({ moduleKey }) {
       </div>
     </section>
   )
-
-  useEffect(() => {
-    if (moduleKey !== 'fees' || !user?.id) return
-    let active = true
-    const loadFees = async () => {
-      setFeeLoading(true)
-      setFeeError('')
-      try {
-        const finance = ['principal', 'accountant'].includes(user.role)
-        const summary = await apiClient.get('/fees/summary')
-        if (!active) return
-        setFeeData(summary.data || { summary: {}, accounts: [], payments: [], available: false })
-        if (finance) {
-          const results = await Promise.allSettled([
-            apiClient.get('/fees/options'),
-            apiClient.get('/fees/structures'),
-            apiClient.get('/fees/students'),
-          ])
-          const feeOptionsResponse = results[0].status === 'fulfilled' ? results[0].value.data : null
-          const structures = results[1].status === 'fulfilled' ? results[1].value.data : []
-          let students = results[2].status === 'fulfilled' ? results[2].value.data : []
-          // Academic Setup is the source of truth for years/classes/sections.
-          // Fetch its endpoints directly on every load so stale/partial fee options cannot hide real records.
-          const academic = await Promise.allSettled([
-            apiClient.get('/academic/years'),
-            apiClient.get('/academic/classes'),
-            apiClient.get('/academic/sections'),
-          ])
-          const academicYears = academic[0].status === 'fulfilled' ? academic[0].value.data?.years : null
-          const academicClasses = academic[1].status === 'fulfilled' ? academic[1].value.data?.classes : null
-          const academicSections = academic[2].status === 'fulfilled' ? academic[2].value.data?.sections : null
-          const options = {
-            academicYears: Array.isArray(academicYears) && academicYears.length ? academicYears : feeOptionsResponse?.academicYears || [],
-            classes: Array.isArray(academicClasses) && academicClasses.length ? academicClasses : feeOptionsResponse?.classes || [],
-            sections: Array.isArray(academicSections) && academicSections.length ? academicSections : feeOptionsResponse?.sections || [],
-          }
-          if (!students.length) {
-            const enrollmentResponse = await apiClient.get('/academic/enrollments').catch(() => null)
-            students = (enrollmentResponse?.data?.enrollments || []).filter((item) => item.status === 'active' && item.student).map((item) => ({
-              studentId: String(item.student._id || item.student.id || item.student),
-              name: item.student.name || '',
-              email: item.student.email || '',
-              classId: item.class?._id || item.class,
-              className: item.class?.name || '—',
-              sectionId: item.section?._id || item.section,
-              sectionName: item.section?.name || '—',
-              academicYearId: item.academicYear?._id || item.academicYear,
-              admissionNumber: '—',
-            }))
-          }
-          if (!active) return
-          setFeeOptions({ academicYears: options?.academicYears || [], classes: options?.classes || [], sections: options?.sections || [] })
-          setFeeStructures(Array.isArray(structures) ? structures : [])
-          setFeeStudents(Array.isArray(students) ? students : [])
-          const activeYear = (options?.academicYears || []).find((item) => item.isActive) || options?.academicYears?.[0]
-          if (activeYear) {
-            setFeeYear((current) => current || activeYear._id)
-            setFeeAssignYear((current) => current || activeYear._id)
-          }
-        }
-      } catch (error) {
-        if (active) setFeeError(error.response?.data?.message || 'Finance data could not be loaded. Check the server connection and try again.')
-      } finally {
-        if (active) setFeeLoading(false)
-      }
-    }
-    loadFees()
-    return () => { active = false }
-  }, [moduleKey, user?.id, user?.role])
 
   const refreshFees = async () => {
     const response = await apiClient.get('/fees/summary')
