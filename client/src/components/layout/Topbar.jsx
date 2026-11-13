@@ -122,7 +122,7 @@ function Topbar() {
         : user?.role === 'accountant'
           ? accountantItems
           : [...academicItems, ...operationsItems, ...exploreItems]
-  const searchMatches = searchableItems.filter((item) => `${item.label} ${item.hint}`.toLowerCase().includes(searchQuery.trim().toLowerCase())).slice(0, 7)
+  const searchMatches = [...new Map(searchableItems.map((item) => [item.href, item])).values()].filter((item) => `${item.label} ${item.hint}`.toLowerCase().includes(searchQuery.trim().toLowerCase())).slice(0, 7)
   const openSearchResult = (href) => { navigate(href); setSearchQuery(''); setSearchOpen(false) }
 
   return (
@@ -172,7 +172,7 @@ function Topbar() {
           </div>}
         </div>
         <div className="premium-actions">
-          <button className="premium-icon-button notification-button" type="button" aria-label="Notifications"><Bell size={18} /><span className="notification-dot" /></button>
+          <button className="premium-icon-button notification-button" type="button" aria-label="Open school updates" onClick={() => navigate(user?.role === 'accountant' ? '/module/messages' : '/module/notices')}><Bell size={18} /></button>
           <div className="profile-menu">
             <button className="profile-trigger" type="button" onClick={() => setProfileOpen(!profileOpen)} aria-expanded={profileOpen}>
               <span className="profile-avatar premium-avatar">{user?.name?.charAt(0) || 'P'}</span>
