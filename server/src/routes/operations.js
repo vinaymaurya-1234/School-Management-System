@@ -2,6 +2,7 @@ import { Router } from "express";
 import SchoolOperation from "../models/SchoolOperation.js";
 import { AcademicYear, Section, StudentEnrollment, TeacherAssignment, SchoolClass } from "../models/Academic.js";
 import { requireAuth } from "../middleware/auth.js";
+import Parent from "../models/Parent.js";
 import { ROLES } from "../config/permissions.js";
 
 const router = Router();
@@ -60,7 +61,28 @@ router.get("/:module", async (req, res, next) => {
       filter.academicYear = enrollment.academicYear;
       filter["data.classId"] = String(enrollment.class);
       filter["data.sectionId"] = String(enrollment.section);
-    } else if (!canManage(req) && ![ROLES.TEACHER, ROLES.STUDENT].includes(req.user.role)) {
+    } else if (module === "assignments" && req.user.role === ROLES.PARENT) {
+      // Parents can only see assignments for children linked to their own parent profile.
+      const [year, parent] = await Promise.all([
+        activeYearFor(req.user.school),
+        Parent.findOne({ user: req.user._id, school: req.user.school }).populate({ path: "children", select: "user" }),
+      ]);
+      if (!year || !parent?.children?.length) return res.json({ records: [], count: 0 });
+      const childUserIds = parent.children.map((child) => child.user?._id || child.user).filter(Boolean);
+      if (!childUserIds.length) return res.json({ records: [], count: 0 });
+      const enrollments = await StudentEnrollment.find({
+        school: req.user.school,
+        academicYear: year._id,
+        student: { $in: childUserIds },
+        status: "active",
+      }).select("class section");
+      if (!enrollments.length) return res.json({ records: [], count: 0 });
+      filter.academicYear = year._id;
+      filter.$or = enrollments.map(({ class: classId, section }) => ({
+        "data.classId": String(classId),
+        "data.sectionId": String(section),
+      }));
+    } else if (!canManage(req) && ![ROLES.TEACHER, ROLES.STUDENT, ROLES.PARENT].includes(req.user.role)) {
       return res.status(403).json({ message: "You cannot view this module" });
     }
 
