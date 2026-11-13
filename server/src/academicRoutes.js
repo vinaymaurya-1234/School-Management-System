@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { AcademicYear, SchoolClass, Section, StudentEnrollment, TeacherAssignment } from "./models/Academic.js";
 import User from "./models/User.js";
+import Parent from "./models/Parent.js";
+import Student from "./models/Student.js";
+import { buildEnrollmentAccessFilter } from "./utils/enrollmentAccess.js";
 import { ClassSubject } from "./models/Subject.js";
 import TimetableEntry from "./models/Timetable.js";
 import AttendanceSession from "./models/Attendance.js";
@@ -230,11 +233,52 @@ router.post("/enrollments", async (req, res, next) => {
 
 router.get("/enrollments", async (req, res, next) => {
   try {
-    const filter = { school: req.user.school };
-    if (req.query.academicYear) filter.academicYear = req.query.academicYear;
-    if (req.query.classId) filter.class = req.query.classId;
-    if (req.query.sectionId) filter.section = req.query.sectionId;
-    const enrollments = await StudentEnrollment.find(filter).populate("student", "name email").populate("class", "name order").populate("section", "name").sort({ createdAt: 1 });
+    const role = req.user.role;
+    let assignedSections = [];
+    let childUserIds = [];
+
+    if (role === ROLES.TEACHER) {
+      const assignmentFilter = {
+        school: req.user.school,
+        teacher: req.user._id,
+        status: "active",
+      };
+      if (req.query.academicYear) assignmentFilter.academicYear = req.query.academicYear;
+      if (req.query.classId) assignmentFilter.class = req.query.classId;
+      if (req.query.sectionId) assignmentFilter.section = req.query.sectionId;
+      const assignments = await TeacherAssignment.find(assignmentFilter).select("academicYear class section").lean();
+      assignedSections = assignments.map(({ academicYear, class: classId, section }) => ({ academicYear, class: classId, section }));
+    } else if (role === ROLES.PARENT) {
+      const parent = await Parent.findOne({ user: req.user._id, school: req.user.school }).select("children").lean();
+      if (parent?.children?.length) {
+        const children = await Student.find({
+          _id: { $in: parent.children },
+          school: req.user.school,
+        }).select("user").lean();
+        childUserIds = children.map((child) => child.user);
+      }
+    } else if (![ROLES.PRINCIPAL, ROLES.STUDENT].includes(role)) {
+      return res.status(403).json({ message: "You do not have permission to view student enrollments" });
+    }
+
+    const filter = buildEnrollmentAccessFilter({
+      role,
+      school: req.user.school,
+      userId: req.user._id,
+      academicYear: req.query.academicYear,
+      classId: req.query.classId,
+      sectionId: req.query.sectionId,
+      assignedSections,
+      childUserIds,
+    });
+
+    if (!filter) return res.json({ enrollments: [] });
+
+    const enrollments = await StudentEnrollment.find(filter)
+      .populate("student", "name email")
+      .populate("class", "name order")
+      .populate("section", "name")
+      .sort({ createdAt: 1 });
     res.json({ enrollments });
   } catch (error) { next(error); }
 });
