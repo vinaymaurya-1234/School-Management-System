@@ -24,6 +24,8 @@ import StudentAssignmentsPage from '../pages/student/StudentAssignmentsPage'
 import StudentProfilePage from '../pages/student/StudentProfilePage'
 import ParentDashboard from '../pages/parent/ParentDashboard'
 import AccountantDashboard from '../pages/accountant/AccountantDashboard'
+import AccountantStudentsPage from '../pages/accountant/AccountantStudentsPage'
+import AccountantReportsPage from '../pages/accountant/AccountantReportsPage'
 import ModulePage from '../pages/module/ModulePage'
 import TimetablePage from '../pages/module/TimetablePage'
 import ExamSchedulePage from '../pages/module/ExamSchedulePage'
@@ -68,6 +70,8 @@ function ModuleRoute() {
   const { user } = useAuth()
   const { moduleKey } = useParams()
   const homeRoute = ROLE_HOME_ROUTES[user?.role] || '/login'
+  if (user?.role === 'accountant' && moduleKey === 'students') return <AccountantStudentsPage />
+  if (user?.role === 'accountant' && moduleKey === 'reports') return <AccountantReportsPage />
   if (user?.role === 'principal' && moduleKey === 'notices') return <TeacherWorkspacePage mode="notice-admin" />
   if (user?.role === 'principal' && moduleKey === 'teacher-attendance-requests') return <TeacherAttendanceRequestsPage />
   if (user?.role === 'principal' && moduleKey === 'admissions') return <PrincipalStudentsPage />
