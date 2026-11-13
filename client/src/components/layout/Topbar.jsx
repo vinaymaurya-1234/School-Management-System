@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bell, ChevronDown, Search, LogOut, UserRound, Settings, GraduationCap, Home, BookOpen, ClipboardCheck, CalendarDays, Menu as MenuIcon, MessageCircle } from 'lucide-react'
+import { Bell, ChevronDown, Search, LogOut, UserRound, Settings, GraduationCap, Home, BookOpen, ClipboardCheck, CalendarDays, Menu as MenuIcon, MessageCircle, X } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import '../../styles/PremiumProfile.css'
@@ -55,6 +55,24 @@ const studentLifeItems = [
   { label: 'Fees & Receipts', href: '/module/fees', hint: 'Your fee account and receipts' },
   { label: 'My Profile', href: '/module/profile', hint: 'Your account details' },
 ]
+const accountantItems = [
+  { label: 'Fees & Payments', href: '/module/fees', hint: 'Fee structures, collections and dues' },
+  { label: 'Payroll', href: '/module/payroll', hint: 'Authorized monthly payroll operations' },
+  { label: 'Financial Reports', href: '/module/reports', hint: 'Fee collection and finance reports' },
+  { label: 'Student Directory', href: '/module/students', hint: 'Basic student details for finance work' },
+]
+const parentItems = [
+  { label: 'My Children', href: '/module/children', hint: 'Linked child profiles' },
+  { label: 'Attendance', href: '/module/attendance', hint: 'Children attendance records' },
+  { label: 'Class Timetable', href: '/module/timetable', hint: 'Published schedules' },
+  { label: 'Exams', href: '/module/exams', hint: 'Upcoming examination schedule' },
+  { label: 'Results', href: '/module/results', hint: 'Published marks and grades' },
+  { label: 'Assignments', href: '/module/assignments', hint: 'Homework and submissions' },
+  { label: 'Notices', href: '/module/notices', hint: 'School announcements' },
+  { label: 'Events & Holidays', href: '/module/events', hint: 'School calendar' },
+  { label: 'Fees & Receipts', href: '/module/fees', hint: 'Child fee account and receipts' },
+  { label: 'My Profile', href: '/module/profile', hint: 'Parent account details' },
+]
 const exploreItems = [
   { label: 'Subjects', href: '/module/subjects', hint: 'Curriculum mapping' },
   { label: 'Admissions', href: '/module/students', hint: 'Add one student or import a class list' },
@@ -82,12 +100,14 @@ function Topbar() {
   const location = useLocation()
   const [openMenu, setOpenMenu] = useState(null)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
   const rootRef = useRef(null)
 
-  useEffect(() => { setOpenMenu(null); setProfileOpen(false) }, [location.pathname])
+  useEffect(() => { setOpenMenu(null); setProfileOpen(false); setSearchOpen(false); setSearchQuery('') }, [location.pathname])
   useEffect(() => {
     const handlePointer = (event) => {
-      if (!rootRef.current?.contains(event.target)) { setOpenMenu(null); setProfileOpen(false) }
+      if (!rootRef.current?.contains(event.target)) { setOpenMenu(null); setProfileOpen(false); setSearchOpen(false) }
     }
     document.addEventListener('pointerdown', handlePointer)
     return () => document.removeEventListener('pointerdown', handlePointer)
@@ -95,6 +115,17 @@ function Topbar() {
 
   const handleLogout = () => { logout(); navigate('/login', { replace: true }) }
   const homeHref = user?.role === 'teacher' ? '/dashboard/teacher' : user?.role === 'student' ? '/dashboard/student' : user?.role === 'parent' ? '/dashboard/parent' : user?.role === 'accountant' ? '/dashboard/accountant' : '/dashboard/principal'
+  const searchableItems = user?.role === 'teacher'
+    ? [...teacherTeachingItems, ...teacherWorkItems, ...teacherCommunicationItems]
+    : user?.role === 'student'
+      ? [...studentLearningItems, ...studentLifeItems]
+      : user?.role === 'parent'
+        ? parentItems
+        : user?.role === 'accountant'
+          ? accountantItems
+          : [...academicItems, ...operationsItems, ...exploreItems]
+  const searchMatches = searchableItems.filter((item) => `${item.label} ${item.hint}`.toLowerCase().includes(searchQuery.trim().toLowerCase())).slice(0, 7)
+  const openSearchResult = (href) => { navigate(href); setSearchQuery(''); setSearchOpen(false) }
 
   return (
     <>
@@ -110,6 +141,12 @@ function Topbar() {
               <Menu label="Teaching" items={teacherTeachingItems} wide open={openMenu === 'teaching'} onToggle={() => setOpenMenu(openMenu === 'teaching' ? null : 'teaching')} onClose={() => setOpenMenu(null)} />
               <Menu label="My Work" items={teacherWorkItems} wide open={openMenu === 'my-work'} onToggle={() => setOpenMenu(openMenu === 'my-work' ? null : 'my-work')} onClose={() => setOpenMenu(null)} />
               <Menu label="Communication" items={teacherCommunicationItems} wide open={openMenu === 'communication'} onToggle={() => setOpenMenu(openMenu === 'communication' ? null : 'communication')} onClose={() => setOpenMenu(null)} />
+            </> : user?.role === 'parent' ? <>
+              <Menu label="My Children" items={parentItems.slice(0, 1)} open={openMenu === 'parent-children'} onToggle={() => setOpenMenu(openMenu === 'parent-children' ? null : 'parent-children')} onClose={() => setOpenMenu(null)} />
+              <Menu label="Academics" items={parentItems.slice(1, 6)} wide open={openMenu === 'parent-academics'} onToggle={() => setOpenMenu(openMenu === 'parent-academics' ? null : 'parent-academics')} onClose={() => setOpenMenu(null)} />
+              <Menu label="School life" items={parentItems.slice(6)} wide open={openMenu === 'parent-life'} onToggle={() => setOpenMenu(openMenu === 'parent-life' ? null : 'parent-life')} onClose={() => setOpenMenu(null)} />
+            </> : user?.role === 'accountant' ? <>
+              <Menu label="Finance" items={accountantItems} wide open={openMenu === 'finance'} onToggle={() => setOpenMenu(openMenu === 'finance' ? null : 'finance')} onClose={() => setOpenMenu(null)} />
             </> : <>
               <Menu label="Academic" items={academicItems} open={openMenu === 'academic'} onToggle={() => setOpenMenu(openMenu === 'academic' ? null : 'academic')} onClose={() => setOpenMenu(null)} />
               <Menu label="Operations" items={operationsItems} wide open={openMenu === 'operations'} onToggle={() => setOpenMenu(openMenu === 'operations' ? null : 'operations')} onClose={() => setOpenMenu(null)} />
@@ -117,7 +154,25 @@ function Topbar() {
             </>}
           </nav>
         </div>
-        <div className="premium-search"><Search size={17} /><input type="search" placeholder={user?.role === 'student' ? 'Search lessons, assignments, notices...' : user?.role === 'teacher' ? 'Search my classes, subjects...' : 'Search by student, teacher, class...'} aria-label="Search" /></div>
+        <div className="premium-search premium-search-functional">
+          <Search size={17} />
+          <input
+            type="search"
+            placeholder={user?.role === 'student' || user?.role === 'parent' ? 'Search school services...' : user?.role === 'teacher' ? 'Search my classes and work...' : user?.role === 'accountant' ? 'Search finance pages...' : 'Search school modules...'}
+            aria-label="Search school pages"
+            value={searchQuery}
+            onFocus={() => setSearchOpen(true)}
+            onChange={(event) => { setSearchQuery(event.target.value); setSearchOpen(true) }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && searchMatches[0]) openSearchResult(searchMatches[0].href)
+              if (event.key === 'Escape') setSearchOpen(false)
+            }}
+          />
+          {searchQuery && <button type="button" className="premium-search-clear" aria-label="Clear search" onClick={() => { setSearchQuery(''); setSearchOpen(false) }}><X size={15} /></button>}
+          {searchOpen && searchQuery.trim() && <div className="premium-search-results">
+            {searchMatches.length ? searchMatches.map((item) => <button type="button" key={item.href} onClick={() => openSearchResult(item.href)}><span><strong>{item.label}</strong><small>{item.hint}</small></span></button>) : <p>No matching pages found.</p>}
+          </div>}
+        </div>
         <div className="premium-actions">
           <button className="premium-icon-button notification-button" type="button" aria-label="Notifications"><Bell size={18} /><span className="notification-dot" /></button>
           <div className="profile-menu">
@@ -144,7 +199,11 @@ function Topbar() {
               ? [{ label: 'Home', href: '/dashboard/student', Icon: Home }, { label: 'Classes', href: '/module/timetable', Icon: BookOpen }, { label: 'Attendance', href: '/module/attendance', Icon: ClipboardCheck }, { label: 'Messages', href: '/module/messages', Icon: MessageCircle }, { label: 'More', href: '/module/assignments', Icon: MenuIcon }]
               : role === 'parent'
                 ? [{ label: 'Home', href: '/dashboard/parent', Icon: Home }, { label: 'Children', href: '/module/children', Icon: BookOpen }, { label: 'Attendance', href: '/module/attendance', Icon: ClipboardCheck }, { label: 'Messages', href: '/module/messages', Icon: MessageCircle }, { label: 'More', href: '/module/results', Icon: MenuIcon }]
-                : [{ label: 'Home', href: role === 'accountant' ? '/dashboard/accountant' : '/dashboard/principal', Icon: Home }, { label: 'Students', href: '/module/students', Icon: BookOpen }, { label: 'Attendance', href: '/module/attendance', Icon: ClipboardCheck }, { label: 'Messages', href: '/module/messages', Icon: MessageCircle }, { label: 'More', href: '/module/reports', Icon: MenuIcon }]
+                : role === 'accountant'
+                  ? [{ label: 'Home', href: '/dashboard/accountant', Icon: Home }, { label: 'Fees', href: '/module/fees', Icon: BookOpen }, { label: 'Payroll', href: '/module/payroll', Icon: ClipboardCheck }, { label: 'Messages', href: '/module/messages', Icon: MessageCircle }, { label: 'Reports', href: '/module/reports', Icon: MenuIcon }]
+                  : role === 'parent'
+                    ? [{ label: 'Home', href: '/dashboard/parent', Icon: Home }, { label: 'Children', href: '/module/children', Icon: BookOpen }, { label: 'Attendance', href: '/module/attendance', Icon: ClipboardCheck }, { label: 'Messages', href: '/module/messages', Icon: MessageCircle }, { label: 'More', href: '/module/results', Icon: MenuIcon }]
+                    : [{ label: 'Home', href: '/dashboard/principal', Icon: Home }, { label: 'Students', href: '/module/students', Icon: BookOpen }, { label: 'Attendance', href: '/module/attendance', Icon: ClipboardCheck }, { label: 'Messages', href: '/module/messages', Icon: MessageCircle }, { label: 'More', href: '/module/reports', Icon: MenuIcon }]
           return items.map(({ label, href, Icon }) => <NavLink key={label} to={href} className={({ isActive }) => `mobile-app-nav-item ${isActive ? 'active' : ''}`}><Icon size={20} strokeWidth={1.9} /><span>{label}</span></NavLink>)
         })()}
       </nav>
