@@ -1,3 +1,27 @@
+
+/* Fee Records: chronological collection register */
+.fee-records-panel .fee-record-filters{display:grid;grid-template-columns:minmax(220px,2fr) repeat(3,minmax(130px,1fr));gap:12px;margin:18px 0 16px}
+.fee-record-filters label{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fee-record-filters label span{font-size:11px;font-weight:700;color:#696969}
+.fee-record-filters input,.fee-record-filters select{width:100%;min-height:41px;padding:0 11px;border:1px solid #dedede;border-radius:10px;background:#fff;color:#171717;font:inherit;font-size:12px}
+.fee-record-filters .fee-record-search{grid-column:span 2}
+.fee-record-table-wrap{width:100%;overflow-x:auto;border:1px solid #e7e7e7;border-radius:12px}
+.fee-record-table{width:100%;min-width:850px;border-collapse:collapse;text-align:left}
+.fee-record-table th{padding:13px 14px;background:#f7f7f7;color:#686868;font-size:10px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.fee-record-table td{padding:14px;border-top:1px solid #ededed;color:#292929;font-size:12px;vertical-align:middle}
+.fee-record-table td strong,.fee-record-table td small{display:block}
+.fee-record-table td small{margin-top:4px;color:#858585;font-size:10px}
+.fee-record-status{display:inline-flex;padding:5px 8px;border-radius:20px;background:#f1f1f1;color:#555;font-size:10px;font-weight:700;text-transform:capitalize;white-space:nowrap}
+.fee-record-status.is-verified{background:#e9f5ed;color:#246b3b}
+.fee-record-status.is-pending{background:#fff4df;color:#8a5b08}
+.fee-record-status.is-rejected{background:#f2eeee;color:#6b4545}
+.fee-record-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;color:#777;font-size:11px}
+.fee-record-pagination>div{display:flex;align-items:center;gap:10px}
+.fee-record-pagination button{padding:8px 11px;border:1px solid #dedede;border-radius:8px;background:#fff;color:#171717;font-size:11px;font-weight:600}
+.fee-record-pagination button:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:900px){.fee-records-panel .fee-record-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.fee-record-filters .fee-record-search{grid-column:span 2}}
+@media(max-width:520px){.fee-records-panel .fee-record-filters{grid-template-columns:1fr}.fee-record-filters .fee-record-search{grid-column:auto}.fee-record-pagination{align-items:flex-start;flex-direction:column}.fee-record-pagination>div{width:100%;justify-content:space-between}}
+
 .module-page {
   max-width: 1480px;
   margin: 0 auto;
