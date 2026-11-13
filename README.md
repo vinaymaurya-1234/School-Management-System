@@ -31,7 +31,7 @@ npm ci
 cp .env.example .env
 ~~~
 
-Set at least MONGODB_URI, JWT_SECRET (use a long, random secret) and CLIENT_URL (normally http://localhost:5173).
+Set MONGODB_URI, JWT_SECRET (use a long, random secret), BOOTSTRAP_KEY (a one-time random setup secret) and CLIENT_URL (normally http://localhost:5173).
 
 Optional Razorpay credentials are only required when enabling online fee checkout.
 
@@ -57,7 +57,7 @@ The frontend defaults to the local API URL. To use another API host, create clie
 
 ### 3. Create and use accounts
 
-Use the school's authorized principal/bootstrap setup to create real accounts. There are no shared demo credentials in this repository. Student and parent access is linked to school records and enrollment relationships.
+For a new empty database, use the protected POST /api/auth/bootstrap endpoint with BOOTSTRAP_KEY to create the first school and principal account. Keep that key private and remove or rotate it after initial setup. Create subsequent accounts through the principal's authorized workflows. There are no shared demo credentials in this repository. Student and parent access is linked to school records and enrollment relationships.
 
 ## Quality checks
 
