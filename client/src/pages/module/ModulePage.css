@@ -385,3 +385,9 @@
 .my-students-empty p{max-width:450px;margin:0;font-size:13px;line-height:1.55}
 @media(max-width:980px){.my-students-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.my-students-filters{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.my-students-search{grid-column:1/-1}}
 @media(max-width:600px){.my-students-workspace{gap:12px}.my-students-metrics{gap:9px}.my-students-metrics article{min-height:82px;gap:10px;padding:13px}.my-students-metric-icon{flex-basis:38px;width:38px;height:38px;border-radius:11px}.my-students-metric-icon svg{width:17px;height:17px}.my-students-metrics strong{font-size:24px}.my-students-metrics article>div>span{font-size:11px}.my-students-filters{grid-template-columns:1fr;padding:10px}.my-students-search{grid-column:auto;height:48px}.my-students-filters select{height:48px}.my-students-register-head{padding:19px 17px 15px}.my-students-register-head h2{font-size:21px}.my-students-register-head p{font-size:12px}.my-students-tabs{padding:11px 14px}.my-students-table th,.my-students-table td{padding-right:16px;padding-left:16px}.my-students-register-foot{padding:14px 16px}}
+
+
+.fee-record-class{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:70px}
+.fee-record-class strong{font-size:12px;font-weight:700;color:#202020;line-height:1.25}
+.fee-record-class span{display:inline-flex;align-items:center;padding:3px 7px;border:1px solid #e6e6e6;border-radius:6px;background:#f7f7f7;color:#666;font-size:10px;font-weight:600;line-height:1.2}
+.fee-record-table th:nth-child(3),.fee-record-table td:nth-child(3){min-width:105px}
