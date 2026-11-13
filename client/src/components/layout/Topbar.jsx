@@ -172,7 +172,7 @@ function Topbar() {
           </div>}
         </div>
         <div className="premium-actions">
-          <button className="premium-icon-button notification-button" type="button" aria-label="Open school updates" onClick={() => navigate(user?.role === 'accountant' ? '/module/messages' : '/module/notices')}><Bell size={18} /></button>
+          <button className="premium-icon-button notification-button" type="button" aria-label={user?.role === 'accountant' ? 'Open financial reports' : 'Open school updates'} onClick={() => navigate(user?.role === 'accountant' ? '/module/reports' : '/module/notices')}><Bell size={18} /></button>
           <div className="profile-menu">
             <button className="profile-trigger" type="button" onClick={() => setProfileOpen(!profileOpen)} aria-expanded={profileOpen}>
               <span className="profile-avatar premium-avatar">{user?.name?.charAt(0) || 'P'}</span>
