@@ -30,7 +30,7 @@ function TeacherDashboard() {
   const [timetable, setTimetable] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const firstName = user?.name?.trim()?.split(/\\s+/)[0] || 'Teacher'
+  const firstName = user?.name?.trim()?.split(/\s+/)[0] || 'Teacher'
 
   useEffect(() => {
     let mounted = true
