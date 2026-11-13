@@ -742,14 +742,13 @@ function ModulePage({ moduleKey }) {
           <label><span>To date</span><input type="date" value={feeRecordTo} onChange={(event) => { setFeeRecordTo(event.target.value); setFeeRecordPage(1) }} /></label>
         </div>
         {feeRecordLoading ? <p className="fee-loading-note">Loading payment records…</p> : feeRecordRows.length ? <>
-          <div className="fee-record-table-wrap"><table className="fee-record-table"><thead><tr><th>Payment date</th><th>Student</th><th>Class</th><th>Amount</th><th>Method</th><th>Receipt / reference</th><th>Status</th></tr></thead>
+          <div className="fee-record-table-wrap"><table className="fee-record-table"><thead><tr><th>Payment date</th><th>Student</th><th>Class</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead>
             <tbody>{feeRecordRows.map((payment) => <tr key={payment._id}>
               <td><strong>{date(payment.paymentDate)}</strong><small>{payment.paymentDate ? new Date(payment.paymentDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—'}</small></td>
               <td><strong>{payment.student?.name || 'Student record'}</strong><small>{payment.admissionNumber ? `Admission ${payment.admissionNumber}` : '—'}</small></td>
-              <td>{payment.account?.class?.name || '—'}{payment.account?.section?.name ? ` · ${payment.account.section.name}` : ''}</td>
+              <td><div className="fee-record-class"><strong>{payment.account?.class?.name || '—'}</strong>{payment.account?.section?.name && <span>Section {payment.account.section.name}</span>}</div></td>
               <td><strong>{money(payment.amount)}</strong></td>
               <td>{payment.method === 'online' ? 'Online' : String(payment.offlineMethod || '—').replaceAll('_', ' ')}</td>
-              <td><strong>{payment.receiptNumber || '—'}</strong><small>{payment.reference || payment.gatewayPaymentId || '—'}</small></td>
               <td><span className={`fee-record-status ${payment.status === 'verified' ? 'is-verified' : payment.status === 'rejected' || payment.status === 'reversed' ? 'is-rejected' : 'is-pending'}`}>{String(payment.status || '').replaceAll('_', ' ')}</span></td>
             </tr>)}</tbody></table></div>
           <div className="fee-record-pagination"><span>Showing {(feeRecordPage - 1) * 25 + 1}–{Math.min(feeRecordPage * 25, feeRecordPagination.total)} of {feeRecordPagination.total}</span><div><button type="button" disabled={feeRecordPage <= 1} onClick={() => setFeeRecordPage((page) => Math.max(1, page - 1))}>Previous</button><strong>Page {feeRecordPage} of {Math.max(1, feeRecordPagination.totalPages)}</strong><button type="button" disabled={feeRecordPage >= feeRecordPagination.totalPages} onClick={() => setFeeRecordPage((page) => page + 1)}>Next</button></div></div>
