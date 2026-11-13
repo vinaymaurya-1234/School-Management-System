@@ -48,7 +48,8 @@ function ParentDashboard() {
           nextChildren.map(async (child) => {
             try {
               const summaryRes = await apiClient.get('/attendance/summary', {
-                params: { studentId: child.user?._id || child.user },
+                // Attendance summary expects the linked Student profile ID, not the User account ID.
+                params: { studentId: child._id },
               })
               summaries[child._id] = summaryRes.data
             } catch {
