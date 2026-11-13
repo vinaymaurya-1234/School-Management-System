@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Bell, ChevronDown, Search, LogOut, UserRound, Settings, GraduationCap, Home, BookOpen, ClipboardCheck, CalendarDays, Menu as MenuIcon, MessageCircle, X } from 'lucide-react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import '../../styles/PremiumProfile.css'
 
@@ -97,14 +97,12 @@ function Menu({ label, items, open, onToggle, onClose, wide = false }) {
 function Topbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   const [openMenu, setOpenMenu] = useState(null)
   const [profileOpen, setProfileOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const rootRef = useRef(null)
 
-  useEffect(() => { setOpenMenu(null); setProfileOpen(false); setSearchOpen(false); setSearchQuery('') }, [location.pathname])
   useEffect(() => {
     const handlePointer = (event) => {
       if (!rootRef.current?.contains(event.target)) { setOpenMenu(null); setProfileOpen(false); setSearchOpen(false) }
@@ -132,8 +130,8 @@ function Topbar() {
       <header className="premium-topbar" ref={rootRef}>
         <div className="premium-nav-scroll">
           <nav className="premium-nav" aria-label="Primary navigation">
-            <NavLink to={homeHref} className={({ isActive }) => `nav-pill ${isActive ? 'active' : ''}`}>Home</NavLink>
-            <NavLink to="/module/messages" className={({ isActive }) => `nav-pill ${isActive ? 'active' : ''}`}><MessageCircle size={15} /> Messages</NavLink>
+            <NavLink to={homeHref} className={({ isActive }) => `nav-pill ${isActive ? 'active' : ''}`} onClick={() => setOpenMenu(null)}>Home</NavLink>
+            <NavLink to="/module/messages" className={({ isActive }) => `nav-pill ${isActive ? 'active' : ''}`} onClick={() => setOpenMenu(null)}><MessageCircle size={15} /> Messages</NavLink>
             {user?.role === 'student' ? <>
               <Menu label="Learning" items={studentLearningItems} wide open={openMenu === 'student-learning'} onToggle={() => setOpenMenu(openMenu === 'student-learning' ? null : 'student-learning')} onClose={() => setOpenMenu(null)} />
               <Menu label="School life" items={studentLifeItems} wide open={openMenu === 'student-life'} onToggle={() => setOpenMenu(openMenu === 'student-life' ? null : 'student-life')} onClose={() => setOpenMenu(null)} />
