@@ -406,8 +406,8 @@ router.get("/payments/records", financeOnly, async (req, res, next) => {
       filter.account = { $in: accountIds };
     }
     if (req.query.from || req.query.to) {
-      const from = req.query.from ? new Date(req.query.from + "T00:00:00.000Z") : null;
-      const to = req.query.to ? new Date(req.query.to + "T23:59:59.999Z") : null;
+      const from = req.query.from ? new Date(req.query.from + "T00:00:00.000+05:30") : null;
+      const to = req.query.to ? new Date(req.query.to + "T23:59:59.999+05:30") : null;
       if ((from && Number.isNaN(from.getTime())) || (to && Number.isNaN(to.getTime()))) return res.status(400).json({ message: "Enter a valid date range." });
       const range = {};
       if (from) range.$gte = from;
@@ -419,7 +419,7 @@ router.get("/payments/records", financeOnly, async (req, res, next) => {
 
     const search = String(req.query.q || "").trim();
     if (search) {
-      const safe = search.replace(/[.*+?^${}()|[\]\\]/g, "\\router.get("/payments/:paymentId/receipt", async (req, res, next) => {");
+      const safe = search.replace(/[^a-zA-Z0-9 _-]/g, "");
       const regex = new RegExp(safe, "i");
       const [users, profiles] = await Promise.all([
         User.find({ school: req.user.school, role: "student", name: regex }).select("_id").limit(100).lean(),
