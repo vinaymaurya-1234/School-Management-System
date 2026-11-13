@@ -46,7 +46,7 @@ function normalizeUser(backendUser) {
 }
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(getStoredUser)
+  const [user, setUser] = useState(() => getStoredToken() ? getStoredUser() : null)
   const [isInitializing, setIsInitializing] = useState(() => Boolean(getStoredToken()))
 
   useEffect(() => {
@@ -63,8 +63,6 @@ export function AuthProvider({ children }) {
     window.addEventListener('school-auth-expired', expireSession)
 
     if (!getStoredToken()) {
-      setUser(null)
-      setIsInitializing(false)
       return () => {
         active = false
         window.removeEventListener('school-auth-expired', expireSession)
