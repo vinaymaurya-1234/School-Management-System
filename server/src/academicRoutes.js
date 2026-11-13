@@ -85,7 +85,7 @@ router.get("/classes", async (req, res, next) => {
         ...(req.query.academicYear ? { academicYear: req.query.academicYear } : {}),
       }).select("class");
       filter._id = { $in: [...new Set(assignments.map((item) => String(item.class)))] };
-    } else if (req.user.role !== ROLES.PRINCIPAL) {
+    } else if (![ROLES.PRINCIPAL, ROLES.ACCOUNTANT].includes(req.user.role)) {
       return res.status(403).json({ message: "You cannot view the school class directory" });
     }
     const classes = await SchoolClass.find(filter).sort({ order: 1 });
@@ -123,7 +123,7 @@ router.get("/sections", async (req, res, next) => {
         ...(req.query.classId ? { class: req.query.classId } : {}),
       }).select("section");
       filter._id = { $in: [...new Set(assignments.map((item) => String(item.section)))] };
-    } else if (req.user.role !== ROLES.PRINCIPAL) {
+    } else if (![ROLES.PRINCIPAL, ROLES.ACCOUNTANT].includes(req.user.role)) {
       return res.status(403).json({ message: "You cannot view the school section directory" });
     }
     const sections = await Section.find(filter).populate("class", "name order").populate("classTeacher", "name email").sort({ name: 1 });
