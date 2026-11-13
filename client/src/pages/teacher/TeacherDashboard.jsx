@@ -119,7 +119,7 @@ function TeacherDashboard() {
             <span><strong>Mark class attendance</strong><small>Record today's student attendance</small></span>
             <ArrowRight size={17} />
           </Link>
-          <Link className="teacher-quick-action" to="/module/exams">
+          <Link className="teacher-quick-action" to="/module/enter-marks">
             <span className="teacher-quick-action-icon"><FileText size={19} /></span>
             <span><strong>Enter exam marks</strong><small>Save marks for your assigned subjects</small></span>
             <ArrowRight size={17} />
