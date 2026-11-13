@@ -7,10 +7,10 @@ function StatCard({ label, value, change, trend = 'up', icon: Icon }) {
         <div className="stat-icon">
           <Icon size={19} />
         </div>
-        <span className={`trend ${trend}`}>
+        {change !== undefined && change !== null && change !== '' && <span className={`trend ${trend}`}>
           {trend === 'up' ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
           {change}
-        </span>
+        </span>}
       </div>
       <div className="stat-label">{label}</div>
       <div className="stat-value">{value}</div>
