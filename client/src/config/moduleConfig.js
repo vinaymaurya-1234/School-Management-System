@@ -48,7 +48,7 @@ export const MODULES = {
   },
   classes: {
     title: 'Classes & Sections', eyebrow: 'ACADEMICS', description: 'Organise grades, sections, class teachers and student strength.', icon: School,
-    permissionByRole: { principal: 'classes.manage', teacher: 'classes.view.assigned' },
+    permissionByRole: { principal: 'classes.manage' },
     stats: [],
     columns: ['Class', 'Class teacher', 'Students', 'Room', 'Status'],
     rows: [],
