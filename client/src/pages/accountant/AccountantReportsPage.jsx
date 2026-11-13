@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Download, IndianRupee, RefreshCw, Wallet } from 'lucide-react'
+import { Download, IndianRupee, RefreshCw, Wallet, CreditCard, AlertCircle } from 'lucide-react'
 import apiClient from '../../api/client'
 
 const money = (value) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(value) || 0)
@@ -77,10 +77,10 @@ export default function AccountantReportsPage() {
       </header>
       {error && <div className="dashboard-notice" role="alert">{error}</div>}
       <section className="stats-grid">
-        <article className="stat-card"><span>Fees assigned</span><strong>{loading ? '—' : money(summary?.feesAssigned)}</strong><small>Current active fee accounts</small></article>
-        <article className="stat-card"><span>Collected</span><strong>{loading ? '—' : money(summary?.collected)}</strong><small>Verified payments</small></article>
-        <article className="stat-card"><span>Outstanding</span><strong>{loading ? '—' : money(summary?.outstanding)}</strong><small>Remaining account balance</small></article>
-        <article className="stat-card"><span>Overdue accounts</span><strong>{loading ? '—' : String(summary?.overdueAccounts ?? 0)}</strong><small>Accounts with overdue instalments</small></article>
+        <article className="stat-card"><div className="stat-card-top"><div className="stat-icon"><Wallet size={19} /></div></div><div className="stat-label">Fees assigned</div><div className="stat-value">{loading ? '—' : money(summary?.feesAssigned)}</div></article>
+        <article className="stat-card"><div className="stat-card-top"><div className="stat-icon"><IndianRupee size={19} /></div></div><div className="stat-label">Collected</div><div className="stat-value">{loading ? '—' : money(summary?.collected)}</div></article>
+        <article className="stat-card"><div className="stat-card-top"><div className="stat-icon"><CreditCard size={19} /></div></div><div className="stat-label">Outstanding</div><div className="stat-value">{loading ? '—' : money(summary?.outstanding)}</div></article>
+        <article className="stat-card"><div className="stat-card-top"><div className="stat-icon"><AlertCircle size={19} /></div></div><div className="stat-label">Overdue accounts</div><div className="stat-value">{loading ? '—' : String(summary?.overdueAccounts ?? 0)}</div></article>
       </section>
       <section className="accountant-report-panel">
         <header><div><span className="eyebrow">PAYMENT REGISTER</span><h2>Latest recorded payments</h2><p>{verifiedPayments.length} verified payments in the latest returned records</p></div><span className="accountant-report-total"><IndianRupee size={16} />{loading ? '—' : money(verifiedPayments.reduce((total, item) => total + Number(item.amount || 0), 0))}</span></header>
