@@ -235,6 +235,7 @@ function ModulePage({ moduleKey }) {
   useEffect(() => {
     if (moduleKey !== 'fees' || !['principal', 'accountant'].includes(user?.role) || feeTab !== 'Fee Records') return
     let active = true
+    setFeeError('')
     setFeeRecordLoading(true)
     apiClient.get('/fees/payments/records', { params: {
       page: feeRecordPage, limit: 25, q: feeRecordSearch.trim(), status: feeRecordStatus,
