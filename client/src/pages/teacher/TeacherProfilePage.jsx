@@ -40,7 +40,7 @@ export default function TeacherProfilePage() {
       setAccount((current) => ({ ...current, email: savedUser?.email || '' }))
     } catch (err) {
       setError(err.response?.data?.message || 'Could not load your teacher profile. Check that the school has created your staff profile.')
-      try { const { data } = await apiClient.get('/auth/me'); setSchool(data.school || null); setAccount((current) => ({ ...current, email: data.user?.email || '' })) } catch {}
+      try { const { data } = await apiClient.get('/auth/me'); setSchool(data.school || null); setAccount((current) => ({ ...current, email: data.user?.email || '' })) } catch (accountError) { console.warn('Could not refresh teacher account details.', accountError) }
     } finally { setLoading(false) }
   }
   useEffect(() => { load() }, [])
