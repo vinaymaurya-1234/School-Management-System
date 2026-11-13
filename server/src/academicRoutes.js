@@ -77,6 +77,17 @@ router.get("/classes", async (req, res, next) => {
   try {
     const filter = { school: req.user.school };
     if (req.query.academicYear) filter.academicYear = req.query.academicYear;
+    if (req.user.role === ROLES.TEACHER) {
+      const assignments = await TeacherAssignment.find({
+        school: req.user.school,
+        teacher: req.user._id,
+        status: "active",
+        ...(req.query.academicYear ? { academicYear: req.query.academicYear } : {}),
+      }).select("class");
+      filter._id = { $in: [...new Set(assignments.map((item) => String(item.class)))] };
+    } else if (req.user.role !== ROLES.PRINCIPAL) {
+      return res.status(403).json({ message: "You cannot view the school class directory" });
+    }
     const classes = await SchoolClass.find(filter).sort({ order: 1 });
     res.json({ classes });
   } catch (error) { next(error); }
@@ -103,6 +114,18 @@ router.get("/sections", async (req, res, next) => {
     const filter = { school: req.user.school };
     if (req.query.classId) filter.class = req.query.classId;
     if (req.query.academicYear) filter.academicYear = req.query.academicYear;
+    if (req.user.role === ROLES.TEACHER) {
+      const assignments = await TeacherAssignment.find({
+        school: req.user.school,
+        teacher: req.user._id,
+        status: "active",
+        ...(req.query.academicYear ? { academicYear: req.query.academicYear } : {}),
+        ...(req.query.classId ? { class: req.query.classId } : {}),
+      }).select("section");
+      filter._id = { $in: [...new Set(assignments.map((item) => String(item.section)))] };
+    } else if (req.user.role !== ROLES.PRINCIPAL) {
+      return res.status(403).json({ message: "You cannot view the school section directory" });
+    }
     const sections = await Section.find(filter).populate("class", "name order").populate("classTeacher", "name email").sort({ name: 1 });
     res.json({ sections });
   } catch (error) { next(error); }
@@ -363,6 +386,9 @@ router.post("/class-teacher", async (req, res, next) => {
 
 router.get("/teacher-assignments", async (req, res, next) => {
   try {
+    if (![ROLES.PRINCIPAL, ROLES.TEACHER].includes(req.user.role)) {
+      return res.status(403).json({ message: "You cannot view teacher assignment records" });
+    }
     const filter = { school: req.user.school, status: "active" };
     if (req.query.academicYear) filter.academicYear = req.query.academicYear;
     if (req.user.role === ROLES.TEACHER) filter.teacher = req.user._id;
