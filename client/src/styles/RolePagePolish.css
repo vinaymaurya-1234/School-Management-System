@@ -108,3 +108,83 @@ body { color: var(--ui-ink); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+
+/* Unified SchoolOS visual system: consistent spacing, neutral palette and readable role dashboards. */
+:root {
+  --ui-ink: #171717;
+  --ui-muted: #737373;
+  --ui-line: #e8e8e6;
+  --ui-canvas: #f7f7f5;
+  --ui-surface: #ffffff;
+  --ui-accent: #171717;
+  --ui-radius: 18px;
+}
+html, body { background: var(--ui-canvas) !important; }
+.premium-app-shell { background: var(--ui-canvas) !important; }
+.premium-page-content {
+  width: min(1600px, calc(100% - 64px));
+  padding: 34px 0 64px;
+}
+.premium-topbar { min-height: 82px; padding: 14px clamp(18px, 2.6vw, 42px); gap: clamp(12px, 2vw, 30px); }
+:is(.principal-dashboard,.teacher-dashboard,.student-dashboard,.student-dashboard-v2,.parent-dashboard,.accountant-dashboard-page) {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
+  padding: 8px 0 42px;
+  color: var(--ui-ink);
+}
+:is(.principal-dashboard,.teacher-dashboard,.student-dashboard,.student-dashboard-v2,.parent-dashboard,.accountant-dashboard-page) :is(h1,h2,h3,strong) { color: #171717; }
+:is(.principal-dashboard,.teacher-dashboard,.student-dashboard,.student-dashboard-v2,.parent-dashboard,.accountant-dashboard-page) :is(p,small) { line-height: 1.55; }
+:is(.principal-dashboard,.teacher-dashboard,.student-dashboard,.student-dashboard-v2,.parent-dashboard,.accountant-dashboard-page) :is(article,.dashboard-section,.teacher-dashboard-panel,.student-v2-panel,.parent-panel,.parent-stat-card,.student-v2-stat,.teacher-stat-card) {
+  border-color: var(--ui-line);
+  border-radius: var(--ui-radius);
+  box-shadow: 0 6px 22px rgba(0,0,0,.035);
+}
+:is(.principal-dashboard,.teacher-dashboard,.student-dashboard,.student-dashboard-v2,.parent-dashboard) :is(.section-heading,.teacher-panel-title-row,.student-v2-section-heading,.parent-panel-header) { gap: 18px; }
+:is(.principal-dashboard,.teacher-dashboard,.student-dashboard,.student-dashboard-v2,.parent-dashboard) :is(.section-heading h2,.teacher-panel-title-row h2,.student-v2-section-heading h2,.parent-panel-header h2) {
+  font-size: clamp(17px, 1.4vw, 21px);
+  letter-spacing: -.025em;
+}
+:is(.principal-dashboard,.teacher-dashboard,.student-dashboard,.student-dashboard-v2,.parent-dashboard) :is(.dashboard-section,.teacher-dashboard-panel,.student-v2-panel,.parent-panel) { margin-top: 16px; }
+:is(.principal-dashboard,.teacher-dashboard,.student-dashboard,.student-dashboard-v2,.parent-dashboard) :is(a,button) { -webkit-tap-highlight-color: transparent; }
+:is(.principal-dashboard,.teacher-dashboard,.student-dashboard,.student-dashboard-v2,.parent-dashboard) :is(a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible) {
+  outline: 3px solid rgba(23,23,23,.18);
+  outline-offset: 2px;
+}
+/* Remove role-specific saturated accent colors so all portals feel like one product. */
+.student-dashboard,.student-dashboard-v2 { --student-accent: #171717 !important; }
+.parent-dashboard { --parent-accent: #171717 !important; }
+.teacher-dashboard { --teacher-accent: #171717 !important; }
+:is(.student-dashboard,.student-dashboard-v2,.parent-dashboard,.teacher-dashboard) :is(.student-avatar,.student-v2-avatar,.parent-child-avatar,.teacher-class-badge,.teacher-attendance-icon,.student-v2-service-icon,.student-v2-stat-icon,.parent-stat-icon,.parent-action-icon,.action-icon,.student-v2-mini-icon) {
+  color: #303030 !important;
+  background: #f1f1ef !important;
+}
+:is(.student-dashboard,.student-dashboard-v2,.parent-dashboard,.teacher-dashboard) :is(.student-alert,.parent-alert,.teacher-dashboard-alert) {
+  border-color: #e2e2df !important;
+  background: #f6f6f4 !important;
+  color: #333 !important;
+}
+:is(.student-dashboard,.student-dashboard-v2,.parent-dashboard,.teacher-dashboard) :is(.student-progress span,.attendance-fill) { background: #555 !important; }
+.principal-dashboard .status-block.red .status-icon { background: #f1f1ef; color: #555; }
+.principal-dashboard .status-block.green .status-icon,
+.principal-dashboard .status-block.amber .status-icon { background: #f1f1ef; color: #444; }
+.principal-dashboard .teacher-strip-section,
+.principal-dashboard .teacher-request-queue-section,
+.principal-dashboard .calendar-section { margin-top: 16px; }
+.principal-dashboard .teacher-request-queue-section { overflow: hidden; }
+:is(.feature-page,.principal-module-page,.teacher-module-page,.accountant-directory-page,.accountant-reports-page) {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
+}
+:is(.feature-page,.principal-module-page,.teacher-module-page) :is(.feature-panel,.feature-controls-card,.feature-stat-grid article) { margin-block: 0; }
+@media (max-width: 900px) {
+  .premium-page-content { width: calc(100% - 36px); padding-top: 24px; }
+  .premium-topbar { grid-template-columns: 1fr auto; }
+}
+@media (max-width: 640px) {
+  .premium-page-content { width: calc(100% - 24px); padding-top: 18px; }
+  .premium-topbar { min-height: 68px; }
+  :is(.principal-dashboard,.teacher-dashboard,.student-dashboard,.student-dashboard-v2,.parent-dashboard) { padding-top: 4px; }
+}
