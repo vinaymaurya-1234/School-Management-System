@@ -1,0 +1,58 @@
+name: School ERP CI
+
+on:
+  push:
+    branches:
+      - feature/school-system-foundation
+  pull_request:
+    branches:
+      - main
+      - feature/school-system-foundation
+
+permissions:
+  contents: read
+
+jobs:
+  client:
+    name: Client lint and production build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - name: Install client dependencies
+        run: npm ci
+      - name: Lint client
+        run: npm run lint
+      - name: Build client
+        run: npm run build
+
+  server:
+    name: Server syntax and tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install server dependencies
+        run: npm ci
+      - name: Check server JavaScript syntax
+        run: find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Run backend tests
+        run: npm test
