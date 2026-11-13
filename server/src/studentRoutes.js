@@ -5,11 +5,43 @@ import Parent from "./models/Parent.js";
 import User from "./models/User.js";
 import { requireAuth } from "./middleware/auth.js";
 import { ROLES } from "./config/permissions.js";
-import { AcademicYear, StudentEnrollment, SchoolClass, Section } from "./models/Academic.js";
+import { AcademicYear, StudentEnrollment, SchoolClass, Section, TeacherAssignment } from "./models/Academic.js";
 import School from "./models/School.js";
 
 const router = Router();
 function canManageStudents(role) { return [ROLES.PRINCIPAL, ROLES.ADMIN, ROLES.ACCOUNTANT].includes(role); }
+function serializeStudentSummary(student) {
+  const user = student.user && typeof student.user === "object" ? student.user : null;
+  return {
+    id: student._id,
+    userId: user?._id || student.user,
+    admissionNumber: student.admissionNumber,
+    name: student.name,
+    active: student.active,
+    accountActive: user?.active,
+  };
+}
+
+async function getTeacherAssignedStudentIds(user, query = {}) {
+  const assignmentFilter = { school: user.school, teacher: user._id, status: "active" };
+  if (query.academicYear) assignmentFilter.academicYear = query.academicYear;
+  if (query.classId) assignmentFilter.class = query.classId;
+  if (query.sectionId) assignmentFilter.section = query.sectionId;
+  const assignments = await TeacherAssignment.find(assignmentFilter).select("academicYear class section").lean();
+  if (!assignments.length) return [];
+  const enrollments = await StudentEnrollment.find({
+    school: user.school,
+    status: "active",
+    $or: assignments.map(({ academicYear, class: classId, section }) => ({ academicYear, class: classId, section })),
+  }).select("student").lean();
+  return [...new Set(enrollments.map((item) => String(item.student)))];
+}
+
+async function teacherCanViewStudent(user, studentUserId) {
+  const assignedStudentIds = await getTeacherAssignedStudentIds(user);
+  return assignedStudentIds.includes(String(studentUserId));
+}
+
 function serializeStudent(student) {
   const user = student.user && typeof student.user === "object" ? student.user : null;
   return {
@@ -294,8 +326,24 @@ router.post("/credentials/:userId/reset", async (req, res, next) => {
 
 router.get("/", async (req, res, next) => {
   try {
-    const students = await Student.find({ school: req.user.school }).populate("user", "name email role active loginId mustChangePassword").sort({ name: 1 });
-    res.json({ students: students.map(serializeStudent) });
+    const role = req.user.role;
+    if (![ROLES.PRINCIPAL, ROLES.ACCOUNTANT, ROLES.TEACHER].includes(role)) {
+      return res.status(403).json({ message: "You do not have permission to view the student directory" });
+    }
+
+    let studentFilter = { school: req.user.school };
+    if (role === ROLES.TEACHER) {
+      const assignedStudentIds = await getTeacherAssignedStudentIds(req.user, req.query);
+      studentFilter.user = { $in: assignedStudentIds };
+    }
+
+    const students = await Student.find(studentFilter)
+      .populate("user", "name email role active loginId mustChangePassword")
+      .sort({ name: 1 });
+
+    res.json({
+      students: students.map(role === ROLES.PRINCIPAL ? serializeStudent : serializeStudentSummary),
+    });
   } catch (error) { next(error); }
 });
 
@@ -335,9 +383,22 @@ router.put("/me/profile", async (req, res, next) => {
 
 router.get("/:id", async (req, res, next) => {
   try {
-    const student = await Student.findOne({ _id: req.params.id, school: req.user.school }).populate("user", "name email role active loginId mustChangePassword");
+    const role = req.user.role;
+    if (![ROLES.PRINCIPAL, ROLES.ACCOUNTANT, ROLES.TEACHER].includes(role)) {
+      return res.status(403).json({ message: "You do not have permission to view this student" });
+    }
+
+    const student = await Student.findOne({ _id: req.params.id, school: req.user.school })
+      .populate("user", "name email role active loginId mustChangePassword");
     if (!student) return res.status(404).json({ message: "Student not found" });
-    res.json({ student: serializeStudent(student) });
+
+    if (role === ROLES.TEACHER && !await teacherCanViewStudent(req.user, student.user?._id || student.user)) {
+      return res.status(403).json({ message: "This student is not in your assigned classes" });
+    }
+
+    res.json({
+      student: role === ROLES.PRINCIPAL ? serializeStudent(student) : serializeStudentSummary(student),
+    });
   } catch (error) { next(error); }
 });
 router.put("/:id", async (req, res, next) => {
