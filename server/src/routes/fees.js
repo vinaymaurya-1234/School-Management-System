@@ -385,6 +385,81 @@ router.post("/payments/online/verify", async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+router.get("/payments/records", financeOnly, async (req, res, next) => {
+  try {
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 25));
+    const filter = { school: req.user.school };
+    const status = String(req.query.status || "verified");
+    const allowedStatuses = ["pending_verification", "pending_gateway", "verified", "rejected", "reversed"];
+    if (status !== "all") {
+      if (!allowedStatuses.includes(status)) return res.status(400).json({ message: "Choose a valid payment status." });
+      filter.status = status;
+    }
+    const method = String(req.query.method || "all");
+    if (method === "online") filter.method = "online";
+    else if (["cash", "upi", "bank_transfer", "cheque"].includes(method)) { filter.method = "offline"; filter.offlineMethod = method; }
+    else if (method !== "all") return res.status(400).json({ message: "Choose a valid payment method." });
+
+    if (req.query.classId && idIsValid(req.query.classId)) {
+      const accountIds = await FeeAccount.find({ school: req.user.school, class: req.query.classId }).distinct("_id");
+      filter.account = { $in: accountIds };
+    }
+    if (req.query.from || req.query.to) {
+      const from = req.query.from ? new Date(req.query.from + "T00:00:00.000Z") : null;
+      const to = req.query.to ? new Date(req.query.to + "T23:59:59.999Z") : null;
+      if ((from && Number.isNaN(from.getTime())) || (to && Number.isNaN(to.getTime()))) return res.status(400).json({ message: "Enter a valid date range." });
+      const range = {};
+      if (from) range.$gte = from;
+      if (to) range.$lte = to;
+      if (status === "verified") filter.verifiedAt = range;
+      else if (status === "all") filter.$or = [{ verifiedAt: range }, { createdAt: range }];
+      else filter.createdAt = range;
+    }
+
+    const search = String(req.query.q || "").trim();
+    if (search) {
+      const safe = search.replace(/[.*+?^${}()|[\]\\]/g, "\\router.get("/payments/:paymentId/receipt", async (req, res, next) => {");
+      const regex = new RegExp(safe, "i");
+      const [users, profiles] = await Promise.all([
+        User.find({ school: req.user.school, role: "student", name: regex }).select("_id").limit(100).lean(),
+        Student.find({ school: req.user.school, active: true, admissionNumber: regex }).select("user").limit(100).lean(),
+      ]);
+      const studentIds = [...new Set([...users.map(item => String(item._id)), ...profiles.map(item => String(item.user))])];
+      const searchOr = [{ receiptNumber: regex }, { reference: regex }, { gatewayOrderId: regex }];
+      if (studentIds.length) searchOr.push({ student: { $in: studentIds } });
+      filter.$and = [...(filter.$and || []), { $or: searchOr }];
+    }
+
+    const [total, payments] = await Promise.all([
+      FeePayment.countDocuments(filter),
+      FeePayment.find(filter)
+        .populate("student", "name email")
+        .populate({ path: "account", select: "class section academicYear feeStructure", populate: [
+          { path: "class", select: "name" },
+          { path: "section", select: "name" },
+          { path: "academicYear", select: "name" },
+          { path: "feeStructure", select: "name" },
+        ] })
+        .sort({ verifiedAt: -1, createdAt: -1, _id: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+    ]);
+    const profiles = await Student.find({ school: req.user.school, user: { $in: payments.map(item => item.student?._id).filter(Boolean) } })
+      .select("user admissionNumber").lean();
+    const admissionByUser = new Map(profiles.map(item => [String(item.user), item.admissionNumber || ""]));
+    res.json({
+      records: payments.map(item => ({
+        ...item,
+        admissionNumber: admissionByUser.get(String(item.student?._id)) || "",
+        paymentDate: item.status === "verified" ? item.verifiedAt || item.createdAt : item.createdAt,
+      })),
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
+  } catch (error) { next(error); }
+});
+
 router.get("/payments/:paymentId/receipt", async (req, res, next) => {
   try {
     const visibleIds = await visibleStudentIds(req);
