@@ -5,9 +5,10 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
   { ignores: ['dist'] },
+  js.configs.recommended,
   {
+    ...reactHooks.configs['recommended-latest'],
     files: ['**/*.{js,jsx}'],
-    extends: [js.configs.recommended, reactHooks.configs['recommended-latest']],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
@@ -17,6 +18,9 @@ export default [
         sourceType: 'module',
       },
     },
+  },
+  {
+    files: ['**/*.{js,jsx}'],
     plugins: {
       'react-refresh': reactRefresh,
     },
