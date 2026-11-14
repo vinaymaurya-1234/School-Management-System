@@ -254,7 +254,7 @@ router.post("/auto-generate", async (req, res, next) => {
     const schedulesByDay = Object.fromEntries(DAYS.map((day) => {
       const supplied = requestedSchedulesByDay?.[day];
       const slots = Array.isArray(supplied) ? supplied : (day === "saturday" ? fallbackPeriods.slice(0, Number(requestedSaturdayPeriods) || DEFAULT_SATURDAY_PERIODS) : fallbackPeriods);
-      return [day, slots.map((slot) => [String(slot.startTime || ""), String(slot.endTime || "")])];
+      return [day, slots.map((slot) => Array.isArray(slot) ? [String(slot[0] || ""), String(slot[1] || "")] : [String(slot.startTime || ""), String(slot.endTime || "")])];
     }));
     const validTime = (value) => TIME_PATTERN.test(value);
     const toMinutes = (value) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
