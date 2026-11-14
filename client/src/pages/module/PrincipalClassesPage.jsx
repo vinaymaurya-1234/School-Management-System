@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronRight, Layers3, Loader2, Plus, Trash2, Users, X } from 'lucide-react'
+import { ChevronRight, Layers3, Loader2, Plus, Trash2, Users, X, Search, Grid2X2, List } from 'lucide-react'
 import apiClient from '../../api/client'
 import './ClassesPageRedesign.css'
 
@@ -15,6 +15,8 @@ function PrincipalClassesPage() {
   const [notice, setNotice] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState({ std: '', section: 'A' })
+  const [search, setSearch] = useState('')
+  const [layout, setLayout] = useState('grid')
 
   const activeYear = useMemo(
     () => years.find((year) => year.isActive) || years[0] || null,
@@ -22,6 +24,7 @@ function PrincipalClassesPage() {
   )
 
   const totalSections = sections.length
+  const visibleClasses = useMemo(() => classes.filter((item) => String(item.name).toLowerCase().includes(search.trim().toLowerCase())), [classes, search])
 
   const load = async () => {
     setLoading(true)
@@ -134,24 +137,14 @@ function PrincipalClassesPage() {
 
   return (
     <div className="classes-redesign">
-      <header className="classes-hero">
+      <header className="classes-hero classes-hero-dark">
         <div className="classes-hero-copy">
           <span className="classes-kicker">Academic setup</span>
-          <h1>Academic Levels</h1>
-          <p>
-            Set up the classes and sections used across your school. The structure below is tied to the active academic year.
-          </p>
+          <h1>Classes &amp; Sections</h1>
+          <p>Create and manage class levels with their sections.</p>
         </div>
-
-        <button
-          className="classes-btn primary"
-          onClick={() => {
-            setShowCreate(true)
-            setError('')
-          }}
-        >
-          <Plus size={17} />
-          Add class
+        <button className="classes-btn primary" onClick={() => { setShowCreate(true); setError('') }}>
+          <Plus size={17} /> Add class
         </button>
       </header>
 
@@ -173,59 +166,39 @@ function PrincipalClassesPage() {
         </div>
       )}
 
-      <section className="classes-overview">
-        <div className="classes-overview-item year-summary">
-          <div className="overview-icon"><Layers3 size={18} /></div>
-          <div>
-            <span>Active academic year</span>
-            <strong>{activeYear?.name || 'Not configured'}</strong>
-            <small>All classes and sections below belong to this year.</small>
+      <section className="classes-toolbar">
+        <div className="classes-quick-stats">
+          <article className="classes-quick-stat"><span className="quick-stat-icon"><Layers3 size={18}/></span><div><strong>{classes.length}</strong><small>Total classes</small></div></article>
+          <article className="classes-quick-stat"><span className="quick-stat-icon"><Grid2X2 size={18}/></span><div><strong>{totalSections}</strong><small>Total sections</small></div></article>
+          <article className="classes-quick-stat year-stat"><span className="quick-stat-icon"><Layers3 size={18}/></span><div><strong>{activeYear?.name || 'Not configured'}</strong><small>Academic year</small></div></article>
+        </div>
+        <div className="classes-directory-controls">
+          <label className="classes-directory-search"><Search size={17}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search class..."/></label>
+          <div className="classes-view-toggle" aria-label="Class layout">
+            <button type="button" className={layout === 'grid' ? 'active' : ''} onClick={() => setLayout('grid')} aria-label="Grid view"><Grid2X2 size={17}/></button>
+            <button type="button" className={layout === 'list' ? 'active' : ''} onClick={() => setLayout('list')} aria-label="List view"><List size={17}/></button>
           </div>
-        </div>
-        <div className="classes-overview-item">
-          <span>Classes</span>
-          <strong>{classes.length}</strong>
-          <small>Configured levels</small>
-        </div>
-        <div className="classes-overview-item">
-          <span>Sections</span>
-          <strong>{totalSections}</strong>
-          <small>Across all classes</small>
-        </div>
-        <div className="classes-overview-item">
-          <span>Setup status</span>
-          <strong>{classes.length ? 'Ready' : 'Start here'}</strong>
-          <small>{classes.length ? 'Structure is ready for enrollment' : 'Add your first class'}</small>
         </div>
       </section>
 
-      <section className="classes-board">
+      <section className={"classes-board " + (layout === 'list' ? 'list-layout' : 'grid-layout')}>
         <div className="classes-board-head">
           <div>
             <span className="board-kicker">School structure</span>
             <h2>Class directory</h2>
-            <p>Each class appears once, with its sections grouped beside it.</p>
+            <p>{visibleClasses.length} classes · {totalSections} sections</p>
           </div>
-          <span className="year-pill">
-            <Layers3 size={14} />
-            {activeYear?.name || 'No academic year'}
-          </span>
+          <span className="year-pill"><Layers3 size={14}/>{activeYear?.name || 'No academic year'}</span>
         </div>
 
-        <div className="class-table-head">
-          <span>Class</span>
-          <span>Sections</span>
-          <span aria-hidden="true" />
-        </div>
-
-        {loading ? (
+      {loading ? (
           <div className="classes-loading">
             <Loader2 size={24} className="classes-spin" />
             <span>Loading academic structure…</span>
           </div>
-        ) : classes.length ? (
+        ) : visibleClasses.length ? (
           <div className="class-list">
-            {classes.map((schoolClass) => {
+            {visibleClasses.map((schoolClass) => {
               const classSections = sections.filter(
                 (section) => (section.class?._id || section.class) === schoolClass._id,
               )
@@ -280,8 +253,8 @@ function PrincipalClassesPage() {
         ) : (
           <div className="classes-empty">
             <div className="empty-icon"><Users size={26} /></div>
-            <strong>No classes configured</strong>
-            <span>Add the first class to start building your school's academic structure.</span>
+            <strong>{search ? 'No matching classes' : 'No classes configured'}</strong>
+            <span>{search ? 'Try a different class number.' : "Add the first class to start building your school's academic structure."}</span>
             <button className="classes-btn primary" onClick={() => setShowCreate(true)}>
               <Plus size={16} />
               Add first class
