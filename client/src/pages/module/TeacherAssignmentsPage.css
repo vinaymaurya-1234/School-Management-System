@@ -253,3 +253,56 @@
   .teacher-assignments-page .ta-expand-icon,
   .teacher-assignments-page .ta-show-more svg { transition:none; }
 }
+
+
+/* Simple split-panel assignment workspace */
+.teacher-assignments-page .ta-stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 16px}
+.teacher-assignments-page .ta-stats article{min-height:104px;justify-content:center;padding:17px 19px;border:1px solid #e8e8e6;border-radius:15px;background:#fff;box-shadow:none}
+.teacher-assignments-page .ta-stats article span{font-size:10px;color:#777;letter-spacing:.02em}
+.teacher-assignments-page .ta-stats article strong{font-size:27px;line-height:1.1;font-weight:750;color:#171717}
+.teacher-assignments-page .ta-stats article small{display:none}
+.teacher-assignments-page .ta-split-workspace{display:grid;grid-template-columns:minmax(250px,31%) minmax(0,1fr);min-height:490px;border:1px solid #e6e6e4;border-radius:17px;background:#fff;overflow:hidden;box-shadow:0 5px 22px #00000005}
+.teacher-assignments-page .ta-teacher-sidebar{display:flex;flex-direction:column;min-width:0;border-right:1px solid #eaeae8;background:#fff}
+.teacher-assignments-page .ta-sidebar-heading{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 12px}
+.teacher-assignments-page .ta-sidebar-heading h2{margin:0;color:#171717;font-size:16px;font-weight:750;letter-spacing:-.3px}
+.teacher-assignments-page .ta-sidebar-heading span{display:block;margin-top:4px;color:#888;font-size:10px}
+.teacher-assignments-page .ta-sidebar-search{display:flex;align-items:center;gap:9px;height:40px;margin:0 14px 10px;padding:0 11px;border:1px solid #e7e7e5;border-radius:10px;background:#fafaf9;color:#777}
+.teacher-assignments-page .ta-sidebar-search:focus-within{border-color:#bcbcb8;box-shadow:0 0 0 3px #00000007}
+.teacher-assignments-page .ta-sidebar-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#171717;font:inherit;font-size:11px}
+.teacher-assignments-page .ta-sidebar-search input::placeholder{color:#999}
+.teacher-assignments-page .ta-teacher-list{display:flex;flex-direction:column;overflow:auto;max-height:590px;padding:0 9px 10px}
+.teacher-assignments-page .ta-teacher-list-item{display:flex;align-items:center;gap:10px;width:100%;min-height:66px;padding:9px 10px;border:0;border-bottom:1px solid #f0f0ee;border-radius:10px;background:#fff;color:#171717;text-align:left;cursor:pointer;transition:background .15s ease}
+.teacher-assignments-page .ta-teacher-list-item:hover{background:#fafaf9}
+.teacher-assignments-page .ta-teacher-list-item.selected{background:#f3f3f1;box-shadow:inset 3px 0 #171717}
+.teacher-assignments-page .ta-teacher-list-item .ta-avatar{display:grid;place-items:center;flex:0 0 39px;width:39px;height:39px;border:1px solid #e8e8e6;border-radius:12px;background:#f5f5f3;color:#171717;font-size:13px;font-weight:750}
+.teacher-assignments-page .ta-teacher-list-copy{display:grid;gap:4px;min-width:0;flex:1}
+.teacher-assignments-page .ta-teacher-list-copy strong{overflow:hidden;color:#202020;font-size:11px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
+.teacher-assignments-page .ta-teacher-list-copy small{color:#888;font-size:10px}
+.teacher-assignments-page .ta-list-chevron{color:#888;font-size:22px;line-height:1}
+.teacher-assignments-page .ta-selected-panel{display:flex;flex-direction:column;min-width:0;background:#fff}
+.teacher-assignments-page .ta-selected-header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:22px 24px 18px}
+.teacher-assignments-page .ta-selected-identity{display:flex;align-items:center;gap:13px;min-width:0}
+.teacher-assignments-page .ta-selected-identity .ta-avatar.large{display:grid;place-items:center;flex:0 0 54px;width:54px;height:54px;border:0;border-radius:15px;background:#f1f1ef;color:#171717;font-size:19px;font-weight:750}
+.teacher-assignments-page .ta-selected-identity h2{margin:0;color:#171717;font-size:18px;font-weight:750;letter-spacing:-.45px}
+.teacher-assignments-page .ta-selected-identity p{margin:4px 0 0;color:#888;font-size:11px}
+.teacher-assignments-page .ta-selected-header .ta-assignment-count{padding:8px 11px;border-radius:9px;background:#fafaf9;color:#333;font-size:10px}
+.teacher-assignments-page .ta-selected-summary{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:11px 24px;border-top:1px solid #f0f0ee;border-bottom:1px solid #f0f0ee;background:#fafaf9;color:#777;font-size:10px}
+.teacher-assignments-page .ta-selected-summary strong{color:#171717;font-size:12px}
+.teacher-assignments-page .ta-selected-role{margin-left:auto;color:#555}
+.teacher-assignments-page .ta-selected-table-wrap{width:100%;overflow-x:auto;padding:6px 17px 15px}
+.teacher-assignments-page .ta-selected-table{width:100%;min-width:560px;border-collapse:collapse}
+.teacher-assignments-page .ta-selected-table th{padding:13px 10px;border-bottom:1px solid #eaeae8;background:#fff;color:#888;text-align:left;font-size:9px;font-weight:750;letter-spacing:.07em;text-transform:uppercase}
+.teacher-assignments-page .ta-selected-table td{padding:13px 10px;border-bottom:1px solid #f0f0ee;color:#555;font-size:11px;white-space:nowrap}
+.teacher-assignments-page .ta-selected-table tbody tr:hover{background:#fafaf9}
+.teacher-assignments-page .ta-selected-table td strong{color:#171717;font-size:11px}
+.teacher-assignments-page .ta-selected-table .ta-actions{justify-content:flex-start;gap:6px}
+.teacher-assignments-page .ta-selected-table .ta-actions button{display:grid;place-items:center;width:32px;min-height:32px;padding:0;border:1px solid #e3e3e0;border-radius:9px;background:#fff;color:#333}
+.teacher-assignments-page .ta-selected-table .ta-actions button:hover{background:#f5f5f3;border-color:#cfcfcb}
+.teacher-assignments-page .ta-selected-table .ta-actions .ta-remove{color:#555}
+.teacher-assignments-page .ta-no-assignment{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;min-height:230px;padding:28px;color:#888;text-align:center}
+.teacher-assignments-page .ta-no-assignment strong{color:#222;font-size:13px}
+.teacher-assignments-page .ta-no-assignment span{font-size:11px}
+.teacher-assignments-page .ta-no-assignment .ta-primary{margin-top:5px}
+.teacher-assignments-page .ta-footer{margin-top:10px;padding:10px 3px;border:0;background:transparent;color:#888;font-size:10px}
+@media(max-width:900px){.teacher-assignments-page .ta-split-workspace{grid-template-columns:240px minmax(0,1fr)}.teacher-assignments-page .ta-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.teacher-assignments-page .ta-selected-header{padding:18px}.teacher-assignments-page .ta-selected-summary{padding-inline:18px}}
+@media(max-width:680px){.teacher-assignments-page .ta-split-workspace{grid-template-columns:1fr;min-height:0}.teacher-assignments-page .ta-teacher-sidebar{border-right:0;border-bottom:1px solid #eaeae8}.teacher-assignments-page .ta-teacher-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-height:210px;overflow:auto}.teacher-assignments-page .ta-teacher-list-item{min-height:58px;padding:7px}.teacher-assignments-page .ta-teacher-list-item .ta-avatar{flex-basis:33px;width:33px;height:33px}.teacher-assignments-page .ta-selected-header{padding:16px 14px}.teacher-assignments-page .ta-selected-identity .ta-avatar.large{flex-basis:44px;width:44px;height:44px}.teacher-assignments-page .ta-selected-identity h2{font-size:15px}.teacher-assignments-page .ta-selected-summary{padding:10px 14px;gap:12px}.teacher-assignments-page .ta-selected-role{flex-basis:100%;margin-left:0}.teacher-assignments-page .ta-selected-table-wrap{padding-inline:8px}.teacher-assignments-page .ta-stats article{min-height:88px;padding:14px}.teacher-assignments-page .ta-stats article strong{font-size:23px}}
