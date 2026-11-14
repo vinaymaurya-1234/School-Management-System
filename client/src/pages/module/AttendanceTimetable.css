@@ -34,3 +34,25 @@
 .timetable-feature-page .timetable-day-setting small{grid-column:1/-1;color:#777;font-size:9px;font-variant-numeric:tabular-nums}
 @media(max-width:1000px){.timetable-feature-page .timetable-day-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.timetable-feature-page .timetable-day-settings-grid{grid-template-columns:1fr}}
+
+
+/* Full-week manual timetable editor */
+.timetable-feature-page .timetable-full-modal{width:min(96vw,1480px);max-width:1480px;max-height:92vh;display:flex;flex-direction:column}
+.timetable-feature-page .timetable-full-modal .modal-head p{margin-top:5px;color:#777;font-size:11px}
+.timetable-feature-page .timetable-full-modal .modal-body{overflow:auto}
+.timetable-feature-page .timetable-manual-grid-wrap{overflow:auto;margin-top:16px;border:1px solid #e5e5e5;border-radius:12px}
+.timetable-feature-page .timetable-manual-grid{width:100%;min-width:1180px;border-collapse:separate;border-spacing:0;background:#fff}
+.timetable-feature-page .timetable-manual-grid th,.timetable-feature-page .timetable-manual-grid td{padding:9px;border-right:1px solid #ededed;border-bottom:1px solid #ededed;text-align:left;vertical-align:top}
+.timetable-feature-page .timetable-manual-grid thead th{position:sticky;top:0;z-index:2;background:#f5f5f4;color:#222;font-size:10px}
+.timetable-feature-page .timetable-manual-grid thead th:first-child{left:0;z-index:3}
+.timetable-feature-page .timetable-manual-grid tbody th{position:sticky;left:0;z-index:1;min-width:112px;background:#fafafa}
+.timetable-feature-page .timetable-manual-grid tbody th strong{display:block;font-size:10px;color:#222}
+.timetable-feature-page .timetable-manual-grid tbody th small{display:block;margin-top:5px;color:#666;font-size:9px;font-variant-numeric:tabular-nums}
+.timetable-feature-page .timetable-manual-cell{display:grid;gap:6px;min-width:150px}
+.timetable-feature-page .timetable-manual-cell small{color:#666;font-size:9px;font-weight:700;font-variant-numeric:tabular-nums}
+.timetable-feature-page .timetable-manual-cell select{width:100%;min-width:0;height:32px;padding:0 7px;border:1px solid #e1e1df;border-radius:7px;background:#fff;color:#222;font-size:10px}
+.timetable-feature-page .timetable-manual-off{display:block;padding:8px;color:#aaa;text-align:center}
+.timetable-feature-page .timetable-period span{font-variant-numeric:tabular-nums;white-space:nowrap}
+.timetable-feature-page .timetable-day{gap:5px}
+.timetable-feature-page .timetable-day strong{font-size:10px!important;text-transform:none;letter-spacing:0}
+@media(max-width:650px){.timetable-feature-page .timetable-full-modal{width:98vw;max-height:96vh}.timetable-feature-page .timetable-full-modal .modal-foot{flex-wrap:wrap}}
