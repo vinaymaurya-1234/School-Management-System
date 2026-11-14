@@ -239,7 +239,7 @@ router.post("/auto-generate", async (req, res, next) => {
     if (req.user.role !== ROLES.PRINCIPAL)
       return res.status(403).json({ message: "Only the principal can generate timetables" });
 
-    const { academicYear, section, periods: requestedPeriods, saturdayPeriods: requestedSaturdayPeriods } = req.body || {};
+    const { academicYear, section, periods: requestedPeriods, saturdayPeriods: requestedSaturdayPeriods, periodsByDay: requestedSchedulesByDay } = req.body || {};
     if (!academicYear || !section)
       return res.status(400).json({ message: "academicYear and section are required" });
 
@@ -248,32 +248,26 @@ router.post("/auto-generate", async (req, res, next) => {
     });
     if (!sectionDoc) return res.status(404).json({ message: "Section not found" });
 
-    const schedulePeriods = Array.isArray(requestedPeriods) && requestedPeriods.length
+    const fallbackPeriods = Array.isArray(requestedPeriods) && requestedPeriods.length
       ? requestedPeriods.map((slot) => [String(slot.startTime || ""), String(slot.endTime || "")])
       : buildPeriodTimes({ startTime: DEFAULT_START_TIME, periodMinutes: DEFAULT_PERIOD_MINUTES, periodsPerDay: DEFAULT_PERIODS_PER_DAY, breakAfter: DEFAULT_BREAK_AFTER, breakMinutes: DEFAULT_BREAK_MINUTES });
-    if (
-      schedulePeriods.length < 1 || schedulePeriods.length > 12 ||
-      schedulePeriods.some(([start, end]) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(start) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(end) || start >= end) ||
-      schedulePeriods.some((slot, index) => index > 0 && slot[0] < schedulePeriods[index - 1][1]) ||
-      new Set(schedulePeriods.map(([start, end]) => {
-        const minutes = (value) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
-        return minutes(end) - minutes(start);
-      })).size !== 1
-    ) {
-      return res.status(400).json({ message: "All periods must have the same duration, be in chronological order, and not overlap. Set valid start/end times." });
+    const schedulesByDay = Object.fromEntries(DAYS.map((day) => {
+      const supplied = requestedSchedulesByDay?.[day];
+      const slots = Array.isArray(supplied) ? supplied : (day === "saturday" ? fallbackPeriods.slice(0, Number(requestedSaturdayPeriods) || DEFAULT_SATURDAY_PERIODS) : fallbackPeriods);
+      return [day, slots.map((slot) => [String(slot.startTime || ""), String(slot.endTime || "")])];
+    }));
+    const validTime = (value) => TIME_PATTERN.test(value);
+    const toMinutes = (value) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
+    const invalidSchedule = DAYS.some((day) => {
+      const slots = schedulesByDay[day];
+      return !slots.length || slots.length > 12 ||
+        slots.some(([start, finish]) => !validTime(start) || !validTime(finish) || toMinutes(finish) <= toMinutes(start)) ||
+        slots.some((slot, index) => index > 0 && toMinutes(slot[0]) < toMinutes(slots[index - 1][1]));
+    });
+    if (invalidSchedule) {
+      return res.status(400).json({ message: "Each day needs 1–12 valid lecture times in chronological order without overlaps." });
     }
 
-    const publishedSchoolEntries = await TimetableEntry.find({
-      school: req.user.school, academicYear, status: "published",
-    }).select("periodNumber startTime endTime").lean();
-    for (const slot of publishedSchoolEntries) {
-      const requestedSlot = schedulePeriods[Number(slot.periodNumber) - 1];
-      if (requestedSlot && (requestedSlot[0] !== slot.startTime || requestedSlot[1] !== slot.endTime)) {
-        return res.status(409).json({
-          message: `Period ${slot.periodNumber} is already published at ${slot.startTime}–${slot.endTime}. Unpublish existing school timetables before changing the bell schedule.`,
-        });
-      }
-    }
     const publishedEntries = await TimetableEntry.countDocuments({
       school: req.user.school, academicYear, section, status: "published",
     });
@@ -283,17 +277,8 @@ router.post("/auto-generate", async (req, res, next) => {
       });
     }
 
-    // One bell schedule for the whole school: when draft schedules exist, update
-    // every draft entry's clock times together so classes never drift apart.
-    for (let index = 0; index < schedulePeriods.length; index += 1) {
-      const [startTime, endTime] = schedulePeriods[index];
-      await TimetableEntry.updateMany(
-        { school: req.user.school, academicYear, periodNumber: index + 1, status: "draft" },
-        { $set: { startTime, endTime } },
-      );
-    }
-
-    const saturdayLimit = Math.max(1, Math.min(schedulePeriods.length, Number(requestedSaturdayPeriods) || DEFAULT_SATURDAY_PERIODS));
+    const availableWeeklySlots = DAYS.reduce((total, day) => total + schedulesByDay[day].length, 0);
+    const activeDays = DAYS.filter((day) => schedulesByDay[day].length > 0).length;
     const mappings = await ClassSubject.find({
       school: req.user.school, academicYear, class: sectionDoc.class,
     }).populate("subject", "name code").lean();
@@ -339,12 +324,11 @@ router.post("/auto-generate", async (req, res, next) => {
 
     // Honour each class-subject mapping's weekly frequency while spreading repeats across days.
     const dayLoads = new Map(DAYS.map((day) => [day, 0]));
-    const periodLoads = new Map(DAYS.map((day) => [day, new Array(schedulePeriods.length).fill(0)]));
+    const periodLoads = new Map(DAYS.map((day) => [day, new Array(schedulesByDay[day].length).fill(0)]));
     for (const { mapping, teacherId } of usableMappings) {
       const weeklyPeriods = Math.max(1, Math.min(36, Number(mapping.weeklyPeriods) || 1));
-      const availableWeeklySlots = 5 * schedulePeriods.length + saturdayLimit;
       const target = Math.min(weeklyPeriods, availableWeeklySlots);
-      const maxPerDay = Math.max(1, Math.ceil(weeklyPeriods / DAYS.length));
+      const maxPerDay = Math.max(1, Math.ceil(weeklyPeriods / activeDays));
       let placed = 0;
       while (placed < target) {
         const subjectId = String(mapping.subject?._id);
@@ -356,10 +340,9 @@ router.post("/auto-generate", async (req, res, next) => {
           });
         let choice = null;
         for (const day of dayCandidates) {
-          const periodCount = day === "saturday" ? saturdayLimit : schedulePeriods.length;
-          const periodCandidates = schedulePeriods.slice(0, periodCount).map((slot, index) => ({ slot, index, score: 0 }))
+          const periodCount = schedulesByDay[day].length;
+          const periodCandidates = schedulesByDay[day].map((slot, index) => ({ slot, index, score: 0 }))
             .filter(({ index }) => {
-              if (day === "saturday" && index >= saturdayLimit) return false;
               const periodNumber = index + 1;
               return !sectionBusy.has(`${day}:${periodNumber}`) &&
                 !teacherBusy.has(`${String(teacherId)}:${day}:${periodNumber}`);
@@ -384,7 +367,7 @@ router.post("/auto-generate", async (req, res, next) => {
         if (!choice) break;
 
         const periodNumber = choice.index + 1;
-        const [startTime, endTime] = schedulePeriods[choice.index];
+        const [startTime, endTime] = schedulesByDay[choice.day][choice.index];
         const entry = await TimetableEntry.create({
           school: req.user.school, academicYear, section, teacher: teacherId,
           subject: mapping.subject._id, day: choice.day, periodNumber,
@@ -408,8 +391,8 @@ router.post("/auto-generate", async (req, res, next) => {
     return res.status(201).json({
       message: "Balanced draft timetable generated. Review it before publishing.",
       createdCount: created.length, missingTeachers, conflicts,
-      availableSlots: 5 * schedulePeriods.length + saturdayLimit,
-      unfilledSlots: Math.max(0, 5 * schedulePeriods.length + saturdayLimit - created.length),
+      availableSlots: availableWeeklySlots,
+      unfilledSlots: Math.max(0, availableWeeklySlots - created.length),
     });
   } catch (error) {
     if (error.code === 11000)
