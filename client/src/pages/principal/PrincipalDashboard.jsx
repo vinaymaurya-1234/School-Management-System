@@ -34,7 +34,7 @@ function PrincipalDashboard() {
       apiClient.get('/teachers'),
       apiClient.get('/classes'),
       apiClient.get(`/events?year=${year}`),
-      apiClient.get('/teacher-attendance/requests'),
+      apiClient.get('/leave', { params: { status: 'pending' } }),
       ...OPERATION_MODULES.map((module) => apiClient.get(`/operations/${module}`)),
     ])
     const [studentsResult, teachersResult, classesResult, eventsResult, leaveResult, feesResult, examsResult] = results
@@ -92,7 +92,7 @@ function PrincipalDashboard() {
 
       <section className="principal-home-stats" aria-label="School overview">
         <StatCard icon={GraduationCap} value={loading ? '—' : summary.students.toLocaleString('en-IN')} label="Total Students" />
-        <StatCard icon={Users} value={loading ? '—' : summary.staff.toLocaleString('en-IN')} label="Total Staff" />
+        <StatCard icon={Users} value={loading ? '—' : summary.staff.toLocaleString('en-IN')} label="Teachers" />
         <StatCard icon={Layers3} value={loading ? '—' : summary.classes.toLocaleString('en-IN')} label="Total Classes" />
         <StatCard icon={ClipboardCheck} value={loading ? '—' : totalApprovals.toLocaleString('en-IN')} label="Pending Approvals" />
       </section>
