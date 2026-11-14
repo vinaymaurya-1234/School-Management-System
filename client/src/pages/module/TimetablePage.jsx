@@ -40,19 +40,15 @@ function TimetablePage() {
     {isPrincipal&&<section className="feature-controls-card timetable-controls-card"><div className="feature-select-grid"><label><span>Class</span><select value={selectedClass} onChange={(e)=>{setSelectedClass(e.target.value);setSelectedSection('')}}><option value="">Select class</option>{classes.map((item)=><option key={item._id} value={item._id}>Class {item.name}</option>)}</select></label><label><span>Section</span><select value={selectedSection} onChange={(e)=>setSelectedSection(e.target.value)}><option value="">Select section</option>{filteredSections.map((item)=><option key={item._id} value={item._id}>Section {item.name}</option>)}</select></label><div className="feature-selection-summary"><span>Selected schedule</span><strong>{selectedClassName&&selectedSectionName?`Class ${selectedClassName} · Section ${selectedSectionName}`:'Choose class and section'}</strong><small>{activeYear?.name||'No active academic year'}</small></div></div><div className="timetable-settings-toggle-row"><div><strong>School timing setup</strong><span>Configure the school bell schedule when needed.</span></div><button type="button" className="secondary-button" aria-expanded={showTimingSettings} onClick={()=>setShowTimingSettings(value=>!value)}><Clock3 size={15}/>{showTimingSettings?'Hide timing settings':'Configure school timings'} <span>{showTimingSettings?'−':'+'}</span></button></div>
     {showTimingSettings ? (
       <div className="timetable-period-settings">
-        <div className="timetable-period-settings-heading"><div><strong>School timing setup</strong><span>Set one start time and equal period length. The same bell schedule applies to every class; Saturday can finish earlier.</span></div></div>
-        <div className="timetable-settings-fields">
-          <label>School start time<input type="time" value={scheduleSettings.startTime} onChange={(e)=>setScheduleSettings(p=>({...p,startTime:e.target.value}))}/></label>
-          <label>Minutes per period<input type="number" min="20" max="90" value={scheduleSettings.periodMinutes} onChange={(e)=>setScheduleSettings(p=>({...p,periodMinutes:Number(e.target.value)}))}/></label>
-          <label>Periods Mon–Fri<input type="number" min="1" max="12" value={scheduleSettings.periodsPerDay} onChange={(e)=>setScheduleSettings(p=>({...p,periodsPerDay:Number(e.target.value)}))}/></label>
-          <label>Break after period<input type="number" min="0" max={scheduleSettings.periodsPerDay-1} value={scheduleSettings.breakAfter} onChange={(e)=>setScheduleSettings(p=>({...p,breakAfter:Number(e.target.value)}))}/></label>
-          <label>Break duration (minutes)<input type="number" min="0" max="90" value={scheduleSettings.breakMinutes} onChange={(e)=>setScheduleSettings(p=>({...p,breakMinutes:Number(e.target.value)}))}/></label>
-          <label>Saturday periods (half-day)<input type="number" min="1" max={scheduleSettings.periodsPerDay} value={scheduleSettings.saturdayPeriods} onChange={(e)=>setScheduleSettings(p=>({...p,saturdayPeriods:Number(e.target.value)}))}/></label>
-        </div>
-        <div className="timetable-preview">
-          <div><strong>Monday–Friday preview</strong><span>{periodTimes.length} equal periods</span></div>
-          <div className="timetable-preview-slots">{periodTimes.map((slot,i)=><span key={i}>P{i+1} · {slot.startTime}–{slot.endTime}</span>)}</div>
-          <div><strong>Saturday preview</strong><span>{saturdayTimes.length} periods · ends {saturdayTimes[saturdayTimes.length-1]?.endTime}</span></div>
+        <div className="timetable-period-settings-heading"><div><strong>Day-wise lecture setup</strong><span>Choose the number of lectures, start time and lecture duration separately for each day.</span></div></div>
+        <div className="timetable-day-settings-grid">
+          {DAYS.map(day=><div className="timetable-day-setting" key={day}>
+            <strong>{DAY_LABELS[day]}</strong>
+            <label>Lectures<input type="number" min="1" max="12" value={daySettings[day].periods} onChange={e=>updateDaySetting(day,'periods',Math.max(1,Math.min(12,Number(e.target.value)||1)))}/></label>
+            <label>Start time<input type="time" value={daySettings[day].startTime} onChange={e=>updateDaySetting(day,'startTime',e.target.value)}/></label>
+            <label>Minutes / lecture<input type="number" min="20" max="90" value={daySettings[day].periodMinutes} onChange={e=>updateDaySetting(day,'periodMinutes',Math.max(20,Math.min(90,Number(e.target.value)||40)))}/></label>
+            <small>{periodTimesByDay[day].length} lectures · {periodTimesByDay[day][0]?.startTime}–{periodTimesByDay[day][periodTimesByDay[day].length-1]?.endTime}</small>
+          </div>)}
         </div>
       </div>
     ) : null}
