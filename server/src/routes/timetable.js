@@ -159,16 +159,8 @@ router.post("/", async (req, res, next) => {
             "academicYear, section, teacher, subject, day, periodNumber, startTime and endTime are required",
         });
     const minutes = (value) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
-    if (day === "saturday" && Number(periodNumber) > DEFAULT_SATURDAY_PERIODS) {
-      return res.status(400).json({ message: `Saturday is a half-day. Only the first ${DEFAULT_SATURDAY_PERIODS} periods can be scheduled.` });
-    }
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime) || minutes(endTime) <= minutes(startTime)) {
       return res.status(400).json({ message: "Enter a valid start and end time." });
-    }
-    const durationEntries = await TimetableEntry.find({ school: req.user.school, academicYear }).select("startTime endTime").lean();
-    const expectedDuration = durationEntries.length ? minutes(durationEntries[0].endTime) - minutes(durationEntries[0].startTime) : DEFAULT_PERIOD_MINUTES;
-    if (minutes(endTime) - minutes(startTime) !== expectedDuration) {
-      return res.status(400).json({ message: "All school periods must have the same duration." });
     }
     const existingSection = await Section.findOne({
       _id: section,
@@ -200,15 +192,6 @@ router.post("/", async (req, res, next) => {
     });
     if (!classSubject) {
       return res.status(400).json({ message: "This subject is not mapped to the selected class for this academic year." });
-    }
-    const existingSlot = await TimetableEntry.findOne({
-      school: req.user.school, academicYear, periodNumber: Number(periodNumber),
-      $or: [{ startTime: { $ne: startTime } }, { endTime: { $ne: endTime } }],
-    }).select("startTime endTime periodNumber");
-    if (existingSlot) {
-      return res.status(409).json({
-        message: `Period ${periodNumber} already uses ${existingSlot.startTime}–${existingSlot.endTime} elsewhere in the school. Use the same timings for every class.`,
-      });
     }
     const conflict = await TimetableEntry.findOne({
       school: req.user.school,
@@ -448,7 +431,6 @@ router.patch("/:id", async (req, res, next) => {
     const sectionDoc = await Section.findOne({ _id: section, school: req.user.school, academicYear });
     const teacherDoc = await User.findOne({ _id: teacher, school: req.user.school, role: ROLES.TEACHER, active: true });
     if (!sectionDoc || !teacherDoc) return res.status(404).json({ message: "Selected class section or teacher was not found." });
-    if (day === "saturday" && Number(periodNumber) > DEFAULT_SATURDAY_PERIODS) return res.status(400).json({ message: "Saturday is a half-day. Choose an available period." });
     const conflict = await TimetableEntry.findOne({
       _id: { $ne: entry._id }, school: req.user.school, academicYear, day, periodNumber: Number(periodNumber),
       $or: [{ section }, { teacher }],
