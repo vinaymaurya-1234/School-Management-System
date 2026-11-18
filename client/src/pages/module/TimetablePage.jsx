@@ -69,7 +69,9 @@ function TimetablePage() {
             <label>Lectures<input type="number" min="1" max="12" value={daySettings[day].periods} onChange={e=>updateDaySetting(day,'periods',Math.max(1,Math.min(12,Number(e.target.value)||1)))}/></label>
             <label>Start time<input type="time" value={daySettings[day].startTime} onChange={e=>updateDaySetting(day,'startTime',e.target.value)}/></label>
             <label>Minutes / lecture<input type="number" min="20" max="90" value={daySettings[day].periodMinutes} onChange={e=>updateDaySetting(day,'periodMinutes',Math.max(20,Math.min(90,Number(e.target.value)||40)))}/></label>
-            <small>{periodTimesByDay[day].length} lectures · {periodTimesByDay[day][0]?.startTime}–{periodTimesByDay[day][periodTimesByDay[day].length-1]?.endTime}</small>
+            <label>Break after lecture<select value={daySettings[day].breakAfter} onChange={e=>updateDaySetting(day,'breakAfter',Number(e.target.value))}><option value={0}>No break</option>{Array.from({length:Math.max(0,daySettings[day].periods-1)},(_,i)=><option key={i+1} value={i+1}>After period {i+1}</option>)}</select></label>
+            <label>Break duration (minutes)<input type="number" min="0" max="120" value={daySettings[day].breakMinutes} onChange={e=>updateDaySetting(day,'breakMinutes',Math.max(0,Math.min(120,Number(e.target.value)||0)))}/></label>
+            <small>{periodTimesByDay[day].length} lectures · {periodTimesByDay[day][0]?.startTime}–{periodTimesByDay[day][periodTimesByDay[day].length-1]?.endTime}{daySettings[day].breakAfter>0&&daySettings[day].breakMinutes>0?' · Break after '+daySettings[day].breakAfter+' ('+daySettings[day].breakMinutes+' min)':''}</small>
           </div>)}
         </div>
       </div>
