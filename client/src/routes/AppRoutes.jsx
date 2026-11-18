@@ -39,6 +39,7 @@ import TeacherAttendanceRequestsPage from '../pages/module/TeacherAttendanceRequ
 import LeaveManagementPage from '../pages/module/LeaveManagementPage'
 import '../pages/module/ModuleFeature.css'
 import '../styles/RolePagePolish.css'
+import '../styles/EnterpriseDesignSystem.css'
 
 const PRINCIPAL_OPERATIONS = new Set(['fees', 'notices', 'payroll'])
 function SessionLoading() {
