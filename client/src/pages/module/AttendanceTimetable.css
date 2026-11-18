@@ -56,3 +56,18 @@
 .timetable-feature-page .timetable-day{gap:5px}
 .timetable-feature-page .timetable-day strong{font-size:10px!important;text-transform:none;letter-spacing:0}
 @media(max-width:650px){.timetable-feature-page .timetable-full-modal{width:98vw;max-height:96vh}.timetable-feature-page .timetable-full-modal .modal-foot{flex-wrap:wrap}}
+
+
+/* Timetable labels and in-app weekly editor */
+.timetable-feature-page .timetable-cell .timetable-cell-time{display:block;margin-bottom:1px;color:#666;font-size:9px;font-weight:750;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.timetable-feature-page .timetable-period{display:flex;flex-direction:column;gap:5px}
+.timetable-feature-page .timetable-period strong{font-size:11px}
+.timetable-feature-page .timetable-period span{font-size:9px;color:#666;font-variant-numeric:tabular-nums}
+.timetable-feature-page .timetable-full-modal .modal-head{align-items:flex-start}
+.timetable-feature-page .timetable-full-modal .modal-head h2{font-size:19px;letter-spacing:-.02em}
+.timetable-feature-page .timetable-full-modal .modal-head p{max-width:560px;line-height:1.5}
+.timetable-feature-page .timetable-manual-grid thead th{padding:13px 11px;font-size:11px}
+.timetable-feature-page .timetable-manual-grid tbody td{min-width:170px;padding:11px}
+.timetable-feature-page .timetable-manual-cell{gap:8px;min-width:150px}
+.timetable-feature-page .timetable-manual-cell select{height:36px;font-size:11px}
+.timetable-feature-page .timetable-manual-cell small{padding:3px 0;font-size:10px}
