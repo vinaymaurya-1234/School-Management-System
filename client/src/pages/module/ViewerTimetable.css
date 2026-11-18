@@ -139,3 +139,35 @@
 .timetable-feature-page .feature-stat-grid article{border-radius:17px;box-shadow:0 5px 18px rgba(17,24,39,.025)}
 @media(max-width:1000px){.timetable-feature-page .timetable-settings-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.timetable-feature-page .timetable-preview-slots{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:650px){.timetable-feature-page .timetable-period-settings{padding:15px}.timetable-feature-page .timetable-period-settings-heading{flex-direction:column}.timetable-feature-page .timetable-settings-fields{grid-template-columns:1fr}.timetable-feature-page .timetable-preview-slots{grid-template-columns:repeat(2,minmax(0,1fr))}.timetable-feature-page .timetable-action-row>button{flex:1 1 145px}}
+
+
+/* Principal timetable: compact controls, readable breaks and calmer weekly grid. */
+.timetable-feature-page .timetable-day{min-height:58px;justify-content:center;gap:0}
+.timetable-feature-page .timetable-day small{display:none!important}
+.timetable-feature-page .timetable-period{justify-content:center;gap:0}
+.timetable-feature-page .timetable-period span{display:none!important}
+.timetable-feature-page .timetable-break-chip{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin:0 0 3px;padding:6px 8px;border:1px dashed #bdbdb8;border-radius:7px;background:#f3f3f1;color:#444;font-size:9px;font-weight:700;line-height:1.2}
+.timetable-feature-page .timetable-break-chip strong{font-size:9px;color:#222}
+.timetable-feature-page .timetable-break-chip span{font-size:9px;color:#666}
+.timetable-feature-page .timetable-break-chip.manual-break{margin:0 0 7px;white-space:nowrap}
+.timetable-feature-page .timetable-day-settings-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.timetable-feature-page .timetable-day-setting{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:16px;border:1px solid #e6e6e3;border-radius:13px;background:#fff}
+.timetable-feature-page .timetable-day-setting>strong{grid-column:1/-1;margin-bottom:1px;color:#171717;font-size:13px}
+.timetable-feature-page .timetable-day-setting label{display:grid;gap:6px;min-width:0;color:#686868;font-size:10px;font-weight:700}
+.timetable-feature-page .timetable-day-setting label:first-of-type{grid-column:1/-1}
+.timetable-feature-page .timetable-day-setting input,.timetable-feature-page .timetable-day-setting select{width:100%;min-width:0;height:40px;padding:0 10px;border:1px solid #dededb;border-radius:9px;background:#fff;color:#171717;font-size:12px}
+.timetable-feature-page .timetable-day-setting>small{grid-column:1/-1;color:#777;font-size:9px;line-height:1.5}
+.timetable-feature-page .timetable-action-row{justify-content:flex-end;gap:9px;margin-top:16px;padding-top:15px}
+.timetable-feature-page .timetable-action-row button{min-height:42px;padding-inline:16px;font-size:11px}
+.timetable-feature-page .timetable-action-row .primary-button{background:#171717!important;border-color:#171717!important;color:#fff!important}
+.timetable-feature-page .timetable-action-row .primary-button:hover:not(:disabled){background:#333!important}
+.timetable-feature-page .timetable-action-row .secondary-button{background:#fff!important;border-color:#dededb!important;color:#222!important}
+.timetable-feature-page .timetable-panel{margin-top:18px}
+.timetable-feature-page .timetable-panel .feature-panel-header{padding:22px 24px}
+.timetable-feature-page .timetable-grid-row{min-height:112px}
+.timetable-feature-page .timetable-cell{justify-content:flex-start}
+.timetable-feature-page .timetable-cell .timetable-break-chip{flex-direction:row;justify-content:flex-start;width:auto;max-width:100%;margin:0 0 2px;padding:5px 7px}
+.timetable-feature-page .timetable-cell .timetable-break-chip span{font-size:8px}
+.timetable-feature-page .timetable-manual-grid td{vertical-align:top}
+@media(max-width:1000px){.timetable-feature-page .timetable-day-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.timetable-feature-page .timetable-day-settings-grid{grid-template-columns:1fr}.timetable-feature-page .timetable-action-row{display:grid;grid-template-columns:1fr}.timetable-feature-page .timetable-action-row button{width:100%}.timetable-feature-page .timetable-day-setting{grid-template-columns:1fr 1fr}}
