@@ -104,3 +104,16 @@
  .timetable-feature-page .timetable-entry-form .timetable-room-field{grid-column:auto}
  .timetable-feature-page .timetable-entry-modal{width:96vw;max-height:94vh}
 }
+
+
+/* Compact shared timetable timing controls */
+.timetable-feature-page .timetable-common-settings{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px;padding:14px;border:1px solid #e5e5e2;border-radius:12px;background:#fff}
+.timetable-feature-page .timetable-common-settings label{display:grid;gap:6px;color:#555;font-size:11px;font-weight:700}
+.timetable-feature-page .timetable-common-settings input,.timetable-feature-page .timetable-common-settings select{width:100%;min-width:0;height:40px;padding:0 10px;border:1px solid #dededb;border-radius:8px;background:#fff;color:#171717;font:inherit;font-size:13px}
+.timetable-feature-page .timetable-day-counts{margin-top:14px}
+.timetable-feature-page .timetable-day-counts>strong{display:block;margin-bottom:9px;font-size:12px;color:#222}
+.timetable-feature-page .timetable-day-counts>div{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px}
+.timetable-feature-page .timetable-day-counts label{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:9px 10px;border:1px solid #e5e5e2;border-radius:9px;background:#fff;color:#555;font-size:11px;font-weight:700}
+.timetable-feature-page .timetable-day-counts input{width:54px;height:34px;padding:0 7px;border:1px solid #dededb;border-radius:7px;color:#171717;background:#fff;font:inherit;font-size:12px}
+@media(max-width:900px){.timetable-feature-page .timetable-common-settings{grid-template-columns:repeat(2,minmax(0,1fr))}.timetable-feature-page .timetable-day-counts>div{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:520px){.timetable-feature-page .timetable-common-settings{grid-template-columns:1fr}.timetable-feature-page .timetable-day-counts>div{grid-template-columns:repeat(2,minmax(0,1fr))}}
