@@ -169,28 +169,22 @@ function PayrollPage() {
 
   return <main className="payroll-page">
     <header className="payroll-page-header">
-      <div><span className="payroll-eyebrow">STAFF FINANCE · PAYROLL OPERATIONS</span><h1>Salary & Payroll</h1><p>Set salary structures, review attendance and approved leave, calculate monthly pay, and track payments in one place.</p></div>
-      <div className="payroll-header-actions"><button type="button" className="payroll-secondary-button" onClick={load} disabled={loading}><RefreshCw size={16}/> Refresh</button>{isPrincipal && <button type="button" className="payroll-primary-button" onClick={() => { const next = !staffOpen; setStaffOpen(next); if (next) { setSelectedCandidate(null); setStaffForm(blankStaff); loadStaffCandidates() } }}><Plus size={16}/> Add staff</button>}</div>
+      <div><h1>Salary & Payroll</h1><p>Manage staff salaries and monthly payments.</p></div>
+      <div className="payroll-header-actions"> {isPrincipal && <button type="button" className="payroll-primary-button" onClick={() => { const next = !staffOpen; setStaffOpen(next); if (next) { setSelectedCandidate(null); setStaffForm(blankStaff); loadStaffCandidates() } }}><Plus size={16}/> Add staff</button>}</div>
     </header>
 
     {error && <div className="payroll-alert payroll-alert-error" role="alert"><CircleAlert size={18}/><span>{error}</span></div>}
     {notice && <div className="payroll-alert payroll-alert-success" role="status"><Check size={18}/><span>{notice}</span></div>}
 
     <section className="payroll-period-panel">
-      <div className="payroll-period-copy"><span className="payroll-eyebrow">PAY PERIOD</span><h2>{monthLabel}</h2><p>{preview ? 'Live preview from current salary, attendance and approved leave records.' : `Saved payroll snapshot · ${run.status}`}</p></div>
+      <div className="payroll-period-copy"><span className="payroll-eyebrow">PAY PERIOD</span><h2>{monthLabel}</h2> </div>
       <div className="payroll-period-controls"><label>Month<select value={month} onChange={e => setMonth(e.target.value)}>{Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={String(i + 1)}>{new Date(2026, i, 1).toLocaleDateString('en-IN', { month: 'long' })}</option>)}</select></label><label>Year<select value={year} onChange={e => setYear(e.target.value)}>{Array.from({ length: 7 }, (_, i) => Number(defaultYear) - 3 + i).map(y => <option key={y} value={String(y)}>{y}</option>)}</select></label></div>
-      <div className="payroll-period-actions"><button type="button" className="payroll-secondary-button" onClick={csvExport} disabled={!items.length}><Download size={15}/> Export CSV</button>{isPrincipal && preview && <button type="button" className="payroll-primary-button" onClick={generate} disabled={saving || loading || !items.length || totals.missing > 0}>{saving ? 'Processing…' : 'Generate payroll'}</button>}{isPrincipal && run?.status === 'draft' && <button type="button" className="payroll-primary-button" onClick={approve} disabled={saving}>{saving ? 'Processing…' : 'Approve payroll'}</button>}</div>
+      <div className="payroll-period-actions">{isPrincipal && preview && <button type="button" className="payroll-primary-button" onClick={generate} disabled={saving || loading || !items.length || totals.missing > 0}>{saving ? 'Processing…' : 'Generate payroll'}</button>}{isPrincipal && run?.status === 'draft' && <button type="button" className="payroll-primary-button" onClick={approve} disabled={saving}>{saving ? 'Processing…' : 'Approve payroll'}</button>}</div>
     </section>
 
-    <section className="payroll-metrics">
-      <article><span className="payroll-metric-icon"><Users size={19}/></span><div><small>Staff in payroll</small><strong>{items.length}</strong><span>{totals.missing ? `${totals.missing} need salary setup` : 'Based on active staff'}</span></div></article>
-      <article><span className="payroll-metric-icon"><Wallet size={19}/></span><div><small>Gross salary</small><strong>{money(totals.gross)}</strong><span>Before deductions</span></div></article>
-      <article><span className="payroll-metric-icon"><CircleAlert size={19}/></span><div><small>Total deductions</small><strong>{money(totals.deductions)}</strong><span>Attendance, unpaid leave and recurring</span></div></article>
-      <article><span className="payroll-metric-icon"><BadgeIndianRupee size={19}/></span><div><small>Net payable</small><strong>{money(totals.net)}</strong><span>{money(totals.paid)} paid so far</span></div></article>
-    </section>
-
+ 
     {staffOpen && isPrincipal && <section className="payroll-panel">
-      <div className="payroll-panel-heading"><div><span className="payroll-eyebrow">STAFF RECORD</span><h2>Add existing staff to payroll</h2><p>Select a teacher from the school list. Available profile details will fill automatically.</p></div><button className="payroll-icon-button" type="button" onClick={() => { setStaffOpen(false); setSelectedCandidate(null) }} aria-label="Close"><X size={18}/></button></div>
+      <div className="payroll-panel-heading"><div><h2>Add staff</h2><p>Search and select an existing school staff member.</p></div><button className="payroll-icon-button" type="button" onClick={() => { setStaffOpen(false); setSelectedCandidate(null) }} aria-label="Close"><X size={18}/></button></div>
       <div className="payroll-staff-picker">
         <label className="payroll-search"><Search size={17}/><input value={staffCandidateQuery} onChange={e => setStaffCandidateQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); loadStaffCandidates() } }} placeholder="Search teachers by name, employee ID or subject…"/></label>
         <button type="button" className="payroll-secondary-button" onClick={loadStaffCandidates} disabled={saving}><RefreshCw size={15}/> Search</button>
@@ -201,27 +195,13 @@ function PayrollPage() {
         </button>) : <div className="payroll-empty"><Users size={22}/><strong>No available staff found</strong><span>They may already be linked to payroll, or try another search.</span></div>}
       </div>
       {selectedCandidate && <form className="payroll-form-grid payroll-selected-staff-form" onSubmit={createStaff}>
-        <div className="payroll-staff-section-title"><h3>Selected staff details</h3><p>Fetched from the existing teacher and login records. Confirm the details below.</p></div>
-        <label>Employee ID<input value={staffForm.employeeId} readOnly/></label>
-        <label>Full name<input value={staffForm.name} readOnly/></label>
-        <label>Designation<input value={staffForm.designation} readOnly/></label>
-        <label>Department<input value={staffForm.department} readOnly/></label>
-        <label>Email<input value={staffForm.email} readOnly/></label>
-        <label>Phone<input value={staffForm.phone} readOnly/></label>
-        <label>Joining date<input type="date" value={staffForm.joiningDate} readOnly/></label>
-        <label>Qualification<input value={selectedCandidate.qualification || 'Not provided'} readOnly/></label>
-        <label>Specialization / subject<input value={selectedCandidate.specialization || 'Not provided'} readOnly/></label>
-        <label>Gender<input value={selectedCandidate.gender || 'Not provided'} readOnly/></label>
-        <label>Date of birth<input value={selectedCandidate.dateOfBirth ? String(selectedCandidate.dateOfBirth).slice(0, 10) : 'Not provided'} readOnly/></label>
-        <label>Address<input value={selectedCandidate.address || 'Not provided'} readOnly/></label>
-        <label>Employment type<select value={staffForm.employmentType} onChange={e => setStaffForm({ ...staffForm, employmentType: e.target.value })}><option value="full_time">Full-time</option><option value="part_time">Part-time</option><option value="contract">Contract</option></select></label>
-        <label>Payroll category<select value={staffForm.category} onChange={e => setStaffForm({ ...staffForm, category: e.target.value })}><option value="teaching">Teaching</option><option value="administration">Administration</option><option value="finance">Finance</option><option value="support">Support</option><option value="other">Other</option></select></label>
-        <div className="payroll-form-footer"><span>Login credentials are not created or changed. Salary is set in the next step.</span><button className="payroll-primary-button" disabled={saving}>{saving ? 'Adding…' : 'Add selected staff'}</button></div>
+        <div className="payroll-selected-staff-summary"><span className="payroll-staff-avatar">{(staffForm.name || 'S').trim().charAt(0).toUpperCase()}</span><div><strong>{staffForm.name}</strong><small>{staffForm.employeeId} · {staffForm.designation}</small></div></div>
+        <div className="payroll-form-footer"><span>Salary will be set after adding this staff member.</span><button className="payroll-primary-button" disabled={saving}>{saving ? 'Adding…' : 'Add staff'}</button></div>
       </form>}
     </section>}
 
     <section className="payroll-panel">
-      <div className="payroll-toolbar"><div><span className="payroll-eyebrow">MONTHLY REGISTER</span><h2>Salary calculation</h2><p>Per-day salary is monthly gross divided by working days, excluding Sundays. Recorded absences and unpaid leave are deducted; missing attendance is not automatically deducted.</p></div><label className="payroll-search"><Search size={17}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Filter staff by name or employee ID…"/></label></div>
+      <div className="payroll-toolbar"><div><h2>Staff salary</h2><p>View salary details and record payments.</p></div><label className="payroll-search"><Search size={17}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Filter staff by name or employee ID…"/></label></div>
       {loading ? <div className="payroll-empty"><RefreshCw size={22}/><strong>Loading payroll…</strong></div> : !items.length ? <div className="payroll-empty"><CalendarDays size={24}/><strong>No staff records found</strong><span>Add staff profiles and set salary structures to start.</span></div> : <div className="payroll-table-wrap"><table className="payroll-table payroll-compact-table"><thead><tr><th>Employee</th><th>Attendance</th><th>Deductions</th><th>Net payable</th><th aria-label="Salary slip details"></th></tr></thead><tbody>
         {items.filter(x => !query.trim() || `${x.name} ${x.employeeId}`.toLowerCase().includes(query.trim().toLowerCase())).map((item, index) => {
           const staff = employees.find(x => String(x.id) === String(item.employee))
@@ -260,8 +240,7 @@ function PayrollPage() {
     {paymentTarget && <section className="payroll-panel payroll-editor"><div className="payroll-panel-heading"><div><span className="payroll-eyebrow">PAYMENT ENTRY</span><h2>{paymentTarget.name}</h2><p>Record the actual payment made. The remaining balance cannot exceed the approved net salary.</p></div><button className="payroll-icon-button" type="button" onClick={() => setPaymentTarget(null)} aria-label="Close"><X size={18}/></button></div>
       <form className="payroll-form-grid" onSubmit={recordPayment}><label>Amount (₹) *<input type="number" min="0.01" step="0.01" max={Math.max(0, paymentTarget.netPayable - paymentTarget.paidAmount)} value={paymentForm.amount} onChange={e => setPaymentForm({ ...paymentForm, amount: e.target.value })} required/></label><label>Payment method<select value={paymentForm.method} onChange={e => setPaymentForm({ ...paymentForm, method: e.target.value })}><option value="bank_transfer">Bank transfer</option><option value="upi">UPI</option><option value="cash">Cash</option><option value="cheque">Cheque</option><option value="other">Other</option></select></label><label>Payment date<input type="date" value={paymentForm.date} onChange={e => setPaymentForm({ ...paymentForm, date: e.target.value })} required/></label><label>Reference / transaction ID<input value={paymentForm.reference} onChange={e => setPaymentForm({ ...paymentForm, reference: e.target.value })} maxLength={120}/></label><div className="payroll-form-footer"><span>Remaining: <strong>{money(paymentTarget.netPayable - paymentTarget.paidAmount)}</strong></span><button className="payroll-primary-button" disabled={saving}>{saving ? 'Saving…' : 'Save payment'}</button></div></form>
     </section>}
-    <p className="payroll-privacy-note"><Clock3 size={15}/> Payroll is school-scoped. Preview values use current approved records; generated payroll is a saved snapshot, and payment status changes only when a payment is recorded.</p>
-  </main>
+    </main>
 }
 
 export default PayrollPage
