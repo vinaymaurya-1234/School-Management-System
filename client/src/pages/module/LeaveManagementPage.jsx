@@ -96,7 +96,7 @@ export default function LeaveManagementPage() {
 
   return <main className="leave-page">
     <header className="leave-hero">
-      <div><span className="leave-eyebrow">{isPrincipal ? 'STAFF OPERATIONS' : 'YOUR STAFF BENEFITS'}</span><h1>{isPrincipal ? 'Leave Management' : 'My Leave'}</h1><p>{isPrincipal ? 'Review staff leave requests, manage annual quotas and keep decisions transparent.' : 'Apply for leave, track the principal’s decision and review your remaining leave balance.'}</p></div>
+      <div><span className="leave-eyebrow">{isPrincipal ? 'STAFF OPERATIONS' : 'YOUR STAFF BENEFITS'}</span><h1>{isPrincipal ? 'Leave Management' : 'My Leave'}</h1><p>{isPrincipal ? 'Manage staff leave requests and the school’s annual leave policy.' : 'Apply for leave, track the principal’s decision and review your remaining leave balance.'}</p></div>
       {!isPrincipal && <button type="button" className="leave-primary" onClick={() => setShowApplicationForm((open) => !open)} aria-expanded={showApplicationForm}><Send size={16}/>{showApplicationForm ? 'Close form' : 'Leave'}</button>}
     </header>
     {error && <div className="leave-alert error"><AlertCircle size={17}/><span>{error}</span><button type="button" onClick={() => setError('')} aria-label="Dismiss error">×</button></div>}
@@ -104,15 +104,15 @@ export default function LeaveManagementPage() {
 
     {isPrincipal ? <>
       <section className="leave-panel">
-        <div className="leave-panel-head"><div><span className="leave-eyebrow">ANNUAL POLICY</span><h2>Leave quota per teacher</h2><p>Set the school’s annual paid leave allowance. Quotas start at zero until configured; existing approvals count against each teacher’s balance.</p></div><ShieldCheck size={23}/></div>
+        <div className="leave-panel-head"><div><span className="leave-eyebrow">ANNUAL POLICY</span><h2>Annual leave policy</h2><p>Set the paid leave allowance applied to each teacher. Approved leave is deducted from the teacher’s available balance.</p></div><ShieldCheck size={23}/></div>
         <form className="leave-policy-form" onSubmit={savePolicy}>
           {['casual', 'sick', 'earned'].map((type) => <label key={type}>{labels[type]} (days)<input type="number" min="0" max="366" step="0.5" required value={policy[type] ?? 0} onChange={(event) => setPolicy((current) => ({ ...current, [type]: event.target.value }))}/></label>)}
-          <button className="leave-primary" disabled={saving} type="submit">{saving ? 'Saving…' : 'Save quotas'}</button>
+          <div className="leave-policy-footer"><span>Changes apply to leave balances for the current policy.</span><button className="leave-primary" disabled={saving} type="submit">{saving ? 'Saving…' : 'Save policy'}</button></div>
         </form>
       </section>
       <section className="leave-panel">
         <div className="leave-panel-head"><div><span className="leave-eyebrow">APPLICATION INBOX</span><h2>Staff leave requests</h2><p>{filter === 'pending' ? 'Review applications awaiting your decision.' : 'Review past decisions and application history.'}</p></div><span className="leave-count">{pendingCount} pending in view</span></div>
-        <div className="leave-toolbar"><div className="leave-filters">{['pending','approved','rejected','cancelled','all'].map((value) => <button type="button" key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{value[0].toUpperCase()+value.slice(1)}</button>)}</div></div>
+        <div className="leave-toolbar"><div className="leave-filters">{['pending','approved','rejected','cancelled','all'].map((value) => <button type="button" key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{value[0].toUpperCase()+value.slice(1)}</button>)}</div><button type="button" className="leave-refresh" onClick={load} disabled={loading || saving}><RefreshCw size={14} className={loading ? 'leave-spin' : ''}/> Refresh</button></div>
         <div className="leave-request-list">
           {requests.length ? requests.map((item) => <article className="leave-request-card" key={item.id}>
             <div className="leave-request-top"><div className="leave-person"><span className="leave-avatar">{item.teacher?.name?.charAt(0) || 'T'}</span><div><strong>{item.teacher?.name || 'Teacher'}</strong><small>{item.teacher?.email || 'Staff account'} · Applied {dateLabel(item.createdAt)}</small></div></div><span className={`leave-status ${item.status}`}>{statusLabel[item.status] || item.status}</span></div>
@@ -120,7 +120,7 @@ export default function LeaveManagementPage() {
             <div className="leave-reason"><small>Reason</small><p>{item.reason}</p></div>
             {item.reviewNote && <div className="leave-review-note"><strong>{item.status === 'rejected' ? 'Rejection reason' : 'Principal note'}:</strong> {item.reviewNote}</div>}
             {item.status === 'pending' && <div className="leave-decision"><label>Review note{filter === 'pending' ? ' (required for rejection)' : ''}<textarea value={reviewNotes[item.id] || ''} maxLength={1000} onChange={(event) => setReviewNotes((current) => ({ ...current, [item.id]: event.target.value }))} placeholder="Add feedback for the teacher…"/></label><div><button className="leave-secondary" type="button" disabled={saving} onClick={() => decide(item, 'rejected')}><XCircle size={16}/> Reject</button><button className="leave-primary" type="button" disabled={saving} onClick={() => decide(item, 'approved')}><CheckCircle2 size={16}/> Approve</button></div></div>}
-          </article>) : <div className="leave-empty"><FileCheck2 size={28}/><strong>No leave requests here</strong><span>Applications matching this filter will appear here.</span></div>}
+          </article>) : <div className="leave-empty"><FileCheck2 size={28}/><strong>{filter === 'pending' ? 'You’re all caught up' : 'No matching requests'}</strong><span>{filter === 'pending' ? 'There are no staff leave applications waiting for your decision.' : 'Leave applications for this status will appear here.'}</span></div>}
         </div>
       </section>
     </> : <>
