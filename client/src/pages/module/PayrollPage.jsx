@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
-import { BadgeIndianRupee, CalendarDays, Check, CircleAlert, Clock3, Download, RefreshCw, Search, Users, Wallet, Plus, X } from 'lucide-react'
+import { CalendarDays, Check, CircleAlert, RefreshCw, Search, Users, Plus, X } from 'lucide-react'
 import apiClient from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import './PayrollPage.css'
@@ -155,13 +155,6 @@ function PayrollPage() {
       setData({ run: response.data.run, preview: false }); setPaymentTarget(null); setNotice('Payment recorded successfully.')
     } catch (err) { setError(err.response?.data?.message || 'Could not record payment.') }
     finally { setSaving(false) }
-  }
-
-  const csvExport = () => {
-    const rows = [['Employee ID', 'Employee', 'Gross', 'Present', 'Paid leave', 'Unpaid leave', 'Absent', 'Deductions', 'Net payable', 'Paid', 'Payment status'], ...items.map(x => [x.employeeId, x.name, x.grossSalary ?? '', x.presentDays ?? '', x.paidLeaveDays ?? '', x.unpaidLeaveDays ?? '', x.absentDays ?? '', x.totalDeductions ?? '', x.netPayable ?? '', x.paidAmount ?? 0, x.paymentStatus || (preview ? 'Preview' : 'unpaid')])]
-    const csv = rows.map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(',')).join('\n')
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
-    const link = document.createElement('a'); link.href = url; link.download = `payroll-${year}-${month.padStart(2, '0')}.csv`; link.click(); URL.revokeObjectURL(url)
   }
 
   const changeComponent = (field, index, key, value) => setSalaryForm(old => ({ ...old, [field]: old[field].map((x, i) => i === index ? { ...x, [key]: value } : x) }))
