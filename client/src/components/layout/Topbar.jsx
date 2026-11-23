@@ -79,10 +79,8 @@ const exploreItems = [
   { label: 'Teacher Login Credentials', href: '/module/teacher-credentials', hint: 'Teacher login IDs, account status and password reset' },
   { label: 'Student & Parent Login Credentials', href: '/module/login-credentials', hint: 'Login IDs, account status and password reset' },
   { label: 'Assignments', href: '/module/assignments', hint: 'Learning tasks' },
-  { label: 'Communication', href: '/module/communication', hint: 'Messages & notices' },
   { label: 'Staff & HR', href: '/module/staff', hint: 'Employee management' },
   { label: 'Leave', href: '/module/leave', hint: 'Leave management' },
-  { label: 'Settings', href: '/module/profile', hint: 'School & account settings' },
 ]
 
 function Menu({ label, items, open, onToggle, onClose, wide = false }) {
