@@ -44,3 +44,19 @@
 
 /* Compact staff selection after simplifying payroll UI */
 .payroll-selected-staff-form{grid-template-columns:1fr;gap:12px}.payroll-selected-staff-summary{display:flex;align-items:center;gap:12px;max-width:420px;padding:12px;border:1px solid #e6e6e6;border-radius:10px;background:#fafafa}.payroll-selected-staff-summary>div{display:grid;gap:4px}.payroll-selected-staff-summary strong{font-size:13px;color:#222}.payroll-selected-staff-summary small{font-size:11px;color:#777}.payroll-page-header{padding-bottom:15px}.payroll-period-panel{grid-template-columns:minmax(180px,1fr) auto auto}.payroll-period-copy h2{margin-bottom:0}.payroll-period-actions{justify-content:flex-end}
+
+/* Salary editor opens in a centred dialog, never at the end of the page */
+.payroll-modal-backdrop{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:24px;background:rgb(0 0 0 / 48%);backdrop-filter:blur(3px);overflow-y:auto}
+.payroll-modal{width:min(720px,100%);max-height:min(88vh,820px);overflow-y:auto;margin:auto;padding:24px;border:1px solid #e4e4e4;border-radius:16px;background:#fff;box-shadow:0 24px 80px rgb(0 0 0 / 22%);animation:payroll-modal-in .18s ease-out}
+.payroll-modal .payroll-panel-heading{margin-bottom:18px}
+.payroll-modal .payroll-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.payroll-modal .payroll-pf-settings{margin-top:14px}
+.payroll-optional-components{margin-top:14px;border:1px solid #e7e7e7;border-radius:10px;padding:13px 15px}
+.payroll-optional-components summary{cursor:pointer;color:#333;font-size:12px;font-weight:750}
+.payroll-optional-components[open] summary{margin-bottom:12px}
+.payroll-optional-components .payroll-component-columns{margin:0}
+.payroll-modal-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:18px;padding-top:16px;border-top:1px solid #ededed;color:#777;font-size:11px}
+.payroll-modal-footer>div{display:flex;gap:8px}
+@keyframes payroll-modal-in{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:600px){.payroll-modal-backdrop{align-items:end;padding:10px}.payroll-modal{width:100%;max-height:92vh;padding:17px;border-radius:15px}.payroll-modal .payroll-form-grid{grid-template-columns:1fr}.payroll-modal-footer{align-items:stretch;flex-direction:column}.payroll-modal-footer>div>*{flex:1}}
+@media(prefers-reduced-motion:reduce){.payroll-modal{animation:none}}
