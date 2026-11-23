@@ -190,3 +190,41 @@
  .reports-exam-queue .reports-status{max-width:95px;font-size:7px}
 }
 @media(prefers-reduced-motion:reduce){.principal-module-page:has(.reports-command-header) *{scroll-behavior:auto}}
+
+
+/* Reports refinement: neutral cards, calmer hierarchy and usable register filters */
+.reports-kpi-grid{gap:14px;margin-bottom:16px}
+.reports-kpi{min-height:132px;padding:20px 21px;border-color:#e8e8e6;border-radius:16px;background:linear-gradient(180deg,#fff 0%,#fcfcfb 100%);box-shadow:0 5px 18px rgba(20,20,20,.035);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+.reports-kpi:hover{transform:translateY(-2px);border-color:#d7d7d3;box-shadow:0 12px 26px rgba(20,20,20,.065)}
+.reports-kpi>span{color:#777;font-size:9px;letter-spacing:1.15px}
+.reports-kpi>strong{margin:13px 0 6px;color:#191919;font-size:clamp(23px,2.15vw,30px);letter-spacing:-1.05px}
+.reports-kpi>small{color:#858585;font-size:9px}
+.reports-main-grid{gap:14px;margin-bottom:14px}
+.reports-detail-grid{gap:14px;margin-bottom:14px}
+.reports-panel{padding:21px;border-radius:16px;border-color:#e8e8e6;box-shadow:0 5px 18px rgba(20,20,20,.03);transition:box-shadow .2s ease,border-color .2s ease}
+.reports-panel:hover{border-color:#dededb;box-shadow:0 10px 24px rgba(20,20,20,.05)}
+.reports-panel-heading{margin-bottom:19px}
+.reports-panel-heading h3{font-size:16px;letter-spacing:-.45px}
+.reports-panel-icon{width:36px;height:36px;flex-basis:36px;border-radius:11px;background:#f6f6f4}
+.reports-command-header{margin-bottom:23px}
+.reports-command-header h2{font-size:clamp(28px,3.2vw,38px);letter-spacing:-1.55px}
+.reports-command-header p{font-size:12px;color:#777}
+.reports-command-header .principal-report-actions button{height:43px;border-radius:11px}
+.reports-command-header .principal-report-actions .primary-btn{background:#202020;border-color:#202020;box-shadow:none}
+.reports-command-header .principal-report-actions .primary-btn:hover{background:#000;box-shadow:0 8px 20px rgba(0,0,0,.12)}
+.reports-payment-tools{display:flex;align-items:center;gap:9px;margin:0 0 12px}
+.reports-payment-search{display:flex;align-items:center;gap:8px;flex:1;min-width:160px;height:36px;padding:0 10px;border:1px solid #e8e8e6;border-radius:9px;background:#fff;color:#858585}
+.reports-payment-search:focus-within{border-color:#aaa;box-shadow:0 0 0 3px rgba(0,0,0,.04)}
+.reports-payment-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#333;font:inherit;font-size:10px}
+.reports-payment-tools select{height:36px;max-width:170px;padding:0 28px 0 10px;border:1px solid #e8e8e6;border-radius:9px;background:#fff;color:#555;font-size:10px;outline:0}
+.reports-payment-tools select:focus{border-color:#aaa;box-shadow:0 0 0 3px rgba(0,0,0,.04)}
+.reports-table th{background:#f7f7f5}
+.reports-table tbody tr:hover td{background:#fbfbfa}
+.reports-table td{padding-top:12px;padding-bottom:12px}
+.reports-bottom-strip{border-radius:14px;background:#fafaf9;border-color:#e8e8e6;padding:17px 20px}
+@media(max-width:700px){
+ .reports-payment-tools{align-items:stretch;flex-direction:column}
+ .reports-payment-tools select{max-width:none;width:100%}
+ .reports-kpi{min-height:116px;padding:15px}
+ .reports-panel{padding:16px}
+}
