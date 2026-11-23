@@ -44,6 +44,8 @@ function PrincipalModulePage({ moduleKey }) {
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({})
   const [reportData, setReportData] = useState({ fees: null, payments: [], exams: [], examProgress: {}, pendingLeaves: [], pendingAttendance: [], loaded: false })
+  const [reportPaymentFilter, setReportPaymentFilter] = useState('all')
+  const [reportPaymentQuery, setReportPaymentQuery] = useState('')
 
   const activeYear = useMemo(() => years.find((year) => year.isActive) || years[0] || null, [years])
   const filteredSections = useMemo(() => sections.filter((section) => !selectedClass || idOf(section.class) === selectedClass), [sections, selectedClass])
@@ -409,7 +411,12 @@ function PrincipalModulePage({ moduleKey }) {
     URL.revokeObjectURL(url)
   }
   const money = (value) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(value) || 0)
-  const recentReportPayments = reportData.payments.slice(0, 6)
+  const recentReportPayments = useMemo(() => reportData.payments.filter((payment) => {
+    const matchesStatus = reportPaymentFilter === 'all' || payment.status === reportPaymentFilter
+    const search = reportPaymentQuery.trim().toLowerCase()
+    const matchesSearch = !search || [payment.student?.name, payment.receiptNumber, payment.method, payment.offlineMethod].some((value) => String(value || '').toLowerCase().includes(search))
+    return matchesStatus && matchesSearch
+  }).slice(0, 8), [reportData.payments, reportPaymentFilter, reportPaymentQuery])
   const reviewQueue = reportData.exams.filter((exam) => ['Pending review', 'Ready to publish', 'Marks in progress', 'Marks pending'].includes(reportExamStatus(exam))).slice(0, 5)
   const renderReports = () => <>
     <div className="reports-command-header">
@@ -420,7 +427,7 @@ function PrincipalModulePage({ moduleKey }) {
       </div>
     </div>
     <div className="reports-kpi-grid">
-      <article className="reports-kpi reports-kpi-dark"><span>FEES COLLECTED</span><strong>{loading ? '—' : money(reportData.fees?.collected)}</strong><small>Of {reportData.fees ? money(reportData.fees.feesAssigned) : '—'} assigned</small></article>
+      <article className="reports-kpi"><span>FEES COLLECTED</span><strong>{loading ? '—' : money(reportData.fees?.collected)}</strong><small>Of {reportData.fees ? money(reportData.fees.feesAssigned) : '—'} assigned</small></article>
       <article className="reports-kpi"><span>OUTSTANDING FEES</span><strong>{loading ? '—' : money(reportData.fees?.outstanding)}</strong><small>{reportData.fees?.overdueAccounts ?? '—'} overdue accounts</small></article>
       <article className="reports-kpi"><span>MARKS TO REVIEW</span><strong>{loading ? '—' : reportExamCounts.review}</strong><small>{reportExamCounts.publish} ready to publish</small></article>
       <article className="reports-kpi"><span>ATTENDANCE PENDING</span><strong>{loading ? '—' : reportData.pendingAttendance.length}</strong><small>Class sections not submitted today</small></article>
@@ -461,6 +468,12 @@ function PrincipalModulePage({ moduleKey }) {
           <span><i className="is-success"/> {reportPaymentStats.verified} verified</span>
           <span><i className="is-warning"/> {reportPaymentStats.pending} awaiting verification</span>
           <span><i className="is-muted"/> {reportPaymentStats.rejected} rejected / reversed</span>
+        </div>
+        <div className="reports-payment-tools">
+          <label className="reports-payment-search"><Search size={14}/><input value={reportPaymentQuery} onChange={(event) => setReportPaymentQuery(event.target.value)} placeholder="Search student or receipt"/></label>
+          <select aria-label="Filter payment status" value={reportPaymentFilter} onChange={(event) => setReportPaymentFilter(event.target.value)}>
+            <option value="all">All statuses</option><option value="verified">Verified</option><option value="pending_verification">Pending verification</option><option value="pending_gateway">Pending gateway</option><option value="rejected">Rejected</option><option value="reversed">Reversed</option>
+          </select>
         </div>
         {loading ? <div className="report-unavailable">Loading payment register…</div> : recentReportPayments.length ? <div className="reports-table-wrap"><table className="reports-table"><thead><tr><th>Student</th><th>Payment date</th><th>Method</th><th>Status</th><th>Amount</th></tr></thead><tbody>{recentReportPayments.map((payment) => <tr key={payment._id}><td><strong>{payment.student?.name || 'Student'}</strong><small>{payment.receiptNumber || 'Receipt pending'}</small></td><td>{new Date(payment.verifiedAt || payment.createdAt).toLocaleDateString('en-IN')}</td><td>{payment.method === 'online' ? 'Online' : String(payment.offlineMethod || payment.method || '—').replaceAll('_', ' ')}</td><td><span className={`reports-status status-${payment.status || 'unknown'}`}>{String(payment.status || 'unknown').replaceAll('_', ' ')}</span></td><td className="reports-amount">{money(payment.amount)}</td></tr>)}</tbody></table></div> : <div className="report-unavailable"><Receipt size={20}/><strong>No fee transactions yet</strong><span>Transactions will appear when payments are recorded.</span></div>}
         <button className="reports-link-action" onClick={() => navigate('/module/fees')}>Open fee management <ArrowUpRight size={14}/></button>
