@@ -60,3 +60,23 @@
 @keyframes payroll-modal-in{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:600px){.payroll-modal-backdrop{align-items:end;padding:10px}.payroll-modal{width:100%;max-height:92vh;padding:17px;border-radius:15px}.payroll-modal .payroll-form-grid{grid-template-columns:1fr}.payroll-modal-footer{align-items:stretch;flex-direction:column}.payroll-modal-footer>div>*{flex:1}}
 @media(prefers-reduced-motion:reduce){.payroll-modal{animation:none}}
+
+/* Compact, clear payroll overview */
+.payroll-page{gap:16px}
+.payroll-page-header{align-items:center;padding:4px 0 16px}
+.payroll-page-header h1{font-size:clamp(26px,2.5vw,34px)}
+.payroll-period-panel{background:#fff;padding:16px 18px;border-radius:12px}
+.payroll-period-copy h2{font-size:20px}
+.payroll-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.payroll-summary article{display:grid;gap:7px;min-width:0;padding:15px 17px;border:1px solid var(--line);border-radius:11px;background:#fff}
+.payroll-summary article span{color:#777;font-size:11px;font-weight:650}
+.payroll-summary article strong{overflow-wrap:anywhere;color:#171717;font-size:clamp(18px,2vw,23px);font-weight:800;letter-spacing:-.04em}
+.payroll-panel{padding:19px;border-radius:12px;box-shadow:none}
+.payroll-toolbar{margin-bottom:15px}
+.payroll-toolbar h2{font-size:17px}
+.payroll-table th{background:#f8f8f8}
+.payroll-employee-row td{vertical-align:middle;padding-top:15px;padding-bottom:15px}
+.payroll-status{margin:0;min-height:25px}
+.payroll-table-footer{padding-top:11px}
+@media(max-width:700px){.payroll-summary{grid-template-columns:1fr 1fr}.payroll-summary article:last-child{grid-column:1/-1}.payroll-page-header{align-items:flex-start}.payroll-period-panel{padding:14px}.payroll-panel{padding:14px}}
+@media(max-width:430px){.payroll-summary{grid-template-columns:1fr}.payroll-summary article:last-child{grid-column:auto}}
