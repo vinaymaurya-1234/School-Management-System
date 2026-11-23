@@ -41,3 +41,6 @@
 .payroll-slip-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:16px}
 @media(max-width:850px){.payroll-slip-grid{grid-template-columns:1fr}.payroll-slip-details{padding:16px}}
 @media(max-width:520px){.payroll-compact-table{min-width:610px}.payroll-slip-heading{flex-direction:column}.payroll-slip-net{text-align:left}.payroll-slip-toggle{padding:0 8px}.payroll-slip-actions>*{flex:1}}
+
+/* Compact staff selection after simplifying payroll UI */
+.payroll-selected-staff-form{grid-template-columns:1fr;gap:12px}.payroll-selected-staff-summary{display:flex;align-items:center;gap:12px;max-width:420px;padding:12px;border:1px solid #e6e6e6;border-radius:10px;background:#fafafa}.payroll-selected-staff-summary>div{display:grid;gap:4px}.payroll-selected-staff-summary strong{font-size:13px;color:#222}.payroll-selected-staff-summary small{font-size:11px;color:#777}.payroll-page-header{padding-bottom:15px}.payroll-period-panel{grid-template-columns:minmax(180px,1fr) auto auto}.payroll-period-copy h2{margin-bottom:0}.payroll-period-actions{justify-content:flex-end}
