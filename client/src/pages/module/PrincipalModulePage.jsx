@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, Check, Download, GraduationCap, Loader2, Pencil, Plus, RefreshCw, Search, Settings, Users, X } from 'lucide-react'
+import { ArrowLeft, Check, Download, GraduationCap, Loader2, Pencil, Plus, RefreshCw, Search, Settings, Users, X, IndianRupee, ClipboardList, CalendarDays, FileSpreadsheet } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import apiClient from '../../api/client'
@@ -43,6 +43,7 @@ function PrincipalModulePage({ moduleKey }) {
   const [modal, setModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({})
+  const [reportData, setReportData] = useState({ fees: null, exams: [], pendingLeaves: [], loaded: false })
 
   const activeYear = useMemo(() => years.find((year) => year.isActive) || years[0] || null, [years])
   const filteredSections = useMemo(() => sections.filter((section) => !selectedClass || idOf(section.class) === selectedClass), [sections, selectedClass])
@@ -86,6 +87,20 @@ function PrincipalModulePage({ moduleKey }) {
       setSections(nextSections)
       setEnrollments(responseData(enrollmentRes, 'enrollments'))
       setSubjectMappings(responseData(subjectRes, 'subjects'))
+      if (moduleKey === 'reports') {
+        const [feeResult, examResult, leaveResult] = await Promise.allSettled([
+          apiClient.get('/fees/summary'),
+          apiClient.get('/exams', { params: { academicYear: year._id } }),
+          apiClient.get('/leave', { params: { status: 'pending' } }),
+        ])
+        setReportData({
+          fees: feeResult.status === 'fulfilled' ? feeResult.value.data?.summary || null : null,
+          exams: examResult.status === 'fulfilled' ? responseData(examResult.value, 'exams') : [],
+          pendingLeaves: leaveResult.status === 'fulfilled' ? responseData(leaveResult.value, 'requests') : [],
+          loaded: true,
+          errors: [feeResult, examResult, leaveResult].filter((item) => item.status === 'rejected').length,
+        })
+      }
       if (!selectedClass && nextClasses[0]) setSelectedClass(nextClasses[0]._id)
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to load school data.')
@@ -326,11 +341,92 @@ function PrincipalModulePage({ moduleKey }) {
     </div>
   </>
 
+  const reportClassRows = useMemo(() => {
+    const groups = new Map()
+    enrollments.filter((item) => item.status === 'active').forEach((item) => {
+      const name = item.class?.name || 'Unassigned'
+      groups.set(name, (groups.get(name) || 0) + 1)
+    })
+    return [...groups.entries()].sort((a, b) => String(a[0]).localeCompare(String(b[0]), undefined, { numeric: true }))
+  }, [enrollments])
+  const reportMaxClassCount = Math.max(1, ...reportClassRows.map(([, count]) => count))
+  const exportSchoolReport = () => {
+    const rows = [
+      ['School report', 'Value'],
+      ['Academic year', activeYear?.name || '—'],
+      ['Active students', students.filter((item) => item.active !== false).length],
+      ['Active teachers', teachers.filter((item) => item.active !== false).length],
+      ['Classes', classes.length],
+      ['Sections', sections.length],
+      ['Active enrollments', enrollments.filter((item) => item.status === 'active').length],
+      ['Fees assigned', reportData.fees?.feesAssigned ?? 'Not available'],
+      ['Fees collected', reportData.fees?.collected ?? 'Not available'],
+      ['Fees outstanding', reportData.fees?.outstanding ?? 'Not available'],
+      ['Overdue fee accounts', reportData.fees?.overdueAccounts ?? 'Not available'],
+      ['Exams scheduled', reportData.exams.length],
+      ['Pending leave requests', reportData.pendingLeaves.length],
+    ]
+    const csv = rows.map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(',')).join('\n')
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = 'school-overview-report.csv'
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+  const money = (value) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(value) || 0)
   const renderReports = () => <>
-    <div className="report-grid">
-      {[['Students', students.filter((item) => item.active !== false).length, 'Active student profiles'], ['Teachers', teachers.filter((item) => item.active !== false).length, 'Active teacher profiles'], ['Classes', classes.length, activeYear?.name || 'Current year'], ['Sections', sections.length, 'Academic structure'], ['Enrollments', enrollments.length, 'Current-year enrollments']].map(([label, value, detail]) => <article key={label}><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>)}
+    <div className="principal-report-heading">
+      <div><span className="report-kicker">SCHOOL PERFORMANCE</span><h2>Overview & key reports</h2><p>Live figures from the school database for {activeYear?.name || 'the active academic year'}.</p></div>
+      <div className="principal-report-actions">
+        <button className="secondary-btn" onClick={load} disabled={loading}><RefreshCw size={15}/> Refresh</button>
+        <button className="primary-btn" onClick={exportSchoolReport}><Download size={15}/> Export report</button>
+      </div>
     </div>
-    <div className="report-panel"><div><span>LIVE DATABASE</span><h2>Current school state</h2><p>These numbers are calculated from your school APIs. No demo counts are displayed.</p></div><button className="secondary-btn" onClick={load}><RefreshCw size={15}/> Refresh</button></div>
+    <div className="report-grid">
+      {[
+        ['Students', students.filter((item) => item.active !== false).length, 'Active student profiles', Users],
+        ['Teachers', teachers.filter((item) => item.active !== false).length, 'Active teacher profiles', GraduationCap],
+        ['Classes', classes.length, 'Academic structure', ClipboardList],
+        ['Sections', sections.length, 'Across all classes', CalendarDays],
+        ['Enrollments', enrollments.filter((item) => item.status === 'active').length, 'Active this academic year', FileSpreadsheet],
+      ].map(([label, value, detail, CardIcon]) => <article key={label}><div className="report-card-icon"><CardIcon size={17}/></div><span>{label}</span><strong>{loading ? '—' : value}</strong><small>{detail}</small></article>)}
+    </div>
+    <div className="principal-report-grid">
+      <section className="principal-report-card report-finance-card">
+        <div className="principal-report-card-head"><div><span className="report-kicker">FEE COLLECTION</span><h3>Financial overview</h3></div><IndianRupee size={19}/></div>
+        {reportData.fees ? <>
+          <div className="report-finance-total">{money(reportData.fees.collected)}<small>Collected</small></div>
+          <div className="report-finance-lines">
+            <div><span>Fees assigned</span><strong>{money(reportData.fees.feesAssigned)}</strong></div>
+            <div><span>Outstanding</span><strong>{money(reportData.fees.outstanding)}</strong></div>
+            <div><span>Overdue accounts</span><strong>{reportData.fees.overdueAccounts ?? 0}</strong></div>
+          </div>
+          <div className="report-progress-track"><span style={{ width: `${Math.min(100, reportData.fees.feesAssigned > 0 ? reportData.fees.collected / reportData.fees.feesAssigned * 100 : 0)}%` }}/></div>
+          <small className="report-muted">Collection progress against assigned fees</small>
+        </> : <div className="report-unavailable">{reportData.loaded ? 'Financial summary is currently unavailable.' : 'Loading financial summary…'}</div>}
+      </section>
+      <section className="principal-report-card">
+        <div className="principal-report-card-head"><div><span className="report-kicker">ACADEMICS</span><h3>Examination activity</h3></div><ClipboardList size={19}/></div>
+        <div className="report-highlight-number">{reportData.loaded ? reportData.exams.length : '—'}<small>Exams in this academic year</small></div>
+        <div className="report-finance-lines">
+          <div><span>Upcoming</span><strong>{reportData.exams.filter((exam) => new Date(exam.scheduledAt) > new Date()).length}</strong></div>
+          <div><span>Completed</span><strong>{reportData.exams.filter((exam) => new Date(exam.scheduledAt) <= new Date()).length}</strong></div>
+        </div>
+        <p className="report-muted">Based on the active academic year's exam schedule.</p>
+      </section>
+      <section className="principal-report-card">
+        <div className="principal-report-card-head"><div><span className="report-kicker">STAFF OPERATIONS</span><h3>Leave requests</h3></div><CalendarDays size={19}/></div>
+        <div className="report-highlight-number">{reportData.loaded ? reportData.pendingLeaves.length : '—'}<small>Pending staff requests</small></div>
+        <p className="report-muted">Requests waiting for principal review.</p>
+        <button className="report-text-action" onClick={() => navigate('/module/leave')}>Review leave requests <span>→</span></button>
+      </section>
+    </div>
+    <section className="principal-report-card report-class-card">
+      <div className="principal-report-card-head"><div><span className="report-kicker">ENROLLMENT DISTRIBUTION</span><h3>Students by class</h3><p>Active enrollments grouped by class for the current academic year.</p></div><Users size={19}/></div>
+      {reportClassRows.length ? <div className="report-class-bars">{reportClassRows.map(([name, count]) => <div className="report-class-bar-row" key={name}><span>Class {name}</span><div className="report-bar-track"><i style={{ width: `${count / reportMaxClassCount * 100}%` }}/></div><strong>{count}</strong></div>)}</div> : <div className="report-unavailable">{loading ? 'Loading enrollment data…' : 'No active enrollments found for this academic year.'}</div>}
+    </section>
+    {reportData.errors > 0 && <p className="report-data-note">Some report sections could not be loaded. Refresh to try again; unavailable figures are not replaced with sample data.</p>}
   </>
 
   const renderProfile = () => <div className="profile-layout">
