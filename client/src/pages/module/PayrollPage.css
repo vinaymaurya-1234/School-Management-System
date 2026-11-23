@@ -80,3 +80,14 @@
 .payroll-table-footer{padding-top:11px}
 @media(max-width:700px){.payroll-summary{grid-template-columns:1fr 1fr}.payroll-summary article:last-child{grid-column:1/-1}.payroll-page-header{align-items:flex-start}.payroll-period-panel{padding:14px}.payroll-panel{padding:14px}}
 @media(max-width:430px){.payroll-summary{grid-template-columns:1fr}.payroll-summary article:last-child{grid-column:auto}}
+
+/* Row actions: salary setup is visible without opening employee details */
+.payroll-compact-table th:last-child,.payroll-compact-table td:last-child{width:190px;text-align:right}
+.payroll-row-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;white-space:nowrap}
+.payroll-set-salary-button,.payroll-details-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 10px;border:1px solid #dedede;border-radius:8px;background:#fff;color:#222;font-size:10px;font-weight:750;cursor:pointer}
+.payroll-set-salary-button{background:#171717;border-color:#171717;color:#fff}
+.payroll-set-salary-button:hover{background:#3c3c3c}
+.payroll-details-button:hover,.payroll-details-button.is-open{background:#f1f1f1;border-color:#aaa}
+.payroll-details-button svg{transition:transform .16s ease}
+.payroll-details-button.is-open svg{transform:rotate(180deg)}
+@media(max-width:520px){.payroll-compact-table{min-width:760px}.payroll-row-actions{gap:6px}.payroll-set-salary-button,.payroll-details-button{padding:0 8px}}
