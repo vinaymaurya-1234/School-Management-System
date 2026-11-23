@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, Check, Download, GraduationCap, Loader2, Pencil, Plus, RefreshCw, Search, Settings, Users, X, IndianRupee, ClipboardList, CalendarDays, FileSpreadsheet } from 'lucide-react'
+import { ArrowLeft, Check, Download, GraduationCap, Loader2, Pencil, Plus, RefreshCw, Search, Settings, Users, X, IndianRupee, ClipboardList, CalendarDays, FileSpreadsheet, AlertCircle, CheckCircle2, Clock3, Receipt, ArrowUpRight, BookOpen, ShieldCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import apiClient from '../../api/client'
@@ -43,7 +43,7 @@ function PrincipalModulePage({ moduleKey }) {
   const [modal, setModal] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({})
-  const [reportData, setReportData] = useState({ fees: null, exams: [], pendingLeaves: [], loaded: false })
+  const [reportData, setReportData] = useState({ fees: null, payments: [], exams: [], examProgress: {}, pendingLeaves: [], pendingAttendance: [], loaded: false })
 
   const activeYear = useMemo(() => years.find((year) => year.isActive) || years[0] || null, [years])
   const filteredSections = useMemo(() => sections.filter((section) => !selectedClass || idOf(section.class) === selectedClass), [sections, selectedClass])
@@ -88,17 +88,28 @@ function PrincipalModulePage({ moduleKey }) {
       setEnrollments(responseData(enrollmentRes, 'enrollments'))
       setSubjectMappings(responseData(subjectRes, 'subjects'))
       if (moduleKey === 'reports') {
-        const [feeResult, examResult, leaveResult] = await Promise.allSettled([
+        const [feeResult, examResult, leaveResult, attendanceResult] = await Promise.allSettled([
           apiClient.get('/fees/summary'),
           apiClient.get('/exams', { params: { academicYear: year._id } }),
           apiClient.get('/leave', { params: { status: 'pending' } }),
+          apiClient.get('/attendance/pending', { params: { academicYear: year._id } }),
         ])
+        const exams = examResult.status === 'fulfilled' ? responseData(examResult.value, 'exams') : []
+        const progressPairs = await Promise.all(exams.map(async (exam) => {
+          try {
+            const result = await apiClient.get(`/exams/${exam._id}/marks`)
+            return [exam._id, result.data.summary || null]
+          } catch { return [exam._id, null] }
+        }))
         setReportData({
           fees: feeResult.status === 'fulfilled' ? feeResult.value.data?.summary || null : null,
-          exams: examResult.status === 'fulfilled' ? responseData(examResult.value, 'exams') : [],
+          payments: feeResult.status === 'fulfilled' ? feeResult.value.data?.payments || [] : [],
+          exams,
+          examProgress: Object.fromEntries(progressPairs),
           pendingLeaves: leaveResult.status === 'fulfilled' ? responseData(leaveResult.value, 'requests') : [],
+          pendingAttendance: attendanceResult.status === 'fulfilled' ? responseData(attendanceResult.value, 'pending') : [],
           loaded: true,
-          errors: [feeResult, examResult, leaveResult].filter((item) => item.status === 'rejected').length,
+          errors: [feeResult, examResult, leaveResult, attendanceResult].filter((item) => item.status === 'rejected').length + progressPairs.filter(([, value]) => !value).length,
         })
       }
       if (!selectedClass && nextClasses[0]) setSelectedClass(nextClasses[0]._id)
@@ -341,15 +352,35 @@ function PrincipalModulePage({ moduleKey }) {
     </div>
   </>
 
-  const reportClassRows = useMemo(() => {
-    const groups = new Map()
-    enrollments.filter((item) => item.status === 'active').forEach((item) => {
-      const name = item.class?.name || 'Unassigned'
-      groups.set(name, (groups.get(name) || 0) + 1)
+  const reportExamStatus = (exam) => {
+    const summary = reportData.examProgress[exam._id]
+    if (!summary || !summary.total) return new Date(exam.scheduledAt) < new Date() ? 'Marks pending' : 'Scheduled'
+    if (summary.published === summary.total) return 'Published'
+    if (summary.approved + summary.published === summary.total) return 'Ready to publish'
+    if (summary.submitted + summary.approved + summary.published === summary.total && summary.submitted > 0) return 'Pending review'
+    if (summary.entered > 0) return 'Marks in progress'
+    return 'Marks pending'
+  }
+  const reportExamCounts = useMemo(() => {
+    const counts = { review: 0, publish: 0, published: 0, inProgress: 0, pending: 0 }
+    reportData.exams.forEach((exam) => {
+      const status = reportExamStatus(exam)
+      if (status === 'Pending review') counts.review += 1
+      else if (status === 'Ready to publish') counts.publish += 1
+      else if (status === 'Published') counts.published += 1
+      else if (status === 'Marks in progress') counts.inProgress += 1
+      else if (status === 'Marks pending') counts.pending += 1
     })
-    return [...groups.entries()].sort((a, b) => String(a[0]).localeCompare(String(b[0]), undefined, { numeric: true }))
-  }, [enrollments])
-  const reportMaxClassCount = Math.max(1, ...reportClassRows.map(([, count]) => count))
+    return counts
+  }, [reportData.exams, reportData.examProgress])
+  const reportPaymentStats = useMemo(() => {
+    const payments = reportData.payments
+    return {
+      verified: payments.filter((item) => item.status === 'verified').length,
+      pending: payments.filter((item) => ['pending_verification', 'pending_gateway'].includes(item.status)).length,
+      rejected: payments.filter((item) => ['rejected', 'reversed'].includes(item.status)).length,
+    }
+  }, [reportData.payments])
   const exportSchoolReport = () => {
     const rows = [
       ['School report', 'Value'],
@@ -362,71 +393,89 @@ function PrincipalModulePage({ moduleKey }) {
       ['Fees assigned', reportData.fees?.feesAssigned ?? 'Not available'],
       ['Fees collected', reportData.fees?.collected ?? 'Not available'],
       ['Fees outstanding', reportData.fees?.outstanding ?? 'Not available'],
-      ['Overdue fee accounts', reportData.fees?.overdueAccounts ?? 'Not available'],
-      ['Exams scheduled', reportData.exams.length],
-      ['Pending leave requests', reportData.pendingLeaves.length],
+      ['Overdue accounts', reportData.fees?.overdueAccounts ?? 'Not available'],
+      ['Exams pending review', reportExamCounts.review],
+      ['Exams ready to publish', reportExamCounts.publish],
+      ['Published exams', reportExamCounts.published],
+      ['Attendance sections pending today', reportData.pendingAttendance.length],
+      ['Staff leave requests pending', reportData.pendingLeaves.length],
     ]
     const csv = rows.map((row) => row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(',')).join('\n')
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }))
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = 'school-overview-report.csv'
+    anchor.download = 'school-management-report.csv'
     anchor.click()
     URL.revokeObjectURL(url)
   }
   const money = (value) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(value) || 0)
+  const recentReportPayments = reportData.payments.slice(0, 6)
+  const reviewQueue = reportData.exams.filter((exam) => ['Pending review', 'Ready to publish', 'Marks in progress', 'Marks pending'].includes(reportExamStatus(exam))).slice(0, 5)
   const renderReports = () => <>
-    <div className="principal-report-heading">
-      <div><span className="report-kicker">SCHOOL PERFORMANCE</span><h2>Overview & key reports</h2><p>Live figures from the school database for {activeYear?.name || 'the active academic year'}.</p></div>
+    <div className="reports-command-header">
+      <div><span className="report-kicker">PRINCIPAL CONTROL ROOM / {activeYear?.name || 'ACADEMIC YEAR'}</span><h2>School reports</h2><p>Monitor collections, academic approvals and daily operations from one place.</p></div>
       <div className="principal-report-actions">
-        <button className="secondary-btn" onClick={load} disabled={loading}><RefreshCw size={15}/> Refresh</button>
-        <button className="primary-btn" onClick={exportSchoolReport}><Download size={15}/> Export report</button>
+        <button className="secondary-btn" onClick={load} disabled={loading}><RefreshCw size={15}/> Refresh data</button>
+        <button className="primary-btn" onClick={exportSchoolReport}><Download size={15}/> Download CSV</button>
       </div>
     </div>
-    <div className="report-grid">
-      {[
-        ['Students', students.filter((item) => item.active !== false).length, 'Active student profiles', Users],
-        ['Teachers', teachers.filter((item) => item.active !== false).length, 'Active teacher profiles', GraduationCap],
-        ['Classes', classes.length, 'Academic structure', ClipboardList],
-        ['Sections', sections.length, 'Across all classes', CalendarDays],
-        ['Enrollments', enrollments.filter((item) => item.status === 'active').length, 'Active this academic year', FileSpreadsheet],
-      ].map(([label, value, detail, CardIcon]) => <article key={label}><div className="report-card-icon"><CardIcon size={17}/></div><span>{label}</span><strong>{loading ? '—' : value}</strong><small>{detail}</small></article>)}
+    <div className="reports-kpi-grid">
+      <article className="reports-kpi reports-kpi-dark"><span>FEES COLLECTED</span><strong>{loading ? '—' : money(reportData.fees?.collected)}</strong><small>Of {reportData.fees ? money(reportData.fees.feesAssigned) : '—'} assigned</small></article>
+      <article className="reports-kpi"><span>OUTSTANDING FEES</span><strong>{loading ? '—' : money(reportData.fees?.outstanding)}</strong><small>{reportData.fees?.overdueAccounts ?? '—'} overdue accounts</small></article>
+      <article className="reports-kpi"><span>MARKS TO REVIEW</span><strong>{loading ? '—' : reportExamCounts.review}</strong><small>{reportExamCounts.publish} ready to publish</small></article>
+      <article className="reports-kpi"><span>ATTENDANCE PENDING</span><strong>{loading ? '—' : reportData.pendingAttendance.length}</strong><small>Class sections not submitted today</small></article>
     </div>
-    <div className="principal-report-grid">
-      <section className="principal-report-card report-finance-card">
-        <div className="principal-report-card-head"><div><span className="report-kicker">FEE COLLECTION</span><h3>Financial overview</h3></div><IndianRupee size={19}/></div>
+    <div className="reports-main-grid">
+      <section className="reports-panel reports-finance-panel">
+        <div className="reports-panel-heading"><div><span className="report-kicker">FINANCE / COLLECTION</span><h3>Fee collection health</h3><p>Live totals from active fee accounts</p></div><span className="reports-panel-icon"><IndianRupee size={18}/></span></div>
         {reportData.fees ? <>
-          <div className="report-finance-total">{money(reportData.fees.collected)}<small>Collected</small></div>
-          <div className="report-finance-lines">
-            <div><span>Fees assigned</span><strong>{money(reportData.fees.feesAssigned)}</strong></div>
-            <div><span>Outstanding</span><strong>{money(reportData.fees.outstanding)}</strong></div>
-            <div><span>Overdue accounts</span><strong>{reportData.fees.overdueAccounts ?? 0}</strong></div>
-          </div>
-          <div className="report-progress-track"><span style={{ width: `${Math.min(100, reportData.fees.feesAssigned > 0 ? reportData.fees.collected / reportData.fees.feesAssigned * 100 : 0)}%` }}/></div>
-          <small className="report-muted">Collection progress against assigned fees</small>
-        </> : <div className="report-unavailable">{reportData.loaded ? 'Financial summary is currently unavailable.' : 'Loading financial summary…'}</div>}
+          <div className="reports-collection-value">{money(reportData.fees.collected)}<small>Collected so far</small></div>
+          <div className="reports-collection-track"><span style={{width:`${Math.min(100, reportData.fees.feesAssigned > 0 ? reportData.fees.collected / reportData.fees.feesAssigned * 100 : 0)}%`}}/></div>
+          <div className="reports-finance-metrics"><div><span>Assigned</span><strong>{money(reportData.fees.feesAssigned)}</strong></div><div><span>Outstanding</span><strong>{money(reportData.fees.outstanding)}</strong></div><div><span>Overdue accounts</span><strong>{reportData.fees.overdueAccounts ?? 0}</strong></div></div>
+        </> : <div className="report-unavailable">{reportData.loaded ? 'Fee summary could not be loaded.' : 'Loading fee summary…'}</div>}
+        <div className="reports-panel-footer"><span>Collection rate</span><strong>{reportData.fees && reportData.fees.feesAssigned > 0 ? `${(reportData.fees.collected / reportData.fees.feesAssigned * 100).toFixed(1)}%` : '—'}</strong></div>
       </section>
-      <section className="principal-report-card">
-        <div className="principal-report-card-head"><div><span className="report-kicker">ACADEMICS</span><h3>Examination activity</h3></div><ClipboardList size={19}/></div>
-        <div className="report-highlight-number">{reportData.loaded ? reportData.exams.length : '—'}<small>Exams in this academic year</small></div>
-        <div className="report-finance-lines">
-          <div><span>Upcoming</span><strong>{reportData.exams.filter((exam) => new Date(exam.scheduledAt) > new Date()).length}</strong></div>
-          <div><span>Completed</span><strong>{reportData.exams.filter((exam) => new Date(exam.scheduledAt) <= new Date()).length}</strong></div>
+      <section className="reports-panel">
+        <div className="reports-panel-heading"><div><span className="report-kicker">ACADEMICS / RESULTS</span><h3>Assessment workflow</h3><p>Exam marks that need attention</p></div><span className="reports-panel-icon"><BookOpen size={18}/></span></div>
+        <div className="reports-workflow-list">
+          <div><span className="workflow-dot is-warning"/><span>Pending principal review</span><strong>{loading ? '—' : reportExamCounts.review}</strong></div>
+          <div><span className="workflow-dot is-neutral"/><span>Ready to publish</span><strong>{loading ? '—' : reportExamCounts.publish}</strong></div>
+          <div><span className="workflow-dot is-success"/><span>Published</span><strong>{loading ? '—' : reportExamCounts.published}</strong></div>
+          <div><span className="workflow-dot"/><span>Marks in progress</span><strong>{loading ? '—' : reportExamCounts.inProgress}</strong></div>
         </div>
-        <p className="report-muted">Based on the active academic year's exam schedule.</p>
+        <button className="reports-link-action" onClick={() => navigate('/module/results')}>Open results & publication <ArrowUpRight size={14}/></button>
       </section>
-      <section className="principal-report-card">
-        <div className="principal-report-card-head"><div><span className="report-kicker">STAFF OPERATIONS</span><h3>Leave requests</h3></div><CalendarDays size={19}/></div>
-        <div className="report-highlight-number">{reportData.loaded ? reportData.pendingLeaves.length : '—'}<small>Pending staff requests</small></div>
-        <p className="report-muted">Requests waiting for principal review.</p>
-        <button className="report-text-action" onClick={() => navigate('/module/leave')}>Review leave requests <span>→</span></button>
+      <section className="reports-panel">
+        <div className="reports-panel-heading"><div><span className="report-kicker">DAILY OPERATIONS</span><h3>Attendance & staff</h3><p>Items waiting for today's follow-up</p></div><span className="reports-panel-icon"><CalendarDays size={18}/></span></div>
+        <div className="reports-ops-summary">
+          <div><span className="reports-ops-icon"><Clock3 size={16}/></span><span><strong>{loading ? '—' : reportData.pendingAttendance.length} sections</strong><small>Attendance not submitted today</small></span></div>
+          <div><span className="reports-ops-icon"><AlertCircle size={16}/></span><span><strong>{loading ? '—' : reportData.pendingLeaves.length} requests</strong><small>Staff leave awaiting decision</small></span></div>
+        </div>
+        <div className="reports-panel-actions"><button className="reports-link-action" onClick={() => navigate('/module/attendance')}>Attendance register <ArrowUpRight size={14}/></button><button className="reports-link-action" onClick={() => navigate('/module/leave')}>Review leave <ArrowUpRight size={14}/></button></div>
       </section>
     </div>
-    <section className="principal-report-card report-class-card">
-      <div className="principal-report-card-head"><div><span className="report-kicker">ENROLLMENT DISTRIBUTION</span><h3>Students by class</h3><p>Active enrollments grouped by class for the current academic year.</p></div><Users size={19}/></div>
-      {reportClassRows.length ? <div className="report-class-bars">{reportClassRows.map(([name, count]) => <div className="report-class-bar-row" key={name}><span>Class {name}</span><div className="report-bar-track"><i style={{ width: `${count / reportMaxClassCount * 100}%` }}/></div><strong>{count}</strong></div>)}</div> : <div className="report-unavailable">{loading ? 'Loading enrollment data…' : 'No active enrollments found for this academic year.'}</div>}
-    </section>
-    {reportData.errors > 0 && <p className="report-data-note">Some report sections could not be loaded. Refresh to try again; unavailable figures are not replaced with sample data.</p>}
+    <div className="reports-detail-grid">
+      <section className="reports-panel reports-table-panel">
+        <div className="reports-panel-heading"><div><span className="report-kicker">PAYMENT REGISTER</span><h3>Recent fee transactions</h3><p>Latest payment records returned by the finance service</p></div><span className="reports-panel-icon"><Receipt size={18}/></span></div>
+        <div className="reports-payment-status">
+          <span><i className="is-success"/> {reportPaymentStats.verified} verified</span>
+          <span><i className="is-warning"/> {reportPaymentStats.pending} awaiting verification</span>
+          <span><i className="is-muted"/> {reportPaymentStats.rejected} rejected / reversed</span>
+        </div>
+        {loading ? <div className="report-unavailable">Loading payment register…</div> : recentReportPayments.length ? <div className="reports-table-wrap"><table className="reports-table"><thead><tr><th>Student</th><th>Payment date</th><th>Method</th><th>Status</th><th>Amount</th></tr></thead><tbody>{recentReportPayments.map((payment) => <tr key={payment._id}><td><strong>{payment.student?.name || 'Student'}</strong><small>{payment.receiptNumber || 'Receipt pending'}</small></td><td>{new Date(payment.verifiedAt || payment.createdAt).toLocaleDateString('en-IN')}</td><td>{payment.method === 'online' ? 'Online' : String(payment.offlineMethod || payment.method || '—').replaceAll('_', ' ')}</td><td><span className={`reports-status status-${payment.status || 'unknown'}`}>{String(payment.status || 'unknown').replaceAll('_', ' ')}</span></td><td className="reports-amount">{money(payment.amount)}</td></tr>)}</tbody></table></div> : <div className="report-unavailable"><Receipt size={20}/><strong>No fee transactions yet</strong><span>Transactions will appear when payments are recorded.</span></div>}
+        <button className="reports-link-action" onClick={() => navigate('/module/fees')}>Open fee management <ArrowUpRight size={14}/></button>
+      </section>
+      <section className="reports-panel reports-queue-panel">
+        <div className="reports-panel-heading"><div><span className="report-kicker">ACTION QUEUE</span><h3>Academic items to follow up</h3><p>Exams requiring progress or approval</p></div><span className="reports-panel-icon"><ClipboardList size={18}/></span></div>
+        {loading ? <div className="report-unavailable">Loading exam workflow…</div> : reviewQueue.length ? <div className="reports-exam-queue">{reviewQueue.map((exam) => <div key={exam._id}><span className="reports-exam-date">{new Date(exam.scheduledAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</span><span className="reports-exam-info"><strong>{exam.subjectName}</strong><small>Class {exam.class?.name || '—'} · Section {exam.section?.name || '—'}</small></span><span className={`reports-status status-${reportExamStatus(exam).toLowerCase().replaceAll(' ','-')}`}>{reportExamStatus(exam)}</span></div>)}</div> : <div className="report-unavailable"><CheckCircle2 size={20}/><strong>No pending exam actions</strong><span>There are no outstanding marks workflows in this academic year.</span></div>}
+        <button className="reports-link-action" onClick={() => navigate('/module/results')}>Manage exam results <ArrowUpRight size={14}/></button>
+      </section>
+    </div>
+    <div className="reports-bottom-strip">
+      <div><span className="report-kicker">SCHOOL DIRECTORY</span><strong>{students.filter((item) => item.active !== false).length} active students</strong><small>{teachers.filter((item) => item.active !== false).length} active teachers · {classes.length} classes · {sections.length} sections</small></div>
+      <div><span className="report-kicker">REPORT PERIOD</span><strong>{activeYear?.name || 'No active academic year'}</strong><small>{enrollments.filter((item) => item.status === 'active').length} active enrollments</small></div>
+    </div>
+    {reportData.errors > 0 && <p className="report-data-note">Some report sections could not be loaded. Refresh to retry; unavailable figures are not replaced with sample data.</p>}
   </>
 
   const renderProfile = () => <div className="profile-layout">
