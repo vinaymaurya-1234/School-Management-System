@@ -171,11 +171,17 @@ function PayrollPage() {
 
     <section className="payroll-period-panel">
       <div className="payroll-period-copy"><span className="payroll-eyebrow">PAY PERIOD</span><h2>{monthLabel}</h2> </div>
-      <div className="payroll-period-controls"><label>Month<select value={month} onChange={e => setMonth(e.target.value)}>{Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={String(i + 1)}>{new Date(2026, i, 1).toLocaleDateString('en-IN', { month: 'long' })}</option>)}</select></label><label>Year<select value={year} onChange={e => setYear(e.target.value)}>{Array.from({ length: 7 }, (_, i) => Number(defaultYear) - 3 + i).map(y => <option key={y} value={String(y)}>{y}</option>)}</select></label></div>
+      <div className="payroll-period-controls"><label>Month<select value={month} onChange={e => setMonth(e.target.value)}>{Array.from({ length: 12 }, (_, i) => <option key={i + 1} value={String(i + 1)}>{new Date(Number(defaultYear), i, 1).toLocaleDateString('en-IN', { month: 'long' })}</option>)}</select></label><label>Year<select value={year} onChange={e => setYear(e.target.value)}>{Array.from({ length: 7 }, (_, i) => Number(defaultYear) - 3 + i).map(y => <option key={y} value={String(y)}>{y}</option>)}</select></label></div>
       <div className="payroll-period-actions">{isPrincipal && preview && <button type="button" className="payroll-primary-button" onClick={generate} disabled={saving || loading || !items.length || totals.missing > 0}>{saving ? 'Processing…' : 'Generate payroll'}</button>}{isPrincipal && run?.status === 'draft' && <button type="button" className="payroll-primary-button" onClick={approve} disabled={saving}>{saving ? 'Processing…' : 'Approve payroll'}</button>}</div>
     </section>
 
  
+    <section className="payroll-summary" aria-label="Payroll summary">
+      <article><span>Staff in payroll</span><strong>{items.length}</strong></article>
+      <article><span>Total net payable</span><strong>{money(totals.net)}</strong></article>
+      <article><span>Amount paid</span><strong>{money(totals.paid)}</strong></article>
+    </section>
+
     {staffOpen && isPrincipal && <section className="payroll-panel">
       <div className="payroll-panel-heading"><div><h2>Add staff</h2><p>Search and select an existing school staff member.</p></div><button className="payroll-icon-button" type="button" onClick={() => { setStaffOpen(false); setSelectedCandidate(null) }} aria-label="Close"><X size={18}/></button></div>
       <div className="payroll-staff-picker">
@@ -195,14 +201,14 @@ function PayrollPage() {
 
     <section className="payroll-panel">
       <div className="payroll-toolbar"><div><h2>Staff salary</h2><p>View salary details and record payments.</p></div><label className="payroll-search"><Search size={17}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Filter staff by name or employee ID…"/></label></div>
-      {loading ? <div className="payroll-empty"><RefreshCw size={22}/><strong>Loading payroll…</strong></div> : !items.length ? <div className="payroll-empty"><CalendarDays size={24}/><strong>No staff records found</strong><span>Add staff profiles and set salary structures to start.</span></div> : <div className="payroll-table-wrap"><table className="payroll-table payroll-compact-table"><thead><tr><th>Employee</th><th>Attendance</th><th>Deductions</th><th>Net payable</th><th aria-label="Salary slip details"></th></tr></thead><tbody>
+      {loading ? <div className="payroll-empty"><RefreshCw size={22}/><strong>Loading payroll…</strong></div> : !items.length ? <div className="payroll-empty"><CalendarDays size={24}/><strong>No staff records found</strong><span>Add staff profiles and set salary structures to start.</span></div> : <div className="payroll-table-wrap"><table className="payroll-table payroll-compact-table"><thead><tr><th>Employee</th><th>Attendance</th><th>Net salary</th><th>Payment status</th><th aria-label="Salary slip details"></th></tr></thead><tbody>
         {items.filter(x => !query.trim() || `${x.name} ${x.employeeId}`.toLowerCase().includes(query.trim().toLowerCase())).map((item, index) => {
           const staff = employees.find(x => String(x.id) === String(item.employee))
           const isMissing = item.needsSalarySetup
           const paymentStatus = item.paymentStatus || (preview ? 'Preview' : 'unpaid')
           const isExpanded = expandedItem === (item._id || item.employee || index)
           const rowKey = item._id || item.employee || index
-          return <Fragment key={rowKey}><tr className={isExpanded ? 'payroll-employee-row is-expanded' : 'payroll-employee-row'}><td><strong>{item.name}</strong><span className="payroll-table-subtext">{item.employeeId} · {item.designation || 'Staff'}</span></td><td><span className="payroll-count">{item.presentDays ?? '—'} present</span><span className="payroll-table-subtext">{item.absentDays ?? '—'} absent · {item.lateDays ?? '—'} late</span></td><td>{isMissing ? '—' : money(item.totalDeductions)}</td><td><strong>{isMissing ? 'Salary setup needed' : money(item.netPayable)}</strong><span className="payroll-table-subtext">{!preview && `${money(item.paidAmount)} paid`}</span></td><td><button type="button" className="payroll-slip-toggle" aria-label={isExpanded ? `Hide ${item.name} salary slip` : `View ${item.name} salary slip`} aria-expanded={isExpanded} onClick={() => setExpandedItem(isExpanded ? null : rowKey)}><span>{isExpanded ? 'Hide slip' : 'View slip'}</span>{isExpanded ? <X size={16}/> : <span className="payroll-chevron">⌄</span>}</button></td></tr>
+          return <Fragment key={rowKey}><tr className={isExpanded ? 'payroll-employee-row is-expanded' : 'payroll-employee-row'}><td><strong>{item.name}</strong><span className="payroll-table-subtext">{item.employeeId} · {item.designation || 'Staff'}</span></td><td><span className="payroll-count">{item.presentDays ?? '—'} present</span><span className="payroll-table-subtext">{item.absentDays ?? '—'} absent</span></td><td><strong>{isMissing ? 'Salary setup needed' : money(item.netPayable)}</strong></td><td><span className={`payroll-status ${isMissing ? 'payroll-status-missing' : item.paymentStatus === 'paid' ? 'payroll-status-ready' : ''}`}>{isMissing ? 'Setup needed' : item.paymentStatus === 'paid' ? 'Paid' : Number(item.paidAmount || 0) > 0 ? 'Partially paid' : run?.status === 'approved' ? 'Unpaid' : run?.status === 'draft' ? 'Draft' : 'Preview'}</span></td><td><button type="button" className="payroll-slip-toggle" aria-label={isExpanded ? `Hide ${item.name} salary slip` : `View ${item.name} salary slip`} aria-expanded={isExpanded} onClick={() => setExpandedItem(isExpanded ? null : rowKey)}><span>{isExpanded ? 'Hide' : 'View slip'}</span>{isExpanded ? <X size={16}/> : <span className="payroll-chevron">⌄</span>}</button></td></tr>
           {isExpanded && <tr key={`${rowKey}-details`} className="payroll-slip-detail-row"><td colSpan={5}><div className="payroll-slip-details">
             <div className="payroll-slip-heading"><div><span className="payroll-eyebrow">SALARY SLIP · {monthLabel}</span><h3>{item.name}</h3><p>{item.employeeId} · {item.designation || 'Staff'} · {paymentStatus}</p></div><div className="payroll-slip-net"><span>Net payable</span><strong>{isMissing ? 'Salary setup needed' : money(item.netPayable)}</strong></div></div>
             <div className="payroll-slip-grid">
@@ -216,7 +222,7 @@ function PayrollPage() {
         })}
       </tbody></table></div>}
       {totals.missing > 0 && <p className="payroll-inline-warning"><CircleAlert size={16}/> {totals.missing} staff member(s) need a salary structure effective for this month before payroll can be generated.</p>}
-      <div className="payroll-table-footer">Select an employee row’s arrow to open their salary slip, including attendance, leave, deductions, net pay and payment status.</div>
+      <div className="payroll-table-footer">Open View slip for attendance, leave, salary breakdown and payment details.</div>
     </section>
 
     {salaryTarget && <div className="payroll-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !saving) setSalaryTarget(null) }}>
